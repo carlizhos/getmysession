@@ -1,73 +1,84 @@
-# Welcome to your Lovable project
+# Mindful Flow
 
-## Project info
+Mindful Flow es una plataforma integral de gestión diseñada para profesionales de la salud mental y bienestar. Esta aplicación moderna y responsiva facilita la administración de pacientes, citas, finanzas y notas, todo potenciado por un asistente de inteligencia artificial.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Características Principales
 
-## How can I edit this code?
+*   **Panel de Control (Dashboard)**: Una vista general intuitiva con métricas clave y accesos directos.
+*   **Gestión de Pacientes**: Administración eficiente de perfiles y registros de pacientes.
+*   **Calendario Inteligente**: Programación y seguimiento de citas y sesiones.
+*   **Asistente IA**: Herramienta de soporte inteligente para ayudar en la gestión diaria.
+*   **Finanzas**: Seguimiento detallado de ingresos y reportes financieros.
+*   **Notas**: Sistema de notas para sesiones y recordatorios personales.
 
-There are several ways of editing your application.
+## 🛠️ Tecnologías Utilizadas
 
-**Use Lovable**
+Este proyecto está construido con un stack tecnológico moderno para asegurar rendimiento y escalabilidad:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+*   **Core**: [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [TypeScript](https://www.typescriptlang.org/)
+*   **Estilos**: [Tailwind CSS](https://tailwindcss.com/)
+*   **Componentes UI**: [shadcn/ui](https://ui.shadcn.com/) (basado en Radix UI)
+*   **Enrutamiento**: [React Router](https://reactrouter.com/)
+*   **Gestión de Estado/Data**: [TanStack Query (React Query)](https://tanstack.com/query/latest)
+*   **Gráficos**: [Recharts](https://recharts.org/)
+*   **Formularios y Validación**: [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
+*   **Iconos**: [Lucide React](https://lucide.dev/)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📦 Instalación y Uso
 
-**Use your preferred IDE**
+Sigue estos pasos para ejecutar el proyecto localmente:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerrequisitos
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+*   Node.js (versión 18 o superior recomendada)
+*   npm (incluido con Node.js)
 
-Follow these steps:
+### Pasos
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1.  **Clonar el repositorio**
+    ```bash
+    git clone <TU_URL_DEL_REPOSITORIO>
+    cd mindful-flow
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2.  **Instalar dependencias**
+    ```bash
+    npm install
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3.  **Iniciar el servidor de desarrollo**
+    ```bash
+    npm run dev
+    ```
+    La aplicación estará disponible en `http://localhost:8080` (o el puerto que indique la consola).
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+4.  **Construir para producción**
+    ```bash
+    npm run build
+    ```
+
+## 📂 Estructura del Proyecto
+
+```
+src/
+├── components/   # Componentes reutilizables y de UI (shadcn)
+├── hooks/        # Hooks personalizados de React
+├── lib/          # Utilidades y funciones auxiliares
+├── pages/        # Componentes de página (Vistas principales)
+│   ├── Dashboard.tsx
+│   ├── Patients.tsx
+│   ├── Calendar.tsx
+│   ├── AIAssistant.tsx
+│   ├── Notes.tsx
+│   └── Finance.tsx
+├── App.tsx       # Configuración principal de rutas
+└── main.tsx      # Punto de entrada de la aplicación
 ```
 
-**Edit a file directly in GitHub**
+## 🤝 Contribución
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Si deseas contribuir a este proyecto, por favor crea un fork y envía un Pull Request con tus mejoras.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Desarrollado con ❤️ para mejorar el flujo de trabajo en salud mental.

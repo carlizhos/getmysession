@@ -1,21 +1,30 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  Brain, 
-  FileText, 
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Brain,
+  FileText,
   DollarSign,
   Moon,
   Sun,
   Menu,
   X,
-  Heart
+  Heart,
+  Settings,
+  LogOut,
+  Kanban,
+  FileSignature
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useDarkMode from '@/hooks/useDarkMode';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import useInactivityTimer from '@/hooks/useInactivityTimer';
+import InactivityModal from '@/components/auth/InactivityModal';
+import { supabase } from '@/lib/supabase';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -23,6 +32,7 @@ const navigation = [
   { name: 'Calendario', href: '/calendar', icon: Calendar },
   { name: 'IA Asistente', href: '/ai-assistant', icon: Brain },
   { name: 'Notas Clínicas', href: '/notes', icon: FileText },
+  { name: 'Consentimientos', href: '/consents', icon: FileSignature },
   { name: 'Finanzas', href: '/finance', icon: DollarSign },
 ];
 
@@ -30,16 +40,96 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const INACTIVITY_SECONDS = 30;
+const COUNTDOWN_SECONDS = 30;
+
 const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showInactivityModal, setShowInactivityModal] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleWarning = useCallback(() => {
+    setShowInactivityModal(true);
+  }, []);
+
+  const handleTimeout = useCallback(async () => {
+    setShowInactivityModal(false);
+    await signOut('timeout');
+    toast.error('Sesión cerrada por inactividad', { duration: 5000 });
+  }, [signOut]);
+
+  const { extendSession } = useInactivityTimer({
+    inactivitySeconds: INACTIVITY_SECONDS,
+    countdownSeconds: COUNTDOWN_SECONDS,
+    onWarning: handleWarning,
+    onTimeout: handleTimeout,
+  });
+
+  const handleContinueSession = useCallback(async () => {
+    setShowInactivityModal(false);
+    extendSession();
+    if (user) {
+      await supabase.from('session_logs').insert({
+        user_id: user.id,
+        email: user.email ?? '',
+        event: 'session_extended',
+        user_agent: navigator.userAgent.slice(0, 300),
+      });
+    }
+  }, [extendSession, user]);
+
+  // Contar campos del perfil pendientes por llenar
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('full_name, cedula_profesional, especialidad, institucion_formadora')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        const fields = [
+          data?.full_name,
+          data?.cedula_profesional,
+          data?.especialidad,
+          data?.institucion_formadora,
+        ];
+        setPendingCount(fields.filter(v => !v || v.trim() === '').length);
+      });
+  }, [user, location.pathname]); // re-evaluar cuando sale de /settings
+
+  // Tracking de páginas visitadas
+  useEffect(() => {
+    if (!user) return;
+    const PAGE_NAMES: Record<string, string> = {
+      '/': 'Dashboard',
+      '/patients': 'Pacientes',
+      '/pipeline': 'Pipeline',
+      '/calendar': 'Calendario',
+      '/ai-assistant': 'IA Asistente',
+      '/notes': 'Notas Clínicas',
+      '/finance': 'Finanzas',
+      '/settings': 'Configuración',
+    };
+    const pageName = PAGE_NAMES[location.pathname] ?? location.pathname;
+    supabase.from('page_views').insert({
+      user_id: user.id,
+      email: user.email ?? '',
+      page_path: location.pathname,
+      page_name: pageName,
+    }).then(({ error }) => {
+      if (error) console.warn('[page_views] Error al registrar vista:', error.message);
+    });
+  }, [location.pathname, user]);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -60,9 +150,9 @@ const Layout = ({ children }: LayoutProps) => {
               <h1 className="text-lg font-semibold text-sidebar-foreground">MindCare</h1>
               <p className="text-xs text-muted-foreground">Pro</p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon-sm" 
+            <Button
+              variant="ghost"
+              size="icon-sm"
               className="ml-auto lg:hidden"
               onClick={() => setSidebarOpen(false)}
             >
@@ -81,8 +171,8 @@ const Layout = ({ children }: LayoutProps) => {
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft" 
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                   )}
                 >
@@ -96,8 +186,9 @@ const Layout = ({ children }: LayoutProps) => {
             })}
           </nav>
 
-          {/* Dark mode toggle */}
-          <div className="border-t border-sidebar-border p-4">
+          {/* User Profile Section */}
+          <div className="border-t border-sidebar-border p-4 space-y-3">
+            {/* Dark mode toggle */}
             <Button
               variant="ghost"
               className="w-full justify-start gap-3"
@@ -114,6 +205,60 @@ const Layout = ({ children }: LayoutProps) => {
                   <span>Modo Oscuro</span>
                 </>
               )}
+            </Button>
+
+
+            {/* Settings Button */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3"
+              onClick={() => {
+                setSidebarOpen(false);
+                navigate('/settings');
+              }}
+            >
+              <div className="relative">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white leading-none">
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
+              <span>Configuración</span>
+              {pendingCount > 0 && (
+                <span className="ml-auto text-[10px] font-medium text-destructive bg-destructive/10 rounded-full px-1.5 py-0.5 leading-none">
+                  Incompleto
+                </span>
+              )}
+            </Button>
+
+            {/* User Info */}
+            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
+                {user?.user_metadata?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user?.user_metadata?.full_name || 'Usuario'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+
+            {/* Logout Button - At the bottom */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={async () => {
+                await signOut();
+                toast.success('Sesión cerrada correctamente');
+              }}
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Cerrar Sesión</span>
             </Button>
           </div>
         </div>
@@ -143,6 +288,14 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+
+      {/* Modal HIPAA de inactividad */}
+      <InactivityModal
+        open={showInactivityModal}
+        countdownSeconds={COUNTDOWN_SECONDS}
+        onContinue={handleContinueSession}
+        onLogout={() => { setShowInactivityModal(false); signOut('logout'); }}
+      />
     </div>
   );
 };

@@ -1,9 +1,9 @@
 // Mock data for the clinical management platform
-import { 
-  CalendarDays, 
-  Users, 
-  Brain, 
-  FileText, 
+import {
+  CalendarDays,
+  Users,
+  Brain,
+  FileText,
   DollarSign,
   TrendingUp,
   Clock,
@@ -271,17 +271,107 @@ export const tagColors: Record<string, string> = {
 };
 
 export const reportFormats = [
-  { value: 'SOAP', label: 'SOAP', description: 'Subjetivo, Objetivo, Análisis, Plan' },
-  { value: 'BIRP', label: 'BIRP', description: 'Comportamiento, Intervención, Respuesta, Plan' },
-  { value: 'DAP', label: 'DAP', description: 'Datos, Evaluación, Plan' },
-  { value: 'GIRP', label: 'GIRP', description: 'Objetivo, Intervención, Respuesta, Plan' },
-  { value: 'TCC', label: 'TCC', description: 'Pensamiento, Emoción, Conducta' },
-  { value: 'humanista', label: 'Humanista/Gestalt', description: 'Enfoque experiencial' },
-  { value: 'psicodinamico', label: 'Psicodinámico', description: 'Exploración del inconsciente' },
-  { value: 'anamnesis', label: 'Anamnesis', description: 'Historia clínica completa' },
-  { value: 'MSE', label: 'Examen Estado Mental', description: 'MSE estructurado' },
-  { value: 'psicometrico', label: 'Informe Psicométrico', description: 'Resultados de evaluación' },
-  { value: 'libre', label: 'Formato Libre', description: 'Sin estructura predefinida' },
+  // Therapeutic Approaches
+  {
+    value: 'tcc-clasica',
+    label: 'TCC Clásica',
+    description: 'Terapia Cognitivo-Conductual clásica',
+    keywords: ['Pensamientos automáticos', 'Conducta observable', 'Emoción asociada', 'Evidencia/reestructuración', 'Tarea terapéutica']
+  },
+  {
+    value: 'tcc-tercera-ola',
+    label: 'TCC Tercera Ola',
+    description: 'ACT, DBT, mindfulness, compasión',
+    keywords: ['Aceptación', 'Valores', 'Regulación emocional', 'Función de la conducta', 'Conciencia plena']
+  },
+  {
+    value: 'psicodinamica',
+    label: 'Psicodinámica',
+    description: 'Enfoque psicoanalítico',
+    keywords: ['Conflicto intrapsíquico', 'Transferencia', 'Defensas', 'Historia temprana', 'Patrones relacionales']
+  },
+  {
+    value: 'humanista-existencial',
+    label: 'Humanista-Existencial',
+    description: 'Gestalt, Rogers, Logoterapia',
+    keywords: ['Experiencia subjetiva', 'Autenticidad', 'Aquí y ahora', 'Necesidad emocional', 'Sentido personal']
+  },
+  {
+    value: 'sistemica-familiar',
+    label: 'Sistémica/Familiar',
+    description: 'Enfoque sistémico',
+    keywords: ['Sistema', 'Roles', 'Límites', 'Patrones de interacción', 'Comunicación']
+  },
+  {
+    value: 'neuropsicologica',
+    label: 'Neuropsicológica',
+    description: 'Desarrollo y funciones ejecutivas',
+    keywords: ['Función ejecutiva', 'Edad madurativa', 'Habilidades adaptativas', 'Regulación', 'Generalización']
+  },
+  {
+    value: 'experiencial-corporal',
+    label: 'Experiencial/Corporal',
+    description: 'Enfoque somático',
+    keywords: ['Sensación corporal', 'Activación', 'Descarga emocional', 'Presencia', 'Integración']
+  },
+  {
+    value: 'integrativa',
+    label: 'Integrativa',
+    description: 'Enfoque integrador',
+    keywords: ['Formulación de caso', 'Objetivo terapéutico', 'Técnicas combinadas', 'Evidencia clínica', 'Flexibilidad']
+  },
+
+  // Interview Formats
+  {
+    value: 'entrevista-estructurada',
+    label: 'Entrevista Estructurada',
+    description: 'Formato estructurado',
+    keywords: ['Motivo', 'Síntomas', 'Frecuencia', 'Intensidad', 'Funcionalidad']
+  },
+  {
+    value: 'entrevista-semiestructurada',
+    label: 'Entrevista Semi-estructurada',
+    description: 'Formato semi-estructurado',
+    keywords: ['Motivo', 'Historia', 'Patrones', 'Recursos', 'Objetivos']
+  },
+  {
+    value: 'entrevista-abierta',
+    label: 'Entrevista Abierta',
+    description: 'Formato libre/abierto',
+    keywords: ['Narrativa', 'Afecto', 'Significado', 'Asociación', 'Emergente']
+  },
+
+  // Population-Specific
+  {
+    value: 'adultos',
+    label: 'Adultos',
+    description: 'Enfoque para población adulta',
+    keywords: ['Insight', 'Autonomía', 'Responsabilidad', 'Creencias', 'Regulación']
+  },
+  {
+    value: 'ninos',
+    label: 'Niños',
+    description: 'Enfoque para población infantil',
+    keywords: ['Juego', 'Conducta', 'Regulación', 'Vínculo', 'Desarrollo']
+  },
+  {
+    value: 'adolescentes',
+    label: 'Adolescentes',
+    description: 'Enfoque para adolescentes',
+    keywords: ['Identidad', 'Autonomía', 'Impulsividad', 'Pares', 'Emoción']
+  },
+  {
+    value: 'familiar',
+    label: 'Familiar',
+    description: 'Terapia familiar',
+    keywords: ['Sistema', 'Roles', 'Límites', 'Comunicación', 'Ciclos']
+  },
+  {
+    value: 'pareja',
+    label: 'Pareja',
+    description: 'Terapia de pareja',
+    keywords: ['Vínculo', 'Conflicto', 'Comunicación', 'Acuerdos', 'Intimidad']
+  },
 ];
 
 export const navItems = [
