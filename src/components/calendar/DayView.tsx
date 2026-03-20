@@ -7,16 +7,32 @@ interface DayViewProps {
     currentDate: Date;
     appointments: any[];
     getStatusColor: (status: string) => string;
+    getChipStyle?: (apt: any) => string;
 }
 
-const DayView = ({ currentDate, appointments, getStatusColor }: DayViewProps) => {
+const STATUS_DOT: Record<string, string> = {
+    scheduled: 'bg-blue-500',
+    confirmed: 'bg-green-500',
+    pending: 'bg-yellow-400',
+    completed: 'bg-violet-500',
+    cancelled: 'bg-red-500',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+    scheduled: 'Agendada',
+    confirmed: 'Confirmada',
+    pending: 'En espera',
+    completed: 'Completada',
+    cancelled: 'Cancelada',
+};
+
+const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle }: DayViewProps) => {
     const timeSlots = Array.from({ length: 24 }, (_, i) => i); // 0:00 to 23:00
     const now = new Date();
     const isCurrentDay = isToday(currentDate);
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
-    // Calculate position of time indicator (percentage within the hour)
     const timeIndicatorPosition = isCurrentDay ? (currentMinute / 60) * 100 : null;
 
     const getAppointmentsForHour = (hour: number) => {
@@ -24,6 +40,9 @@ const DayView = ({ currentDate, appointments, getStatusColor }: DayViewProps) =>
             apt => parseISO(apt.startTime).getHours() === hour
         );
     };
+
+    const chipStyle = (apt: any) =>
+        getChipStyle ? getChipStyle(apt) : getStatusColor(apt.status);
 
     return (
         <div className="max-h-[600px] overflow-y-auto scrollbar-zen relative">
@@ -57,12 +76,17 @@ const DayView = ({ currentDate, appointments, getStatusColor }: DayViewProps) =>
                                     <div
                                         key={apt.id}
                                         className={cn(
-                                            "rounded-lg border p-3 cursor-pointer transition-all hover:shadow-soft",
-                                            getStatusColor(apt.status)
+                                            "rounded-lg border p-3 cursor-pointer transition-all hover:shadow-soft space-y-1",
+                                            chipStyle(apt),
+                                            apt.status === 'cancelled' && 'opacity-60'
                                         )}
                                     >
+                                        {/* Patient + status dot */}
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 font-medium">
+                                            <div className="flex items-center gap-2 font-semibold">
+                                                {apt.status && STATUS_DOT[apt.status] && (
+                                                    <span className={cn('h-2 w-2 rounded-full flex-shrink-0', STATUS_DOT[apt.status])} />
+                                                )}
                                                 <User className="h-4 w-4" />
                                                 <span>{apt.patientName}</span>
                                             </div>
@@ -71,8 +95,24 @@ const DayView = ({ currentDate, appointments, getStatusColor }: DayViewProps) =>
                                                 <span>{format(parseISO(apt.startTime), 'h:mm a')}</span>
                                             </div>
                                         </div>
-                                        {apt.type && (
-                                            <p className="text-xs mt-1 opacity-75">{apt.type}</p>
+
+                                        {/* Type + status badge */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {apt.type && (
+                                                <p className="text-xs opacity-75">{apt.type}</p>
+                                            )}
+                                            {apt.status && STATUS_LABEL[apt.status] && (
+                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-black/10 dark:bg-white/10">
+                                                    {STATUS_LABEL[apt.status]}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Notes */}
+                                        {apt.notes && (
+                                            <p className="text-xs opacity-60 italic border-t border-current/10 pt-1 mt-1 line-clamp-2">
+                                                {apt.notes}
+                                            </p>
                                         )}
                                     </div>
                                 ))}

@@ -43,11 +43,14 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
         fetchPatients();
     }, []);
 
-    // Filtrar pacientes según búsqueda
-    const filteredPatients = patients.filter(patient =>
-        (patient.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (patient.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-    );
+    // Filtrar pacientes solo si hay al menos 3 letras
+    const showSuggestions = searchQuery.trim().length >= 3;
+    const filteredPatients = showSuggestions 
+        ? patients.filter(patient =>
+            (patient.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (patient.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+          )
+        : [];
 
     const handleSelect = (patient: Patient) => {
         setSelectedPatientName(patient.name);
@@ -55,6 +58,13 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
         setOpen(false);
         setSearchQuery('');
     };
+
+    let emptyMessage = "No se encontraron pacientes.";
+    if (searchQuery.trim().length === 0) {
+        emptyMessage = "Escribe al menos 3 letras para buscar un paciente...";
+    } else if (searchQuery.trim().length < 3) {
+        emptyMessage = "Sigue escribiendo para buscar...";
+    }
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -81,7 +91,9 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
             >
                 <Command shouldFilter={false}>
                     <CommandList>
-                        <CommandEmpty>No se encontraron pacientes.</CommandEmpty>
+                        <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                            {emptyMessage}
+                        </CommandEmpty>
                         <CommandGroup>
                             {filteredPatients.map((patient) => (
                                 <CommandItem

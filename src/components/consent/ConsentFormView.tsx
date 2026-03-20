@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
     Select,
@@ -13,60 +12,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import SignaturePad from '@/components/consent/SignaturePad';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
-import { FileSignature, Download, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
+import { FileSignature, Download, ShieldCheck, Loader2, CheckCircle2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-
-// ── Textos de consentimiento por tipo ──────────────────────────────────────
-const CONSENT_TEXTS: Record<string, { title: string; body: string }> = {
-    general: {
-        title: 'Consentimiento Informado General',
-        body: `Por medio del presente documento, yo, el/la abajo firmante, en pleno uso de mis facultades mentales y de forma voluntaria, otorgo mi consentimiento para recibir servicios de salud mental por parte del profesional arriba indicado.
-
-DECLARO que:
-1. He sido informado/a de manera clara y comprensible sobre el proceso terapéutico, sus objetivos, técnicas y duración estimada.
-2. Comprendo que puedo retirar mi consentimiento en cualquier momento, sin que ello afecte la atención recibida.
-3. He sido informado/a sobre la confidencialidad de la información compartida en las sesiones, y de las excepciones legales y éticas que la limitan (riesgo para la vida, mandato judicial, etc.).
-4. Acepto que mis datos personales y de salud sean registrados en un expediente clínico electrónico, de conformidad con la NOM-024-SSA3-2012 y la Ley General de Protección de Datos Personales.
-5. Autorizo el uso de mis datos de forma anónima con fines estadísticos o de investigación, sin que sea posible mi identificación.
-
-Este consentimiento cumple con lo establecido en la NOM-024-SSA3-2012 para Sistemas de Información de Registro Electrónico para la Salud.`,
-    },
-    tratamiento: {
-        title: 'Consentimiento Informado para Tratamiento Psicológico',
-        body: `Por medio del presente, autorizo al profesional de la salud mental a realizar el tratamiento psicológico acordado, que puede incluir: evaluación psicológica, psicoterapia individual, técnicas cognitivo-conductuales, intervención en crisis y/o derivación a otros especialistas cuando sea necesario.
-
-RECONOZCO que:
-1. El tratamiento psicológico implica trabajar sobre situaciones emocionales que pueden generar incomodidad temporal.
-2. Los resultados del tratamiento no pueden garantizarse, ya que dependen de múltiples factores.
-3. La duración del tratamiento es orientativa y puede variar según la evolución.
-4. Tengo derecho a solicitar una segunda opinión en cualquier momento.
-5. En caso de emergencia o crisis grave, seré referido/a al servicio de urgencias correspondiente.
-
-Declaro haber leído y entendido el presente consentimiento, y lo firmo de manera voluntaria.`,
-    },
-    datos_personales: {
-        title: 'Consentimiento para Tratamiento de Datos Personales',
-        body: `De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, así como con la NOM-024-SSA3-2012, por medio del presente documento OTORGO MI CONSENTIMIENTO EXPRESO para el tratamiento de mis datos personales, incluyendo datos sensibles relacionados con mi salud mental.
-
-FINALIDADES DEL TRATAMIENTO:
-• Prestación de servicios de salud mental y psicoterapia
-• Elaboración y mantenimiento de expediente clínico electrónico
-• Coordinación con otros profesionales de la salud cuando sea necesario
-• Facturación y gestión administrativa
-
-MIS DERECHOS ARCO:
-Tengo derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de mis datos personales, mediante solicitud escrita al responsable del tratamiento.
-
-CONSERVACIÓN: Mis datos serán conservados por un mínimo de 5 años conforme a la normativa aplicable.
-
-Declaro que la información proporcionada es verídica y que he leído el Aviso de Privacidad disponible en consulta.`,
-    },
-};
+import { DEFAULT_CONSENT_TEXTS } from '@/components/consent/ConsentTemplateEditor';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
 interface ConsentFormViewProps {
@@ -83,44 +36,74 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
     const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [savedId, setSavedId] = useState<string | null>(null);
+    const [patientError, setPatientError] = useState(false);
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
 
-    const consentContent = CONSENT_TEXTS[formType];
+    // Custom template text (editable per session)
+    const [consentTitle, setConsentTitle] = useState('');
+    const [consentBody, setConsentBody] = useState('');
+    const [isEditingText, setIsEditingText] = useState(false);
+
     const today = format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es });
 
-    // ── Generar y descargar PDF ──────────────────────────────────────────────
+    // ── Load template from profile (falls back to defaults) ─────────────────
+    useEffect(() => {
+        const loadTemplate = async () => {
+            setIsLoadingTemplates(true);
+            try {
+                if (user) {
+                    const { data } = await supabase
+                        .from('profiles')
+                        .select('consent_templates')
+                        .eq('id', user.id)
+                        .single();
+
+                    const saved = data?.consent_templates?.[formType];
+                    const fallback = DEFAULT_CONSENT_TEXTS[formType];
+
+                    setConsentTitle(saved?.title || fallback.title);
+                    setConsentBody(saved?.body || fallback.body);
+                } else {
+                    const fallback = DEFAULT_CONSENT_TEXTS[formType];
+                    setConsentTitle(fallback.title);
+                    setConsentBody(fallback.body);
+                }
+            } finally {
+                setIsLoadingTemplates(false);
+            }
+        };
+        loadTemplate();
+    }, [user, formType]);
+
+    // ── Generate PDF ─────────────────────────────────────────────────────────
     const generatePDF = (sigDataUrl: string, consentId: string) => {
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
         const margin = 20;
         const pageW = doc.internal.pageSize.getWidth();
         const contentW = pageW - margin * 2;
 
-        // Header
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
         doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 15);
         doc.text(`Folio: ${consentId.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
 
-        // Línea separadora
         doc.setDrawColor(200, 200, 220);
         doc.line(margin, 18, pageW - margin, 18);
 
-        // Título
         doc.setFontSize(16);
         doc.setTextColor(30, 30, 60);
         doc.setFont('helvetica', 'bold');
-        doc.text(consentContent.title, pageW / 2, 30, { align: 'center' });
+        doc.text(consentTitle, pageW / 2, 30, { align: 'center' });
 
-        // Datos del paciente
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
         doc.text(`Paciente: ${patientName || '—'}`, margin, 42);
         doc.text(`Fecha: ${today}`, margin, 48);
 
-        // Cuerpo del consentimiento
         doc.setFontSize(10);
         doc.setTextColor(40, 40, 40);
-        const lines = doc.splitTextToSize(consentContent.body, contentW);
+        const lines = doc.splitTextToSize(consentBody, contentW);
         let y = 58;
         lines.forEach((line: string) => {
             if (y > 250) { doc.addPage(); y = 20; }
@@ -128,7 +111,6 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
             y += 5;
         });
 
-        // Firma
         y += 40;
         if (y > 220) { doc.addPage(); y = 20; }
 
@@ -141,14 +123,10 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
         doc.text('Firma del paciente / tutor', pageW / 2, y + 5, { align: 'center' });
         doc.text(`Fecha de firma: ${today}`, pageW / 2, y + 10, { align: 'center' });
 
-        // Imagen de la firma
         if (sigDataUrl) {
-            try {
-                doc.addImage(sigDataUrl, 'PNG', sigX, y - 35, sigW, 33);
-            } catch (_) { /* Si falla la imagen, continúa */ }
+            try { doc.addImage(sigDataUrl, 'PNG', sigX, y - 35, sigW, 33); } catch (_) { }
         }
 
-        // Pie de página
         const totalPages = doc.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i);
@@ -165,15 +143,19 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
         doc.save(`consentimiento_${formType}_${patientName.replace(/\s+/g, '_')}_${consentId.substring(0, 8)}.pdf`);
     };
 
-    // ── Guardar en Supabase ──────────────────────────────────────────────────
+    // ── Save to Supabase ─────────────────────────────────────────────────────
     const handleSave = async () => {
         if (!user) return;
-        if (!patientName.trim()) { toast.error('Selecciona o escribe el nombre del paciente'); return; }
+        if (!patientId) {
+            setPatientError(true);
+            toast.error('Selecciona un paciente del catálogo antes de continuar');
+            return;
+        }
+        setPatientError(false);
         if (!signatureDataUrl) { toast.error('Por favor, firma el documento antes de guardar'); return; }
 
         setIsSaving(true);
         try {
-            // Hash SHA-256 de la firma para auditoría
             const encoder = new TextEncoder();
             const data = encoder.encode(signatureDataUrl);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -187,7 +169,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                     patient_id: patientId || null,
                     patient_name: patientName,
                     form_type: formType,
-                    consent_text: consentContent.body,
+                    consent_text: consentBody,
                     signed_at: new Date().toISOString(),
                     signature_data_url: signatureDataUrl,
                     signature_hash: hashHex,
@@ -209,6 +191,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
         }
     };
 
+    // ── Saved confirmation screen ────────────────────────────────────────────
     if (savedId) {
         return (
             <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
@@ -233,7 +216,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
 
     return (
         <div className="space-y-6 max-w-2xl">
-            {/* Tipo de consentimiento */}
+            {/* Tipo + Paciente */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Tipo de consentimiento</Label>
@@ -249,39 +232,69 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label>Paciente</Label>
+                    <Label>Paciente *</Label>
                     <PatientAutocomplete
                         value={patientId}
-                        onSelect={(id, name) => { setPatientId(id); setPatientName(name); }}
+                        onSelect={(id, name) => { setPatientId(id); setPatientName(name); setPatientError(false); }}
                     />
-                    {!patientId && (
-                        <Input
-                            placeholder="O escribe el nombre manualmente..."
-                            value={patientName}
-                            onChange={(e) => setPatientName(e.target.value)}
-                            className="mt-1"
-                        />
+                    {patientError && (
+                        <p className="text-xs text-destructive">Debes seleccionar un paciente del catálogo</p>
+                    )}
+                    {patientId && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3" /> Vinculado al expediente del paciente
+                        </p>
                     )}
                 </div>
             </div>
 
-            {/* Texto del consentimiento (solo lectura) */}
+            {/* Texto del consentimiento */}
             <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                    <Label className="text-base font-semibold">{consentContent.title}</Label>
-                    <Badge variant="outline" className="text-xs gap-1">
-                        <ShieldCheck className="h-3 w-3 text-primary" /> NOM-024
-                    </Badge>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Label className="text-base font-semibold">{consentTitle}</Label>
+                        <Badge variant="outline" className="text-xs gap-1">
+                            <ShieldCheck className="h-3 w-3 text-primary" /> NOM-024
+                        </Badge>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs text-muted-foreground h-7"
+                        onClick={() => setIsEditingText(e => !e)}
+                    >
+                        <Pencil className="h-3 w-3" />
+                        {isEditingText ? 'Bloquear' : 'Editar texto'}
+                    </Button>
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                     Fecha: <span className="font-medium">{today}</span>
+                    {isEditingText && (
+                        <span className="ml-2 text-warning">· Edición habilitada para esta firma</span>
+                    )}
                 </p>
-                <Textarea
-                    value={consentContent.body}
-                    readOnly
-                    rows={12}
-                    className="text-sm font-mono bg-muted/30 resize-none leading-relaxed"
-                />
+
+                {isLoadingTemplates ? (
+                    <div className="flex justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                ) : (
+                    <Textarea
+                        value={consentBody}
+                        onChange={isEditingText ? (e) => setConsentBody(e.target.value) : undefined}
+                        readOnly={!isEditingText}
+                        rows={12}
+                        className={`text-sm font-mono leading-relaxed resize-none ${
+                            isEditingText ? '' : 'bg-muted/30'
+                        }`}
+                    />
+                )}
+                {isEditingText && (
+                    <p className="text-xs text-muted-foreground">
+                        ℹ️ Los cambios aquí solo aplican a <strong>este consentimiento</strong>. Para editar la plantilla permanente ve a la pestaña <strong>Plantillas</strong>.
+                    </p>
+                )}
             </div>
 
             {/* Firma */}
@@ -310,9 +323,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                         </Button>
                     </div>
                 ) : (
-                    <SignaturePad
-                        onSign={(dataUrl) => setSignatureDataUrl(dataUrl)}
-                    />
+                    <SignaturePad onSign={(dataUrl) => setSignatureDataUrl(dataUrl)} />
                 )}
             </div>
 

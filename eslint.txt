@@ -1,0 +1,178 @@
+
+C:\MindCare\mindful-flow\src\components\auth\MFASetup.tsx
+  51:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  89:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\calendar\DayView.tsx
+   8:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  10:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\calendar\MonthView.tsx
+  8:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\calendar\NewAppointmentDialog.tsx
+  270:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  299:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\consent\ConsentFormView.tsx
+  127:88  error  Empty block statement                     no-empty
+  187:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\consent\ConsentTemplateEditor.tsx
+   23:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  151:23  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  201:33  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\dashboard\TodayAgenda.tsx
+  24:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\finance\PaymentModal.tsx
+  138:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\notes\CIE10Selector.tsx
+  10:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\notes\StructuredNoteForm.tsx
+   16:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\patients\KanbanBoard.tsx
+  102:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\patients\LeadSourceBadge.tsx
+  34:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\patients\NewLeadDialog.tsx
+  47:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\patients\NewPatientDialog.tsx
+  156:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\patients\PatientSlideOver.tsx
+   33:13   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:11   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   59:14   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:49   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  362:110  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  415:86   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\components\ui\ClockPicker.tsx
+  192:37  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+C:\MindCare\mindful-flow\src\components\ui\badge.tsx
+  45:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\button.tsx
+  54:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\card.tsx
+  69:81  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\MindCare\mindful-flow\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\MindCare\mindful-flow\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\contexts\AuthContext.tsx
+  140:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\MindCare\mindful-flow\src\pages\AIAssistant.tsx
+   95:34  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   97:34  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   99:28  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  226:6   warning  React Hook useCallback has a missing dependency: 'handleFile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  240:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  241:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  248:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  249:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  250:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  254:29  error    'lines' is never reassigned. Use 'const' instead                                                                 prefer-const
+  255:42  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  274:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  275:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  276:11  error    Unexpected lexical declaration in case block                                                                     no-case-declarations
+  288:21  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  311:21  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  339:21  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  363:19  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  392:73  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Auth.tsx
+  27:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Calendar.tsx
+   55:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Consents.tsx
+   77:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:104  error  Empty block statement                     no-empty
+  205:64   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Dashboard.tsx
+  177:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Finance.tsx
+  158:13  error  Empty block statement                     no-empty
+  319:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\ForgotPassword.tsx
+  23:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Notes.tsx
+   74:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  366:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  368:144  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  369:94   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  372:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  374:49   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Patients.tsx
+   41:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   42:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  258:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  512:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  580:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\ResetPassword.tsx
+  45:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\MindCare\mindful-flow\src\pages\Settings.tsx
+   73:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  349:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 99 problems (86 errors, 13 warnings)
+

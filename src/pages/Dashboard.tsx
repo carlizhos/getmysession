@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import MetricCard from '@/components/dashboard/MetricCard';
 import TodayAgenda from '@/components/dashboard/TodayAgenda';
 import RevenueChart from '@/components/dashboard/RevenueChart';
+import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import {
   DollarSign,
   Users,
@@ -223,6 +224,9 @@ const Dashboard = () => {
             Aquí está el resumen de su práctica clínica
           </p>
         </div>
+
+        {/* Onboarding modal — auto-hides when profile + consent are done */}
+        <OnboardingModal />
 
         {/* Quick Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

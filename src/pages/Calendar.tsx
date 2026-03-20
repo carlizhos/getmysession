@@ -13,9 +13,10 @@ import {
   CheckSquare,
   ChevronDown
 } from 'lucide-react';
-import { mockAppointments } from '@/lib/mockData';
 import { supabase } from '@/lib/supabase';
 import { useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { format as fmtDate } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +39,9 @@ import {
   isSameDay,
   isSameMonth,
   parseISO,
-  isToday
+  isToday,
+  isBefore,
+  startOfDay
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -49,12 +52,47 @@ import MonthView from '@/components/calendar/MonthView';
 type ViewMode = 'day' | 'week' | 'month';
 
 const CalendarPage = () => {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
-  const [appointments, setAppointments] = useState<any[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null);
+  const [nonWorkingDays, setNonWorkingDays] = useState<string[]>([]); // YYYY-MM-DD
+  const [horarioFin, setHorarioFin] = useState('17:00'); // HH:mm
+
+  // Load schedule from profile
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('horario_atencion')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.horario_atencion?.dias_no_laborables) {
+          setNonWorkingDays(data.horario_atencion.dias_no_laborables);
+        }
+        if (data?.horario_atencion?.fin) {
+          setHorarioFin(data.horario_atencion.fin);
+        }
+      });
+  }, [user]);
+
+  const isNonWorkingDay = (date: Date) =>
+    nonWorkingDays.includes(fmtDate(date, 'yyyy-MM-dd'));
+
+  const isPastDay = (date: Date) => {
+    const now = new Date();
+    if (isBefore(startOfDay(date), startOfDay(now))) return true; // strictly past days
+    if (isToday(date)) {
+      // block today if current time has passed the configured end hour
+      const [finH, finM] = horarioFin.split(':').map(Number);
+      if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
+    }
+    return false;
+  };
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -75,12 +113,15 @@ const CalendarPage = () => {
         fee: apt.fee,
         paymentStatus: apt.payment_status,
         notes: apt.notes,
+        color: apt.color,
+        meetingLink: apt.meeting_link,
+        meetingPlatform: apt.meeting_platform,
       }));
-      setAppointments(mapped.length > 0 ? mapped : mockAppointments);
+      setAppointments(mapped);
     } catch (error) {
       console.error('Error al cargar citas:', error);
       // Fallback a mock data si hay error de conexión
-      setAppointments(mockAppointments);
+      setAppointments([]);
     }
   }, []);
 
@@ -146,11 +187,40 @@ const CalendarPage = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-success/20 border-success/40 text-success';
+      case 'scheduled': return 'bg-blue-500/20 border-blue-400/40 text-blue-600 dark:text-blue-400';
       case 'pending': return 'bg-warning/20 border-warning/40 text-warning';
+      case 'completed': return 'bg-violet-500/20 border-violet-400/40 text-violet-600 dark:text-violet-400';
       case 'cancelled': return 'bg-destructive/20 border-destructive/40 text-destructive line-through';
       default: return 'bg-muted border-border';
     }
   };
+
+  // Color name -> Tailwind chip classes
+  const COLOR_CHIP: Record<string, string> = {
+    violet: 'bg-violet-100 border-violet-400 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200',
+    blue: 'bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200',
+    cyan: 'bg-cyan-100 border-cyan-400 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-200',
+    green: 'bg-green-100 border-green-400 text-green-800 dark:bg-green-900/30 dark:text-green-200',
+    yellow: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200',
+    orange: 'bg-orange-100 border-orange-400 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200',
+    rose: 'bg-rose-100 border-rose-400 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200',
+    slate: 'bg-slate-100 border-slate-400 text-slate-800 dark:bg-slate-800/60 dark:text-slate-200',
+    teal: 'bg-teal-100 border-teal-400 text-teal-800 dark:bg-teal-900/30 dark:text-teal-200',
+  };
+
+  const getChipStyle = (apt: any) =>
+    apt.color && COLOR_CHIP[apt.color]
+      ? COLOR_CHIP[apt.color]
+      : getStatusColor(apt.status);
+
+  const STATUS_DOT: Record<string, string> = {
+    scheduled: 'bg-blue-500',
+    confirmed: 'bg-green-500',
+    pending: 'bg-yellow-400',
+    completed: 'bg-violet-500',
+    cancelled: 'bg-red-500',
+  };
+
 
   return (
     <Layout>
@@ -193,7 +263,12 @@ const CalendarPage = () => {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="zen" className="gap-2">
+                <Button
+                  variant="zen"
+                  className="gap-2"
+                  disabled={isPastDay(selectedDate)}
+                  title={isPastDay(selectedDate) ? 'No puedes crear citas en días pasados' : undefined}
+                >
                   <Plus className="h-4 w-4" />
                   Crear
                   <ChevronDown className="h-4 w-4" />
@@ -279,31 +354,43 @@ const CalendarPage = () => {
                     <div className="p-3 text-center text-sm text-muted-foreground border-r border-border">
                       Hora
                     </div>
-                    {weekDays.map(day => (
-                      <div
-                        key={day.toISOString()}
-                        onClick={() => {
-                          setCurrentDate(day);
-                          setSelectedDate(day);
-                          setViewMode('day');
-                        }}
-                        className={cn(
-                          "p-3 text-center cursor-pointer transition-colors border-r border-border last:border-r-0 hover:bg-accent/50",
-                          isToday(day) && "bg-primary/5",
-                          isSameDay(day, selectedDate) && "bg-accent"
-                        )}
-                      >
-                        <p className="text-xs text-muted-foreground uppercase">
-                          {format(day, 'EEE', { locale: es })}
-                        </p>
-                        <p className={cn(
-                          "text-lg font-semibold mt-1",
-                          isToday(day) && "text-primary"
-                        )}>
-                          {format(day, 'd')}
-                        </p>
-                      </div>
-                    ))}
+                    {weekDays.map(day => {
+                      const blocked = isNonWorkingDay(day);
+                      const past = isPastDay(day);
+                      return (
+                        <div
+                          key={day.toISOString()}
+                          onClick={() => {
+                            setCurrentDate(day);
+                            setSelectedDate(day);
+                            setViewMode('day');
+                          }}
+                          title={blocked ? 'Día no laborable' : past ? 'Día pasado' : undefined}
+                          className={cn(
+                            "p-3 text-center transition-colors border-r border-border last:border-r-0 relative",
+                            !past && !blocked && "cursor-pointer hover:bg-accent/50",
+                            isToday(day) && "bg-primary/5",
+                            isSameDay(day, selectedDate) && "bg-accent",
+                            blocked && "bg-destructive/5",
+                            past && !isToday(day) && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {blocked && (
+                            <span className="absolute top-1 right-1 text-[9px] font-semibold text-destructive/70 uppercase tracking-wide">festivo</span>
+                          )}
+                          <p className={cn("text-xs text-muted-foreground uppercase", blocked && "text-destructive/60")}>
+                            {format(day, 'EEE', { locale: es })}
+                          </p>
+                          <p className={cn(
+                            "text-lg font-semibold mt-1",
+                            isToday(day) && "text-primary",
+                            blocked && "text-destructive/70 line-through"
+                          )}>
+                            {format(day, 'd')}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Time grid with scroll */}
@@ -328,12 +415,18 @@ const CalendarPage = () => {
                               const isTodayColumn = isToday(day);
                               const showTimeIndicator = isTodayColumn && isCurrentHour && timeIndicatorPosition !== null;
 
+                              const isPastColumn = isPastDay(day) && !isToday(day);
+                              const isPastHour = isToday(day) && hour < new Date().getHours();
+
                               return (
                                 <div
                                   key={`${day.toISOString()}-${hour}`}
                                   className={cn(
-                                    "p-1 min-h-[60px] border-r border-border last:border-r-0 transition-colors hover:bg-accent/30 relative",
-                                    isToday(day) && "bg-primary/5"
+                                    "p-1 min-h-[60px] border-r border-border last:border-r-0 transition-colors relative",
+                                    !isPastColumn && !isPastHour && "hover:bg-accent/30",
+                                    isToday(day) && !isPastHour && "bg-primary/5",
+                                    isPastColumn && "bg-muted/30",
+                                    isPastHour && "bg-muted/20"
                                   )}
                                 >
                                   {/* Current time indicator */}
@@ -356,20 +449,25 @@ const CalendarPage = () => {
                                         setIsNewAppointmentOpen(true);
                                       }}
                                       className={cn(
-                                        "rounded-lg border p-2 text-xs cursor-pointer transition-all hover:shadow-soft hover:scale-[1.02]",
-                                        getStatusColor(apt.status)
+                                        "rounded-lg border p-2 text-xs cursor-pointer transition-all hover:shadow-soft hover:scale-[1.02] space-y-0.5",
+                                        getChipStyle(apt),
+                                        apt.status === 'cancelled' && 'opacity-60'
                                       )}
                                     >
-                                      <div className="flex items-center gap-1 font-medium">
-                                        <User className="h-3 w-3" />
+                                      <div className="flex items-center gap-1.5 font-semibold">
+                                        {apt.status && STATUS_DOT[apt.status] && (
+                                          <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', STATUS_DOT[apt.status])} />
+                                        )}
+                                        <User className="h-3 w-3 flex-shrink-0" />
                                         <span className="truncate">{apt.patientName.split(' ')[0]}</span>
                                       </div>
-                                      <div className="flex items-center gap-1 mt-1 opacity-75">
+                                      <div className="flex items-center gap-1 opacity-75">
                                         <Clock className="h-3 w-3" />
-                                        <span>
-                                          {format(parseISO(apt.startTime), 'h:mm a')}
-                                        </span>
+                                        <span>{format(parseISO(apt.startTime), 'h:mm a')}</span>
                                       </div>
+                                      {apt.notes && (
+                                        <p className="text-[10px] opacity-60 truncate italic mt-0.5">{apt.notes}</p>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -403,18 +501,11 @@ const CalendarPage = () => {
 
         {/* Legend */}
         <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-success" />
-            <span className="text-sm text-muted-foreground">Confirmado</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-warning" />
-            <span className="text-sm text-muted-foreground">Pendiente</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-destructive" />
-            <span className="text-sm text-muted-foreground">Cancelado</span>
-          </div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-blue-500" /><span className="text-sm text-muted-foreground">Agendada</span></div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-green-500" /><span className="text-sm text-muted-foreground">Confirmada</span></div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-yellow-400" /><span className="text-sm text-muted-foreground">En espera</span></div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-violet-500" /><span className="text-sm text-muted-foreground">Completada</span></div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-red-500" /><span className="text-sm text-muted-foreground">Cancelada</span></div>
         </div>
 
         {/* New / Edit Appointment Dialog */}

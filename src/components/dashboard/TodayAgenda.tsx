@@ -11,7 +11,7 @@ export interface AgendaAppointment {
   patientName: string;
   startTime: string;
   endTime: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  status: 'scheduled' | 'confirmed' | 'pending' | 'cancelled' | 'completed';
   type: string;
 }
 
@@ -21,13 +21,14 @@ interface TodayAgendaProps {
 
 const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
   const getStatusBadge = (status: AgendaAppointment['status']) => {
-    const cfg = {
-      confirmed: { variant: 'success' as const, label: 'Confirmado' },
-      pending: { variant: 'warning' as const, label: 'Pendiente' },
-      cancelled: { variant: 'destructive' as const, label: 'Cancelado' },
-      completed: { variant: 'secondary' as const, label: 'Completado' },
+    const cfg: Record<string, { variant: any, label: string }> = {
+      scheduled: { variant: 'default', label: 'Agendado' },
+      confirmed: { variant: 'success', label: 'Confirmado' },
+      pending: { variant: 'warning', label: 'Pendiente' },
+      cancelled: { variant: 'destructive', label: 'Cancelado' },
+      completed: { variant: 'secondary', label: 'Completado' },
     };
-    const c = cfg[status];
+    const c = cfg[status] || cfg['scheduled'];
     return <Badge variant={c.variant}>{c.label}</Badge>;
   };
 
@@ -74,6 +75,7 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
               {/* Barra de color */}
               <div className={cn(
                 'h-12 w-1 rounded-full flex-shrink-0',
+                appointment.status === 'scheduled' && 'bg-blue-500',
                 appointment.status === 'confirmed' && 'bg-success',
                 appointment.status === 'pending' && 'bg-warning',
                 appointment.status === 'cancelled' && 'bg-destructive',

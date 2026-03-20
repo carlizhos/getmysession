@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ConsentFormView from '@/components/consent/ConsentFormView';
+import ConsentTemplateEditor from '@/components/consent/ConsentTemplateEditor';
 import {
     FileSignature,
     Plus,
@@ -14,6 +15,7 @@ import {
     ArrowLeft,
     Search,
     FileText,
+    LayoutTemplate,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +24,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import { cn } from '@/lib/utils';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
 interface ConsentRecord {
@@ -47,9 +50,12 @@ const FORM_TYPE_BADGE_CLASS: Record<string, string> = {
     datos_personales: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
+type ActiveTab = 'firmados' | 'plantillas';
+
 // ── Componente ─────────────────────────────────────────────────────────────
 const Consents = () => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<ActiveTab>('firmados');
     const [isCreating, setIsCreating] = useState(false);
     const [consents, setConsents] = useState<ConsentRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -77,7 +83,7 @@ const Consents = () => {
 
     useEffect(() => { fetchConsents(); }, [fetchConsents]);
 
-    // ── Regenerar PDF desde la lista ────────────────────────────────────────
+    // ── Regenerar PDF ────────────────────────────────────────────────────────
     const handleDownloadPDF = (consent: ConsentRecord) => {
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
         const margin = 20;
@@ -123,9 +129,7 @@ const Consents = () => {
         doc.text('Firma del paciente / tutor', margin, y + 5);
 
         if (consent.signature_data_url) {
-            try {
-                doc.addImage(consent.signature_data_url, 'PNG', margin, y - 38, 80, 35);
-            } catch (_) { }
+            try { doc.addImage(consent.signature_data_url, 'PNG', margin, y - 38, 80, 35); } catch (_) { }
         }
 
         const totalPages = doc.getNumberOfPages();
@@ -142,13 +146,12 @@ const Consents = () => {
         doc.save(`consentimiento_${consent.patient_name.replace(/\s+/g, '_')}_${consent.id.substring(0, 8)}.pdf`);
     };
 
-    // ── Filtrado ───────────────────────────────────────────────────────────
     const filtered = consents.filter(c =>
         c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
         FORM_TYPE_LABELS[c.form_type]?.toLowerCase().includes(search.toLowerCase()),
     );
 
-    // ── Vista: Nuevo consentimiento ────────────────────────────────────────
+    // ── Vista: Nuevo consentimiento ──────────────────────────────────────────
     if (isCreating) {
         return (
             <Layout>
@@ -171,7 +174,7 @@ const Consents = () => {
         );
     }
 
-    // ── Vista: Lista ───────────────────────────────────────────────────────
+    // ── Vista principal con tabs ─────────────────────────────────────────────
     return (
         <Layout>
             <div className="space-y-6">
@@ -186,123 +189,173 @@ const Consents = () => {
                             <p className="text-muted-foreground">Documentos firmados digitalmente · NOM-024-SSA3-2012</p>
                         </div>
                     </div>
-                    <Button variant="zen" className="gap-2" onClick={() => setIsCreating(true)}>
-                        <Plus className="h-4 w-4" />
-                        Nuevo Consentimiento
-                    </Button>
+                    {activeTab === 'firmados' && (
+                        <Button variant="zen" className="gap-2" onClick={() => setIsCreating(true)}>
+                            <Plus className="h-4 w-4" />
+                            Nuevo Consentimiento
+                        </Button>
+                    )}
                 </div>
 
-                {/* Búsqueda */}
-                <div className="relative max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar por paciente o tipo..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-
-                {/* Estadísticas rápidas */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {[
-                        { label: 'Total', value: consents.length, icon: FileText },
-                        { label: 'Válidos', value: consents.filter(c => c.is_valid).length, icon: CheckCircle2 },
-                        { label: 'General', value: consents.filter(c => c.form_type === 'general').length },
-                        { label: 'Tratamiento', value: consents.filter(c => c.form_type === 'tratamiento').length },
-                    ].map((stat) => (
-                        <Card key={stat.label} variant="flat" className="border border-border">
-                            <CardContent className="p-4">
-                                <p className="text-2xl font-bold">{stat.value}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-                            </CardContent>
-                        </Card>
+                {/* Tabs */}
+                <div className="flex gap-1 p-1 rounded-xl bg-muted/50 w-fit border border-border">
+                    {([
+                        { id: 'firmados', label: 'Firmados', icon: FileSignature },
+                        { id: 'plantillas', label: 'Plantillas', icon: LayoutTemplate },
+                    ] as { id: ActiveTab; label: string; icon: any }[]).map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={cn(
+                                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                                activeTab === tab.id
+                                    ? 'bg-background shadow-sm text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            )}
+                        >
+                            <tab.icon className="h-4 w-4" />
+                            {tab.label}
+                            {tab.id === 'firmados' && consents.length > 0 && (
+                                <span className="text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5 tabular-nums">
+                                    {consents.length}
+                                </span>
+                            )}
+                        </button>
                     ))}
                 </div>
 
-                {/* Lista de consentimientos */}
-                <Card variant="default">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Historial de Consentimientos</CardTitle>
-                        <CardDescription>{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {loading ? (
-                            <div className="flex justify-center py-12">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : filtered.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 space-y-3 text-center">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                                    <FileSignature className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                                <p className="text-muted-foreground text-sm">
-                                    {search ? 'Sin resultados para tu búsqueda' : 'No hay consentimientos registrados aún'}
-                                </p>
-                                {!search && (
-                                    <Button variant="outline" size="sm" onClick={() => setIsCreating(true)}>
-                                        <Plus className="h-4 w-4 mr-2" /> Crear primer consentimiento
-                                    </Button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-border">
-                                {filtered.map((consent) => (
-                                    <div
-                                        key={consent.id}
-                                        className="flex items-center justify-between px-6 py-4 hover:bg-accent/40 transition-colors"
-                                    >
-                                        {/* Info */}
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
-                                                <FileSignature className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-medium truncate">{consent.patient_name}</p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <Badge variant="outline" className={`text-xs ${FORM_TYPE_BADGE_CLASS[consent.form_type] || ''}`}>
-                                                        {FORM_TYPE_LABELS[consent.form_type]}
-                                                    </Badge>
-                                                    {consent.is_valid ? (
-                                                        <span className="flex items-center gap-1 text-xs text-green-600">
-                                                            <CheckCircle2 className="h-3 w-3" /> Válido
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1 text-xs text-destructive">
-                                                            <XCircle className="h-3 w-3" /> Revocado
-                                                        </span>
-                                                    )}
+                {/* ── Tab: Plantillas ──────────────────────────────────────── */}
+                {activeTab === 'plantillas' && (
+                    <Card variant="flat" className="border border-border">
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <LayoutTemplate className="h-4 w-4 text-primary" />
+                                Editor de Plantillas
+                            </CardTitle>
+                            <CardDescription>
+                                Personaliza el texto de cada tipo de consentimiento. Sube un <strong>.pdf</strong> o <strong>.docx</strong> para extraer el texto automáticamente, edítalo y guárdalo como tu plantilla base.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ConsentTemplateEditor />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* ── Tab: Firmados ─────────────────────────────────────────── */}
+                {activeTab === 'firmados' && (
+                    <>
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Total', value: consents.length, icon: FileText },
+                                { label: 'Válidos', value: consents.filter(c => c.is_valid).length, icon: CheckCircle2 },
+                                { label: 'General', value: consents.filter(c => c.form_type === 'general').length },
+                                { label: 'Tratamiento', value: consents.filter(c => c.form_type === 'tratamiento').length },
+                            ].map((stat) => (
+                                <Card key={stat.label} variant="flat" className="border border-border">
+                                    <CardContent className="p-4">
+                                        <p className="text-2xl font-bold">{stat.value}</p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Search */}
+                        <div className="relative max-w-sm">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por paciente o tipo..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+
+                        {/* List */}
+                        <Card variant="default">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg">Historial de Consentimientos</CardTitle>
+                                <CardDescription>{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {loading ? (
+                                    <div className="flex justify-center py-12">
+                                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                    </div>
+                                ) : filtered.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-16 space-y-3 text-center">
+                                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                                            <FileSignature className="h-6 w-6 text-muted-foreground" />
+                                        </div>
+                                        <p className="text-muted-foreground text-sm">
+                                            {search ? 'Sin resultados para tu búsqueda' : 'No hay consentimientos registrados aún'}
+                                        </p>
+                                        {!search && (
+                                            <Button variant="outline" size="sm" onClick={() => setIsCreating(true)}>
+                                                <Plus className="h-4 w-4 mr-2" /> Crear primer consentimiento
+                                            </Button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-border">
+                                        {filtered.map((consent) => (
+                                            <div
+                                                key={consent.id}
+                                                className="flex items-center justify-between px-6 py-4 hover:bg-accent/40 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                                                        <FileSignature className="h-5 w-5 text-primary" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium truncate">{consent.patient_name}</p>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <Badge variant="outline" className={`text-xs ${FORM_TYPE_BADGE_CLASS[consent.form_type] || ''}`}>
+                                                                {FORM_TYPE_LABELS[consent.form_type]}
+                                                            </Badge>
+                                                            {consent.is_valid ? (
+                                                                <span className="flex items-center gap-1 text-xs text-green-600">
+                                                                    <CheckCircle2 className="h-3 w-3" /> Válido
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-1 text-xs text-destructive">
+                                                                    <XCircle className="h-3 w-3" /> Revocado
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 flex-shrink-0">
+                                                    <div className="hidden sm:block text-right">
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {consent.signed_at
+                                                                ? format(parseISO(consent.signed_at), "d MMM yyyy", { locale: es })
+                                                                : 'Sin fecha'}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground font-mono">
+                                                            #{consent.id.substring(0, 8).toUpperCase()}
+                                                        </p>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        title="Descargar PDF"
+                                                        onClick={() => handleDownloadPDF(consent)}
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        {/* Fecha + Acciones */}
-                                        <div className="flex items-center gap-3 flex-shrink-0">
-                                            <div className="hidden sm:block text-right">
-                                                <p className="text-xs text-muted-foreground">
-                                                    {consent.signed_at
-                                                        ? format(parseISO(consent.signed_at), "d MMM yyyy", { locale: es })
-                                                        : 'Sin fecha'}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground font-mono">
-                                                    #{consent.id.substring(0, 8).toUpperCase()}
-                                                </p>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Descargar PDF"
-                                                onClick={() => handleDownloadPDF(consent)}
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
             </div>
         </Layout>
     );

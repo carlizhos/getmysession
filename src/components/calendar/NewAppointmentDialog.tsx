@@ -23,10 +23,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Video, Loader2, XCircle } from 'lucide-react';
+
+const APPOINTMENT_COLORS = [
+    { value: 'violet', label: 'Morado', bg: 'bg-violet-500', ring: 'ring-violet-400' },
+    { value: 'blue', label: 'Azul', bg: 'bg-blue-500', ring: 'ring-blue-400' },
+    { value: 'cyan', label: 'Cyan', bg: 'bg-cyan-500', ring: 'ring-cyan-400' },
+    { value: 'green', label: 'Verde', bg: 'bg-green-500', ring: 'ring-green-400' },
+    { value: 'yellow', label: 'Amarillo', bg: 'bg-yellow-400', ring: 'ring-yellow-300' },
+    { value: 'orange', label: 'Naranja', bg: 'bg-orange-500', ring: 'ring-orange-400' },
+    { value: 'rose', label: 'Rosa', bg: 'bg-rose-500', ring: 'ring-rose-400' },
+    { value: 'slate', label: 'Gris', bg: 'bg-slate-500', ring: 'ring-slate-400' },
+    { value: 'teal', label: 'Teal', bg: 'bg-teal-500', ring: 'ring-teal-400' },
+];
+
 import { cn } from '@/lib/utils';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import ClockPicker from '@/components/ui/ClockPicker';
+import { useAuth } from '@/contexts/AuthContext';
+import { AlertTriangle } from 'lucide-react';
+
+
 
 interface EditingAppointment {
     id: string;
@@ -40,6 +58,7 @@ interface EditingAppointment {
     meetingPlatform?: string;
     notes?: string;
     status?: string;
+    color?: string;
 }
 
 interface NewAppointmentDialogProps {
@@ -57,16 +76,62 @@ const NewAppointmentDialog = ({
     onAppointmentAdded,
     editingAppointment,
 }: NewAppointmentDialogProps) => {
+    const { user } = useAuth();
     const isEditing = !!editingAppointment;
     const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [confirmCancel, setConfirmCancel] = useState(false);
+
+    // Schedule config loaded from profile
+    const [horarioConfig, setHorarioConfig] = useState({
+        inicio: '08:00',
+        fin: '17:00',
+        dias: [1, 2, 3, 4, 5] as number[],
+        dias_no_laborables: [] as string[],
+    });
+
+    useEffect(() => {
+        if (!user) return;
+        supabase
+            .from('profiles')
+            .select('horario_atencion')
+            .eq('id', user.id)
+            .single()
+            .then(({ data }) => {
+                if (data?.horario_atencion) {
+                    const h = data.horario_atencion;
+                    setHorarioConfig({
+                        inicio: h.inicio || '08:00',
+                        fin: h.fin || '17:00',
+                        dias: Array.isArray(h.dias) ? h.dias : [1, 2, 3, 4, 5],
+                        dias_no_laborables: Array.isArray(h.dias_no_laborables) ? h.dias_no_laborables : [],
+                    });
+                    // Snap default startTime to configured start hour if not editing
+                    setFormData(prev => ({
+                        ...prev,
+                        startTime: h.inicio || '08:00',
+                    }));
+                }
+            });
+    }, [user]);
+
+    // Returns a warning message if the given date is blocked
+    const getDateWarning = (d: Date | undefined): string | null => {
+        if (!d) return null;
+        const isoDate = format(d, 'yyyy-MM-dd');
+        if (horarioConfig.dias_no_laborables.includes(isoDate)) return 'Este día está marcado como festivo o no laborable.';
+        const weekday = d.getDay(); // 0=Sun
+        if (!horarioConfig.dias.includes(weekday)) return 'Este día no es un día de atención configurado.';
+        return null;
+    };
     const [formData, setFormData] = useState({
         patientId: '',
         patientName: '',
         type: '',
-        startTime: '',
+        status: 'scheduled',
+        color: 'violet',
+        startTime: '09:00',
         fee: '',
         meetingLink: '',
         meetingPlatform: '',
@@ -87,7 +152,14 @@ const NewAppointmentDialog = ({
                 patientId: editingAppointment.patientId || '',
                 patientName: editingAppointment.patientName || '',
                 type: editingAppointment.type || '',
-                startTime: format(start, 'HH:mm'),
+                status: editingAppointment.status || 'scheduled',
+                color: editingAppointment.color || 'violet',
+                startTime: (() => {
+                    const m = parseInt(format(start, 'mm'));
+                    const snapped = Math.round(m / 5) * 5;
+                    const mm = String(Math.min(snapped, 55)).padStart(2, '0');
+                    return `${format(start, 'HH')}:${mm}`;
+                })(),
                 fee: editingAppointment.fee != null ? String(editingAppointment.fee) : '',
                 meetingLink: editingAppointment.meetingLink || '',
                 meetingPlatform: editingAppointment.meetingPlatform || '',
@@ -104,7 +176,9 @@ const NewAppointmentDialog = ({
             patientId: '',
             patientName: '',
             type: '',
-            startTime: '',
+            status: 'scheduled',
+            color: 'violet',
+            startTime: '09:00',
             fee: '',
             meetingLink: '',
             meetingPlatform: '',
@@ -156,24 +230,46 @@ const NewAppointmentDialog = ({
                 meeting_link: formData.meetingLink || null,
                 meeting_platform: formData.meetingPlatform || null,
                 notes: formData.notes || null,
+                color: formData.color || 'violet',
                 user_id: user?.id ?? null,
             };
 
             if (isEditing && editingAppointment) {
                 const { error } = await supabase
                     .from('appointments')
-                    .update(payload)
+                    .update({ ...payload, status: formData.status })
                     .eq('id', editingAppointment.id);
                 if (error) throw error;
                 toast.success('Cita actualizada');
             } else {
                 const { error } = await supabase.from('appointments').insert([{
                     ...payload,
-                    status: 'pending',
+                    status: formData.status || 'scheduled',
                     payment_status: 'pending',
                 }]);
                 if (error) throw error;
                 toast.success(`Cita con ${formData.patientName} agendada correctamente`);
+
+                // Send email notifications (non-blocking): psychologist + patient confirmation
+                const { data: { session } } = await supabase.auth.getSession();
+                supabase.functions.invoke('notify-appointment', {
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
+                    },
+                    body: {
+                        patientId: formData.patientId || null,
+                        patientName: formData.patientName,
+                        startTime: startDateTime.toISOString(),
+                        endTime: endDateTime.toISOString(),
+                        sessionType: formData.type || 'individual',
+                        fee: formData.fee || 0,
+                        meetingLink: formData.meetingLink || null,
+                        meetingPlatform: formData.meetingPlatform || null,
+                        notes: formData.notes || null,
+                    },
+                }).catch((err: any) => {
+                    console.warn('Email de notificación no enviado:', err.message);
+                });
             }
 
             resetForm();
@@ -247,7 +343,15 @@ const NewAppointmentDialog = ({
                                         onSelect={setDate}
                                         locale={es}
                                         initialFocus
-                                        disabled={(d) => d < startOfDay(new Date())}
+                                        disabled={(d) => {
+                                            const now = new Date();
+                                            if (isBefore(startOfDay(d), startOfDay(now))) return true;
+                                            if (format(d, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd')) {
+                                                const [finH, finM] = horarioConfig.fin.split(':').map(Number);
+                                                if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
+                                            }
+                                            return false;
+                                        }}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -263,6 +367,73 @@ const NewAppointmentDialog = ({
                                 }}
                                 placeholder={formData.patientName || 'Buscar paciente por nombre o email...'}
                             />
+                        </div>
+
+                        {/* Estado de la cita */}
+                        <div className="space-y-2">
+                            <Label htmlFor="status">Estado de la cita</Label>
+                            <Select
+                                value={formData.status}
+                                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona el estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="scheduled">
+                                        <span className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
+                                            Agendada
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="confirmed">
+                                        <span className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
+                                            Confirmada
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="pending">
+                                        <span className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-yellow-400 inline-block" />
+                                            En espera
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="completed">
+                                        <span className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-violet-500 inline-block" />
+                                            Completada
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="cancelled">
+                                        <span className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
+                                            Cancelada
+                                        </span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Color de la cita */}
+                        <div className="space-y-2">
+                            <Label>Color de la cita</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {APPOINTMENT_COLORS.map(c => (
+                                    <button
+                                        key={c.value}
+                                        type="button"
+                                        title={c.label}
+                                        onClick={() => setFormData({ ...formData, color: c.value })}
+                                        className={cn(
+                                            'h-7 w-7 rounded-full transition-all',
+                                            c.bg,
+                                            formData.color === c.value
+                                                ? `ring-2 ring-offset-2 ${c.ring} scale-110`
+                                                : 'opacity-70 hover:opacity-100 hover:scale-105'
+                                        )}
+                                    />
+                                ))}
+                            </div>
                         </div>
 
                         {/* Tipo de sesión */}
@@ -287,18 +458,16 @@ const NewAppointmentDialog = ({
 
                         {/* Horario */}
                         <div className="space-y-2">
-                            <Label htmlFor="startTime">Hora de inicio *</Label>
+                            <Label>Hora de inicio *</Label>
                             <div className="flex items-center gap-2">
-                                <Input
-                                    id="startTime"
-                                    type="time"
+                                <ClockPicker
                                     value={formData.startTime}
-                                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                    required
+                                    onChange={(v) => setFormData({ ...formData, startTime: v })}
                                     disabled={isSubmitting}
-                                    className="max-w-[160px]"
+                                    minTime={horarioConfig.inicio}
+                                    maxTime={horarioConfig.fin}
                                 />
-                                <span className="text-sm text-muted-foreground">Duración: 1 hora</span>
+                                <span className="text-sm text-muted-foreground">— Duración: 1 hora</span>
                             </div>
                         </div>
 

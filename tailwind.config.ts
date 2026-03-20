@@ -129,6 +129,10 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
+        "tile-drop-in": {
+          "0%": { opacity: "0", transform: "translateY(-14px) scale(0.92)" },
+          "100%": { opacity: "1", transform: "translateY(0)   scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -137,6 +141,7 @@ export default {
         "slide-up": "slide-up 0.4s ease-out forwards",
         "scale-in": "scale-in 0.3s ease-out forwards",
         "pulse-soft": "pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "tile-drop-in": "tile-drop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
       },
     },
   },
