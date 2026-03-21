@@ -125,6 +125,7 @@ const Finance = () => {
   const [payingAppointment, setPayingAppointment] = useState<Appointment | null>(null);
   const [feeConfig, setFeeConfig] = useState({ porcentaje_consultorio: 30, stripe_fee_percent: 5.14 });
   const [lastMonthPayments, setLastMonthPayments] = useState<Payment[]>([]);
+  const [lastMonthAppointments, setLastMonthAppointments] = useState<Appointment[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed(p => ({ ...p, [key]: !p[key] }));
 
@@ -201,6 +202,11 @@ const Finance = () => {
   const consultorioAmount = totalNeto * (feeConfig.porcentaje_consultorio / 100);
   const psicologoNeto = totalNeto - consultorioAmount;
 
+  // ── Cancelaciones ──────────────────────────────────────────────────────
+  const cancelled = appointments.filter(a => a.status === 'cancelled');
+  const cancelledCount = cancelled.length;
+  const lostRevenue = cancelled.reduce((sum, a) => sum + (a.fee || 0), 0);
+
   const fmt = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // ── Gráfico semanal ────────────────────────────────────────────────────
@@ -238,7 +244,7 @@ const Finance = () => {
       const lastStart = startOfMonth(lastMonth).toISOString();
       const lastEnd = endOfMonth(lastMonth).toISOString();
 
-      const [{ data: appts }, { data: pmts }, { data: cfg }, { data: lastPmts }] = await Promise.all([
+      const [{ data: appts }, { data: pmts }, { data: cfg }, { data: lastPmts }, { data: lastAppts }] = await Promise.all([
         supabase
           .from('appointments')
           .select('id, patient_name, start_time, fee, payment_status, status, stripe_checkout_id')
@@ -258,12 +264,18 @@ const Finance = () => {
           .eq('status', 'paid')
           .gte('created_at', lastStart)
           .lte('created_at', lastEnd),
+        supabase
+          .from('appointments')
+          .select('id, fee, status')
+          .gte('start_time', lastStart)
+          .lte('start_time', lastEnd),
       ]);
 
       if (appts) setAppointments(appts);
       if (pmts) setPayments(pmts);
       if (cfg) setFeeConfig(cfg);
       if (lastPmts) setLastMonthPayments(lastPmts as Payment[]);
+      if (lastAppts) setLastMonthAppointments(lastAppts as Appointment[]);
     } catch (err) {
       toast.error('Error cargando datos financieros');
     } finally {
@@ -335,6 +347,9 @@ const Finance = () => {
   const lastPsicologoNeto = lastNeto - lastConsultorio;
   const lastPending = lastPaid.length;
 
+  const lastCancelled = lastMonthAppointments.filter(a => a.status === 'cancelled');
+  const lastLostRevenue = lastCancelled.reduce((sum, a) => sum + (a.fee || 0), 0);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -349,7 +364,7 @@ const Finance = () => {
         </div>
 
         {/* KPI row */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {/* Total cobrado */}
           <Card variant="default">
             <CardContent className="p-6">
@@ -420,6 +435,27 @@ const Finance = () => {
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
                   <DollarSign className="h-6 w-6 text-success" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Citas Canceladas / Período */}
+          <Card variant="default">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Ingreso Perdido</p>
+                  <p className="text-3xl font-bold mt-1 text-destructive">
+                    ${lostRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-muted-foreground">{cancelledCount} cita{cancelledCount !== 1 ? 's' : ''} cancelada{cancelledCount !== 1 ? 's' : ''}</p>
+                    <DeltaBadge current={lostRevenue} previous={lastLostRevenue} />
+                  </div>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10">
+                  <ArrowDown className="h-6 w-6 text-destructive" />
                 </div>
               </div>
             </CardContent>

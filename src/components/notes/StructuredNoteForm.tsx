@@ -15,12 +15,14 @@ import { Slider } from '@/components/ui/slider';
 interface StructuredNoteFormProps {
     onSave: (note: any) => void;
     onCancel: () => void;
+    initialPatientId?: string;
+    initialPatientName?: string;
 }
 
-const StructuredNoteForm = ({ onSave, onCancel }: StructuredNoteFormProps) => {
+const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatientName }: StructuredNoteFormProps) => {
     // General Info
-    const [patientId, setPatientId] = useState('');
-    const [patientName, setPatientName] = useState('');
+    const [patientId, setPatientId] = useState(initialPatientId || '');
+    const [patientName, setPatientName] = useState(initialPatientName || '');
     const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
     const [sessionNumber, setSessionNumber] = useState('1');
 
@@ -129,15 +131,12 @@ const StructuredNoteForm = ({ onSave, onCancel }: StructuredNoteFormProps) => {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Nueva Nota de Sesión</h2>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-                    <Button onClick={handleSave} className="gap-2">
-                        <Save className="h-4 w-4" />
-                        Guardar Nota
-                    </Button>
-                </div>
+            <div className="flex justify-end gap-2 mb-6">
+                <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+                <Button onClick={handleSave} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    Guardar Nota
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

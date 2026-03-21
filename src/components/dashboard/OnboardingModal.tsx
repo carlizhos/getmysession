@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const DISMISSED_KEY = 'mindcare_onboarding_v2_dismissed';
+const DISMISSED_KEY = 'saudade_onboarding_v2_dismissed';
 
 interface StepStatus {
     profileComplete: boolean;
@@ -69,11 +69,7 @@ const OnboardingModal = () => {
 
     const allDone = status.profileComplete && status.scheduleComplete && status.securityComplete && status.consentExists;
 
-    // Uncomment this logic when not in testing mode:
-    // if (allDone || dismissed) return null;
-    
-    // For testing: Only respect the runtime dismissal (clicking X), ignore persistent state and completion
-    if (isRuntimeDismissed) return null;
+    if (allDone || dismissed || isRuntimeDismissed) return null;
 
     const completedCount = [
         status.profileComplete,
@@ -128,7 +124,6 @@ const OnboardingModal = () => {
 
     const handleDismiss = () => {
         setIsRuntimeDismissed(true);
-        // Only set localStorage if actually running production code, but here we enforce visual close.
         localStorage.setItem(DISMISSED_KEY, 'true');
         setDismissed(true);
     };
@@ -142,7 +137,7 @@ const OnboardingModal = () => {
                 {/* Header */}
                 <div className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/5 px-6 pt-6 pb-5 border-b border-border">
                     <button
-                        onClick={handleDismiss}
+                        onClick={() => setIsRuntimeDismissed(true)}
                         className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         title="Omitir por ahora"
                     >
@@ -232,12 +227,18 @@ const OnboardingModal = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 pb-5 text-center">
+                <div className="px-6 pb-5 text-center flex flex-col gap-3 items-center mt-2">
+                    <button
+                        onClick={() => setIsRuntimeDismissed(true)}
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                    >
+                        Omitir y cerrar por ahora
+                    </button>
                     <button
                         onClick={handleDismiss}
-                        className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                        className="text-xs text-muted-foreground/60 hover:text-red-500 hover:underline underline-offset-4 transition-colors"
                     >
-                        Omitir y configurar más tarde
+                        No volver a mostrar este mensaje
                     </button>
                 </div>
             </div>

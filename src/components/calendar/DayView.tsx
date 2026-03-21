@@ -8,6 +8,8 @@ interface DayViewProps {
     appointments: any[];
     getStatusColor: (status: string) => string;
     getChipStyle?: (apt: any) => string;
+    timeSlots?: number[];
+    isWorkingDay?: boolean;
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -26,8 +28,8 @@ const STATUS_LABEL: Record<string, string> = {
     cancelled: 'Cancelada',
 };
 
-const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle }: DayViewProps) => {
-    const timeSlots = Array.from({ length: 24 }, (_, i) => i); // 0:00 to 23:00
+const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, timeSlots: propTimeSlots, isWorkingDay }: DayViewProps) => {
+    const timeSlots = propTimeSlots || Array.from({ length: 24 }, (_, i) => i); // Fallback to 24h
     const now = new Date();
     const isCurrentDay = isToday(currentDate);
     const currentHour = now.getHours();
@@ -55,10 +57,17 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle }: Da
                         key={hour}
                         className="grid grid-cols-[80px_1fr] border-b border-border last:border-b-0 relative"
                     >
-                        <div className="p-3 text-center text-sm text-muted-foreground border-r border-border bg-muted/30">
+                        <div className={cn(
+                            "p-3 text-center text-sm text-muted-foreground border-r border-border bg-muted/30",
+                            isWorkingDay === false && "text-red-400/50"
+                        )}>
                             {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                         </div>
-                        <div className="p-2 min-h-[60px] transition-colors hover:bg-accent/30 relative">
+                        <div className={cn(
+                            "p-2 min-h-[60px] transition-colors relative",
+                            isWorkingDay !== false && "hover:bg-accent/30",
+                            isWorkingDay === false && "bg-red-50/20"
+                        )}>
                             {/* Current time indicator */}
                             {isCurrentHour && timeIndicatorPosition !== null && (
                                 <div

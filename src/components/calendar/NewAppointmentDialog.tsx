@@ -83,35 +83,55 @@ const NewAppointmentDialog = ({
     const [isCancelling, setIsCancelling] = useState(false);
     const [confirmCancel, setConfirmCancel] = useState(false);
 
+    const [specialistName, setSpecialistName] = useState('');
+    
     // Schedule config loaded from profile
-    const [horarioConfig, setHorarioConfig] = useState({
-        inicio: '08:00',
-        fin: '17:00',
-        dias: [1, 2, 3, 4, 5] as number[],
-        dias_no_laborables: [] as string[],
+    const [horarioConfig, setHorarioConfig] = useState<any>({
+        dias: {},
+        dias_no_laborables: [],
     });
 
     useEffect(() => {
         if (!user) return;
         supabase
             .from('profiles')
-            .select('horario_atencion')
+            .select('horario_atencion, full_name')
             .eq('id', user.id)
             .single()
             .then(({ data }) => {
+                if (data?.full_name) setSpecialistName(data.full_name);
                 if (data?.horario_atencion) {
                     const h = data.horario_atencion;
-                    setHorarioConfig({
-                        inicio: h.inicio || '08:00',
-                        fin: h.fin || '17:00',
-                        dias: Array.isArray(h.dias) ? h.dias : [1, 2, 3, 4, 5],
-                        dias_no_laborables: Array.isArray(h.dias_no_laborables) ? h.dias_no_laborables : [],
-                    });
-                    // Snap default startTime to configured start hour if not editing
-                    setFormData(prev => ({
-                        ...prev,
-                        startTime: h.inicio || '08:00',
-                    }));
+                    let normalized: any;
+
+                    if (Array.isArray(h.dias)) {
+                        const newDias: any = {};
+                        [0, 1, 2, 3, 4, 5, 6].forEach(d => {
+                            newDias[d] = {
+                                activo: h.dias.includes(d),
+                                inicio: h.inicio || '08:00',
+                                fin: h.fin || '17:00'
+                            };
+                        });
+                        normalized = {
+                            dias: newDias,
+                            dias_no_laborables: h.dias_no_laborables || [],
+                        };
+                    } else {
+                        normalized = h;
+                    }
+
+                    setHorarioConfig(normalized);
+
+                    // Snap default startTime to configured start hour of the selected date (if not editing)
+                    if (!isEditing) {
+                        const weekday = (selectedDate || new Date()).getDay();
+                        const config = normalized.dias?.[weekday] || { inicio: '08:00' };
+                        setFormData(prev => ({
+                            ...prev,
+                            startTime: config.inicio || '08:00',
+                        }));
+                    }
                 }
             });
     }, [user]);
@@ -120,9 +140,9 @@ const NewAppointmentDialog = ({
     const getDateWarning = (d: Date | undefined): string | null => {
         if (!d) return null;
         const isoDate = format(d, 'yyyy-MM-dd');
-        if (horarioConfig.dias_no_laborables.includes(isoDate)) return 'Este día está marcado como festivo o no laborable.';
-        const weekday = d.getDay(); // 0=Sun
-        if (!horarioConfig.dias.includes(weekday)) return 'Este día no es un día de atención configurado.';
+        if (horarioConfig.dias_no_laborables.includes(isoDate)) return 'Este día está marcado como no laborable.';
+        const weekday = d.getDay();
+        if (!horarioConfig.dias?.[weekday]?.activo) return 'Este día no es un día de atención configurado.';
         return null;
     };
     const [formData, setFormData] = useState({
@@ -208,8 +228,35 @@ const NewAppointmentDialog = ({
             const dateStr = format(date, 'yyyy-MM-dd');
             const startDateTime = new Date(`${dateStr}T${formData.startTime}:00`);
 
-            // Validar que no sea fecha/hora en el pasado
-            if (isBefore(startDateTime, new Date())) {
+            // 1. Validar días laborables y festivos
+            const weekday = date.getDay();
+            const config = horarioConfig.dias?.[weekday];
+            
+            if (!config?.activo) {
+                toast.error('Este día no es un día de atención configurado.');
+                setIsSubmitting(false);
+                return;
+            }
+            if (horarioConfig.dias_no_laborables.includes(dateStr)) {
+                toast.error('Este día está marcado como no laborable.');
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Validar horas del día específico
+            const [hMin, mMin] = config.inicio.split(':').map(Number);
+            const [hMax, mMax] = config.fin.split(':').map(Number);
+            const [hSel, mSel] = formData.startTime.split(':').map(Number);
+            
+            if (hSel < hMin || (hSel === hMin && mSel < mMin) || hSel > hMax || (hSel === hMax && mSel > mMax)) {
+                toast.error(`La hora seleccionada está fuera del horario de este día (${config.inicio} - ${config.fin})`);
+                setIsSubmitting(false);
+                return;
+            }
+
+            // 2. Validar que no sea fecha/hora en el pasado (solo para citas nuevas o si se cambió la fecha)
+            const now = new Date();
+            if (!isEditing && isBefore(startDateTime, now)) {
                 toast.error('No puedes agendar una cita en el pasado');
                 setIsSubmitting(false);
                 return;
@@ -235,9 +282,17 @@ const NewAppointmentDialog = ({
             };
 
             if (isEditing && editingAppointment) {
+                let finalNotes = formData.notes;
+                // Add cancellation audit if status changed to cancelled
+                if (formData.status === 'cancelled' && editingAppointment.status !== 'cancelled') {
+                    const timestamp = format(new Date(), 'dd/MM/yyyy HH:mm');
+                    const cancelAudit = `\n[Cancelada por ${specialistName || 'el especialista'} el ${timestamp}]`;
+                    finalNotes = (formData.notes || '') + cancelAudit;
+                }
+
                 const { error } = await supabase
                     .from('appointments')
-                    .update({ ...payload, status: formData.status })
+                    .update({ ...payload, notes: finalNotes, status: formData.status })
                     .eq('id', editingAppointment.id);
                 if (error) throw error;
                 toast.success('Cita actualizada');
@@ -345,9 +400,21 @@ const NewAppointmentDialog = ({
                                         initialFocus
                                         disabled={(d) => {
                                             const now = new Date();
+                                            // 1. Past days
                                             if (isBefore(startOfDay(d), startOfDay(now))) return true;
-                                            if (format(d, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd')) {
-                                                const [finH, finM] = horarioConfig.fin.split(':').map(Number);
+
+                                            // 2. Specific Non-working days (holidays)
+                                            const isoDate = format(d, 'yyyy-MM-dd');
+                                            if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
+
+                                            // 3. Regular non-working weekdays
+                                            const weekday = d.getDay();
+                                            const config = horarioConfig.dias?.[weekday];
+                                            if (!config?.activo) return true;
+
+                                            // 4. Today if past end hour
+                                            if (isoDate === format(now, 'yyyy-MM-dd')) {
+                                                const [finH, finM] = config.fin.split(':').map(Number);
                                                 if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
                                             }
                                             return false;
@@ -460,13 +527,32 @@ const NewAppointmentDialog = ({
                         <div className="space-y-2">
                             <Label>Hora de inicio *</Label>
                             <div className="flex items-center gap-2">
-                                <ClockPicker
-                                    value={formData.startTime}
-                                    onChange={(v) => setFormData({ ...formData, startTime: v })}
-                                    disabled={isSubmitting}
-                                    minTime={horarioConfig.inicio}
-                                    maxTime={horarioConfig.fin}
-                                />
+                                {(() => {
+                                    const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                    const weekday = (date || new Date()).getDay();
+                                    const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
+                                    let effectiveMin = config.inicio;
+
+                                    if (isTodayDate) {
+                                        const now = new Date();
+                                        // Round up to next 5 minutes to match picker increments
+                                        const roundedM = Math.ceil(now.getMinutes() / 5) * 5;
+                                        const h = roundedM >= 60 ? now.getHours() + 1 : now.getHours();
+                                        const m = roundedM % 60;
+                                        const currentHM = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                        if (currentHM > effectiveMin) effectiveMin = currentHM;
+                                    }
+
+                                    return (
+                                        <ClockPicker
+                                            value={formData.startTime}
+                                            onChange={(v) => setFormData({ ...formData, startTime: v })}
+                                            disabled={isSubmitting}
+                                            minTime={effectiveMin}
+                                            maxTime={config.fin}
+                                        />
+                                    );
+                                })()}
                                 <span className="text-sm text-muted-foreground">— Duración: 1 hora</span>
                             </div>
                         </div>

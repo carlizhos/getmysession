@@ -41,7 +41,7 @@ const MFASetup = () => {
         try {
             const { data, error } = await supabase.auth.mfa.enroll({
                 factorType: 'totp',
-                friendlyName: 'MindCare Authenticator',
+                friendlyName: 'Saudade Authenticator',
             });
             if (error) throw error;
             setQrCode(data.totp.qr_code);

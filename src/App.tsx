@@ -13,10 +13,15 @@ import Finance from "./pages/Finance";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import TestsLibrary from './pages/TestsLibrary';
+import PatientTestView from './pages/PatientTestView';
 import NotFound from "./pages/NotFound";
 import Pipeline from "./pages/Pipeline";
 import Settings from "./pages/Settings";
 import Consents from "./pages/Consents";
+import BookingPage from "./pages/BookingPage";
+import PortalLogin from "./pages/PortalLogin";
+import Portal from "./pages/Portal";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +55,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reservar/:slug" element={<BookingPage />} />
             <Route
               path="/"
               element={
@@ -122,7 +128,22 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/tests"
+              element={
+                <ProtectedRoute>
+                  <TestsLibrary />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Public Patient Routes */}
+            <Route path="/t/:token" element={<PatientTestView />} />
+            <Route path="/portal/login" element={<PortalLogin />} />
+            <Route path="/portal" element={<Portal />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/auth/v1/verify" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

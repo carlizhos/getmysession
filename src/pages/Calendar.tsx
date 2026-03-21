@@ -63,6 +63,8 @@ const CalendarPage = () => {
   const [horarioFin, setHorarioFin] = useState('17:00'); // HH:mm
 
   // Load schedule from profile
+  const [horario, setHorario] = useState<any>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -71,24 +73,42 @@ const CalendarPage = () => {
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
-        if (data?.horario_atencion?.dias_no_laborables) {
-          setNonWorkingDays(data.horario_atencion.dias_no_laborables);
-        }
-        if (data?.horario_atencion?.fin) {
-          setHorarioFin(data.horario_atencion.fin);
+        if (data?.horario_atencion) {
+          setHorario(data.horario_atencion);
+          if (data.horario_atencion.dias_no_laborables) {
+            setNonWorkingDays(data.horario_atencion.dias_no_laborables);
+          }
+          if (data.horario_atencion.fin) {
+            setHorarioFin(data.horario_atencion.fin);
+          }
         }
       });
   }, [user]);
 
-  const isNonWorkingDay = (date: Date) =>
-    nonWorkingDays.includes(fmtDate(date, 'yyyy-MM-dd'));
+  const getDayConfig = (date: Date) => {
+    if (!horario?.dias) return { inicio: '08:00', fin: '17:00' };
+    return horario.dias[date.getDay()] || { inicio: '08:00', fin: '17:00' };
+  };
+
+  const isWorkingDay = (date: Date) => {
+    if (!horario?.dias) return true;
+    const dayNumeric = date.getDay();
+    return !!horario.dias[dayNumeric]?.activo;
+  };
+
+  const isNonWorkingDay = (date: Date) => {
+    if (!horario?.dias_no_laborables) return false;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return horario.dias_no_laborables.includes(dateStr);
+  };
 
   const isPastDay = (date: Date) => {
     const now = new Date();
-    if (isBefore(startOfDay(date), startOfDay(now))) return true; // strictly past days
+    if (isBefore(startOfDay(date), startOfDay(now))) return true;
+    
     if (isToday(date)) {
-      // block today if current time has passed the configured end hour
-      const [finH, finM] = horarioFin.split(':').map(Number);
+      const config = getDayConfig(date);
+      const [finH, finM] = (config.fin || '17:00').split(':').map(Number);
       if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
     }
     return false;
@@ -136,7 +156,34 @@ const CalendarPage = () => {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
 
-  const timeSlots = Array.from({ length: 12 }, (_, i) => i + 8); // 8:00 to 19:00
+  const timeSlots = (() => {
+    if (!horario?.dias) return Array.from({ length: 12 }, (_, i) => i + 8);
+    
+    if (viewMode === 'day') {
+      const config = getDayConfig(currentDate);
+      const startH = parseInt(config.inicio.split(':')[0]);
+      const endH = parseInt(config.fin.split(':')[0]);
+      const length = Math.max(1, endH - startH + 1);
+      return Array.from({ length }, (_, i) => i + startH);
+    }
+
+    // For week view, find the global min/max across all active days
+    let minStart = 24;
+    let maxEnd = 0;
+    let hasActive = false;
+    
+    Object.values(horario.dias).forEach((d: any) => {
+      if (d.activo) {
+        hasActive = true;
+        minStart = Math.min(minStart, parseInt(d.inicio.split(':')[0]));
+        maxEnd = Math.max(maxEnd, parseInt(d.fin.split(':')[0]));
+      }
+    });
+
+    if (!hasActive) return Array.from({ length: 12 }, (_, i) => i + 8);
+    const length = Math.max(1, maxEnd - minStart + 1);
+    return Array.from({ length }, (_, i) => i + minStart);
+  })();
 
   // Adaptive navigation handlers
   const handlePrevious = () => {
@@ -266,8 +313,8 @@ const CalendarPage = () => {
                 <Button
                   variant="zen"
                   className="gap-2"
-                  disabled={isPastDay(selectedDate)}
-                  title={isPastDay(selectedDate) ? 'No puedes crear citas en días pasados' : undefined}
+                  disabled={isPastDay(selectedDate) || !isWorkingDay(selectedDate) || isNonWorkingDay(selectedDate)}
+                  title={isPastDay(selectedDate) ? 'No puedes crear citas en días pasados' : (!isWorkingDay(selectedDate) || isNonWorkingDay(selectedDate)) ? 'Este día no es laborable' : undefined}
                 >
                   <Plus className="h-4 w-4" />
                   Crear
@@ -342,6 +389,8 @@ const CalendarPage = () => {
                 currentDate={currentDate}
                 appointments={getAppointmentsForDay(currentDate)}
                 getStatusColor={getStatusColor}
+                timeSlots={timeSlots}
+                isWorkingDay={isWorkingDay(currentDate)}
               />
             )}
 
@@ -355,36 +404,37 @@ const CalendarPage = () => {
                       Hora
                     </div>
                     {weekDays.map(day => {
-                      const blocked = isNonWorkingDay(day);
+                      const working = isWorkingDay(day);
+                      const blocked = isNonWorkingDay(day) || !working;
                       const past = isPastDay(day);
                       return (
                         <div
                           key={day.toISOString()}
                           onClick={() => {
+                            if (blocked) return;
                             setCurrentDate(day);
                             setSelectedDate(day);
                             setViewMode('day');
                           }}
-                          title={blocked ? 'Día no laborable' : past ? 'Día pasado' : undefined}
+                          title={!working ? 'Día no laborable (configuración)' : blocked ? 'Día festivo' : past ? 'Día pasado' : undefined}
                           className={cn(
                             "p-3 text-center transition-colors border-r border-border last:border-r-0 relative",
                             !past && !blocked && "cursor-pointer hover:bg-accent/50",
                             isToday(day) && "bg-primary/5",
                             isSameDay(day, selectedDate) && "bg-accent",
-                            blocked && "bg-destructive/5",
-                            past && !isToday(day) && "opacity-50 cursor-not-allowed"
+                            (blocked || (past && !isToday(day))) && cn(
+                              "opacity-60",
+                              blocked ? "bg-red-50/50" : "bg-muted/30"
+                            ),
                           )}
                         >
-                          {blocked && (
-                            <span className="absolute top-1 right-1 text-[9px] font-semibold text-destructive/70 uppercase tracking-wide">festivo</span>
-                          )}
-                          <p className={cn("text-xs text-muted-foreground uppercase", blocked && "text-destructive/60")}>
+                          <p className={cn("text-xs text-muted-foreground uppercase", blocked && "text-destructive/40")}>
                             {format(day, 'EEE', { locale: es })}
                           </p>
                           <p className={cn(
                             "text-lg font-semibold mt-1",
                             isToday(day) && "text-primary",
-                            blocked && "text-destructive/70 line-through"
+                            blocked && "text-destructive/50"
                           )}>
                             {format(day, 'd')}
                           </p>
@@ -415,6 +465,13 @@ const CalendarPage = () => {
                               const isTodayColumn = isToday(day);
                               const showTimeIndicator = isTodayColumn && isCurrentHour && timeIndicatorPosition !== null;
 
+                              const working = isWorkingDay(day);
+                              const config = getDayConfig(day);
+                              const startH = parseInt(config.inicio.split(':')[0]);
+                              const endH = parseInt(config.fin.split(':')[0]);
+                              
+                              const dayBlocked = isNonWorkingDay(day) || !working;
+                              const isOutsideHours = hour < startH || hour > endH;
                               const isPastColumn = isPastDay(day) && !isToday(day);
                               const isPastHour = isToday(day) && hour < new Date().getHours();
 
@@ -423,9 +480,9 @@ const CalendarPage = () => {
                                   key={`${day.toISOString()}-${hour}`}
                                   className={cn(
                                     "p-1 min-h-[60px] border-r border-border last:border-r-0 transition-colors relative",
-                                    !isPastColumn && !isPastHour && "hover:bg-accent/30",
-                                    isToday(day) && !isPastHour && "bg-primary/5",
-                                    isPastColumn && "bg-muted/30",
+                                    !isPastColumn && !isPastHour && !dayBlocked && !isOutsideHours && "hover:bg-accent/30",
+                                    isToday(day) && !isPastHour && !dayBlocked && !isOutsideHours && "bg-primary/5",
+                                    (isPastColumn || dayBlocked || (working && isOutsideHours)) && "bg-muted/30",
                                     isPastHour && "bg-muted/20"
                                   )}
                                 >
@@ -490,10 +547,13 @@ const CalendarPage = () => {
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
                 onDayClick={(day) => {
-                  setCurrentDate(day);
-                  setViewMode('day');
+                  setSelectedDate(day);
+                  setIsNewAppointmentOpen(true);
                 }}
                 getStatusColor={getStatusColor}
+                isWorkingDay={isWorkingDay}
+                isNonWorkingDay={isNonWorkingDay}
+                isPastDay={isPastDay}
               />
             )}
           </CardContent>

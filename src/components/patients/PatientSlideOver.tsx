@@ -20,10 +20,17 @@ import {
     X, Download, Pencil, Trash2, Loader2,
     Mail, Phone, Calendar, FileText, Brain,
     ShieldCheck, FileSignature, CheckCircle2, XCircle,
-    AlertTriangle, Plus,
+    AlertTriangle, Plus, History, ShoppingCart, TrendingUp,
+    ExternalLink, ClipboardList
 } from 'lucide-react';
 import { tagColors } from '@/lib/mockData';
 import { supabase } from '@/lib/supabase';
+import { psychometricTests } from '@/lib/psychometricTests';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+    LineChart, Line, XAxis, YAxis, CartesianGrid, 
+    Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar 
+} from 'recharts';
 import { toast } from 'sonner';
 
 interface SessionNote {
@@ -41,6 +48,28 @@ interface ConsentRecord {
     signed_at: string | null;
     is_valid: boolean;
     created_at: string;
+}
+
+interface PatientTestRecord {
+    id: string;
+    test_type: string;
+    status: string;
+    score: number | null;
+    interpretation: string | null;
+    created_at: string;
+    completed_at: string | null;
+}
+
+interface PaymentRecord {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    paid_at: string | null;
+    created_at: string;
+    appointments: {
+        start_time: string;
+    } | null;
 }
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -93,35 +122,73 @@ const PatientSlideOver = ({
     const [consentsLoading, setConsentsLoading] = useState(false);
     const [bookingGuardOpen, setBookingGuardOpen] = useState(false);
 
+    // ── Tests & Payments state ───────────────────────────────────────────────
+    const [tests, setTests] = useState<PatientTestRecord[]>([]);
+    const [payments, setPayments] = useState<PaymentRecord[]>([]);
+    const [dataLoading, setDataLoading] = useState(false);
+    const [viewingTest, setViewingTest] = useState<any | null>(null);
+
     const hasValidConsent = consents.some(c => c.is_valid);
 
     // ── Fetch consents when patient changes ───────────────────────────────────
-    const fetchConsents = useCallback(async (p: any) => {
+    const fetchPatientData = useCallback(async (p: any) => {
         if (!p) return;
+        setDataLoading(true);
         setConsentsLoading(true);
         try {
-            const { data, error } = await supabase
+            // Fetch Consents
+            const { data: consentData, error: consentErr } = await supabase
                 .from('consent_forms')
                 .select('id, form_type, signed_at, is_valid, created_at')
                 .eq('patient_id', p.id)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
-            if (error) throw error;
-            setConsents((data as ConsentRecord[]) || []);
+            if (consentErr) throw consentErr;
+            setConsents((consentData as ConsentRecord[]) || []);
+
+            // Fetch Tests
+            const { data: testData, error: testErr } = await supabase
+                .from('patient_tests')
+                .select('id, test_type, status, score, interpretation, created_at, completed_at, answers')
+                .eq('patient_id', p.id)
+                .order('created_at', { ascending: false });
+            if (testErr) throw testErr;
+            setTests((testData as PatientTestRecord[]) || []);
+
+            // Fetch Payments (via appointments)
+            const { data: paymentData, error: paymentErr } = await supabase
+                .from('payments')
+                .select(`
+                    id, amount, method, status, paid_at, created_at,
+                    appointments!inner (
+                        patient_id,
+                        start_time
+                    )
+                `)
+                .eq('appointments.patient_id', p.id)
+                .order('created_at', { ascending: false });
+            
+            if (paymentErr) throw paymentErr;
+            setPayments((paymentData as any[]) || []);
+
         } catch (err: any) {
-            toast.error('Error al cargar consentimientos: ' + err.message);
+            console.error('Error fetching patient data:', err);
+            toast.error('Error al cargar datos del expediente: ' + err.message);
         } finally {
             setConsentsLoading(false);
+            setDataLoading(false);
         }
     }, []);
 
     useEffect(() => {
         if (patient) {
-            fetchConsents(patient);
+            fetchPatientData(patient);
         } else {
             setConsents([]);
+            setTests([]);
+            setPayments([]);
         }
-    }, [patient, fetchConsents]);
+    }, [patient, fetchPatientData]);
 
     // Close on Escape
     useEffect(() => {
@@ -138,6 +205,13 @@ const PatientSlideOver = ({
     }, [isOpen]);
 
     const initials = patient?.name?.split(' ').map((n: string) => n[0]).slice(0, 2).join('') || '??';
+
+    // ── Timeline consolidation ────────────────────────────────────────────────
+    const timelineItems = [
+        ...notes.map(n => ({ type: 'note', date: n.date, data: n })),
+        ...tests.filter(t => t.completed_at).map(t => ({ type: 'test', date: t.completed_at!, data: t })),
+        ...payments.filter(p => p.paid_at).map(p => ({ type: 'payment', date: p.paid_at!, data: p }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // ── Booking guard handler ─────────────────────────────────────────────────
     const handleBookingClick = () => {
@@ -234,29 +308,14 @@ const PatientSlideOver = ({
                         <div className="flex-1 overflow-y-auto">
                             <Tabs defaultValue="info" className="w-full">
                                 <div className="px-6 pt-4 pb-0 sticky top-0 bg-background z-10 border-b border-border">
-                                    <TabsList className="w-full grid grid-cols-3 mb-0">
-                                        <TabsTrigger value="info">Información</TabsTrigger>
-                                        <TabsTrigger value="history">
-                                            Historial
-                                            {notes.length > 0 && (
-                                                <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                                                    {notes.length}
-                                                </span>
-                                            )}
-                                        </TabsTrigger>
-                                        <TabsTrigger value="consents">
-                                            Consentimientos
-                                            {consents.length > 0 && (
-                                                <span className={cn(
-                                                    'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                                                    hasValidConsent
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-warning/20 text-warning'
-                                                )}>
-                                                    {consents.length}
-                                                </span>
-                                            )}
-                                        </TabsTrigger>
+                                    <TabsList className="w-full justify-start gap-1 bg-transparent h-12 overflow-x-auto no-scrollbar scroll-smooth p-1">
+                                        <TabsTrigger value="info" className="flex-shrink-0">Info</TabsTrigger>
+                                        <TabsTrigger value="history" className="flex-shrink-0">Notas</TabsTrigger>
+                                        <TabsTrigger value="timeline" className="flex-shrink-0">360°</TabsTrigger>
+                                        <TabsTrigger value="evolution" className="flex-shrink-0">Evolución</TabsTrigger>
+                                        <TabsTrigger value="tests" className="flex-shrink-0">Tests</TabsTrigger>
+                                        <TabsTrigger value="economy" className="flex-shrink-0">Economía</TabsTrigger>
+                                        <TabsTrigger value="consents" className="flex-shrink-0 text-xs text-muted-foreground/60">Legal</TabsTrigger>
                                     </TabsList>
                                 </div>
 
@@ -431,6 +490,258 @@ const PatientSlideOver = ({
                                     )}
                                 </TabsContent>
 
+                                {/* Tab: Timeline (360 View) */}
+                                <TabsContent value="timeline" className="p-6 space-y-6">
+                                    <div className="relative">
+                                        <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-border" />
+                                        <div className="space-y-8">
+                                            {timelineItems.length === 0 ? (
+                                                <div className="py-12 text-center text-muted-foreground italic text-sm">
+                                                    No hay actividad registrada para este paciente aún.
+                                                </div>
+                                            ) : (
+                                                timelineItems.map((item, idx) => {
+                                                    const iconMap: any = {
+                                                        note: <FileText className="h-4 w-4 text-blue-600" />,
+                                                        test: <Brain className="h-4 w-4 text-purple-600" />,
+                                                        payment: <ShoppingCart className="h-4 w-4 text-emerald-600" />
+                                                    };
+                                                    const bgMap: any = {
+                                                        note: 'bg-blue-100',
+                                                        test: 'bg-purple-100',
+                                                        payment: 'bg-emerald-100'
+                                                    };
+                                                    
+                                                    return (
+                                                        <div key={idx} className="relative pl-10">
+                                                            <div className={cn(
+                                                                "absolute left-0 top-0 h-9 w-9 rounded-full flex items-center justify-center border-4 border-background z-10",
+                                                                bgMap[item.type]
+                                                            )}>
+                                                                {iconMap[item.type]}
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                                        {item.type === 'note' ? 'Sesión Clínica' : 
+                                                                         item.type === 'test' ? 'Test Completado' : 'Pago Recibido'}
+                                                                    </p>
+                                                                    <span className="text-[10px] text-muted-foreground font-medium">
+                                                                        {format(parseISO(item.date), 'd MMM, yyyy', { locale: es })}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="p-3 rounded-xl border bg-card/50 shadow-sm">
+                                                                    {item.type === 'note' && (
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-sm font-semibold">Sesión #{(item.data as any).session_number}</p>
+                                                                            <p className="text-xs text-muted-foreground line-clamp-2">
+                                                                                {(item.data as any).agenda?.map((a: any) => a.topic).join(' · ')}
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
+                                                                    {item.type === 'test' && (
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-sm font-semibold">{psychometricTests[(item.data as any).test_type]?.name || (item.data as any).test_type}</p>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Badge variant="secondary" className="text-[10px]">{(item.data as any).interpretation}</Badge>
+                                                                                <span className="text-xs font-bold text-primary">{(item.data as any).score} pts</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    {item.type === 'payment' && (
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-sm font-semibold">${(item.data as any).amount} MXN</p>
+                                                                            <p className="text-[10px] text-muted-foreground">Vía {(item.data as any).method} • {(item.data as any).status}</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Tab: Evolución (Gráficas) */}
+                                <TabsContent value="evolution" className="p-6 space-y-8">
+                                    <div className="space-y-1">
+                                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                                            <TrendingUp className="h-4 w-4 text-primary" /> Evolución de Síntomas
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">Progreso basado en puntajes de pruebas psicométricas</p>
+                                    </div>
+
+                                    {tests.filter(t => t.status === 'completed').length < 2 ? (
+                                        <div className="py-12 text-center border rounded-2xl border-dashed bg-muted/20">
+                                            <TrendingUp className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                                            <p className="text-sm text-muted-foreground font-medium">Se requieren al menos 2 pruebas completadas</p>
+                                            <p className="text-[10px] text-muted-foreground">Para trazar una línea de progreso temporal.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-8">
+                                            {/* GAD-7 Chart if exists */}
+                                            {tests.some(t => t.test_type === 'gad-7' && t.status === 'completed') && (
+                                                <div className="space-y-3">
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase pl-1">GAD-7 (Ansiedad)</p>
+                                                    <div className="h-[200px] w-full bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <LineChart data={
+                                                                tests.filter(t => t.test_type === 'gad-7' && t.status === 'completed')
+                                                                    .sort((a,b) => new Date(a.completed_at!).getTime() - new Date(b.completed_at!).getTime())
+                                                                    .map(t => ({
+                                                                        date: format(parseISO(t.completed_at!), 'd MMM', { locale: es }),
+                                                                        score: t.score
+                                                                    }))
+                                                            }>
+                                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                                <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                                                                <YAxis fontSize={10} axisLine={false} tickLine={false} domain={[0, 21]} />
+                                                                <RechartsTooltip 
+                                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                                />
+                                                                <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* PHQ-9 Chart if exists */}
+                                            {tests.some(t => t.test_type === 'phq-9' && t.status === 'completed') && (
+                                                <div className="space-y-3">
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase pl-1">PHQ-9 (Depresión)</p>
+                                                    <div className="h-[200px] w-full bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <LineChart data={
+                                                                tests.filter(t => t.test_type === 'phq-9' && t.status === 'completed')
+                                                                    .sort((a,b) => new Date(a.completed_at!).getTime() - new Date(b.completed_at!).getTime())
+                                                                    .map(t => ({
+                                                                        date: format(parseISO(t.completed_at!), 'd MMM', { locale: es }),
+                                                                        score: t.score
+                                                                    }))
+                                                            }>
+                                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                                <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                                                                <YAxis fontSize={10} axisLine={false} tickLine={false} domain={[0, 27]} />
+                                                                <RechartsTooltip 
+                                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                                />
+                                                                <Line type="monotone" dataKey="score" stroke="#ec4899" strokeWidth={3} dot={{ r: 4, fill: '#ec4899' }} activeDot={{ r: 6 }} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </TabsContent>
+
+                                {/* Tab: Tests Detallados */}
+                                <TabsContent value="tests" className="p-6 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                                            <Brain className="h-4 w-4 text-primary" /> Historial de Pruebas
+                                        </h3>
+                                        <Button variant="outline" size="sm" onClick={() => navigate('/tests')}>Asignar Nueva</Button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {tests.length === 0 ? (
+                                            <div className="text-center py-10 border rounded-xl border-dashed">
+                                                <p className="text-sm text-muted-foreground">No se han asignado pruebas.</p>
+                                            </div>
+                                        ) : (
+                                            tests.map(t => (
+                                                <div key={t.id} className="p-4 rounded-xl border bg-card hover:border-primary/30 transition-colors space-y-3">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <p className="text-sm font-bold">{psychometricTests[t.test_type]?.name || t.test_type}</p>
+                                                            <p className="text-[10px] text-muted-foreground">Asignada el {format(parseISO(t.created_at), 'd MMM yyyy', { locale: es })}</p>
+                                                        </div>
+                                                        <Badge className={cn(
+                                                            "text-[10px]",
+                                                            t.status === 'completed' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                                                        )}>
+                                                            {t.status === 'completed' ? 'Completada' : 'Pendiente'}
+                                                        </Badge>
+                                                    </div>
+                                                    
+                                                    {t.status === 'completed' && (
+                                                        <div className="flex items-center justify-between pt-2 border-t border-dashed">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="text-center">
+                                                                    <p className="text-[9px] text-muted-foreground uppercase">Score</p>
+                                                                    <p className="text-sm font-bold text-primary">{t.score}</p>
+                                                                </div>
+                                                                <div className="h-6 w-px bg-border" />
+                                                                <div>
+                                                                    <p className="text-[9px] text-muted-foreground uppercase">Resultado</p>
+                                                                    <p className="text-xs font-semibold">{t.interpretation}</p>
+                                                                </div>
+                                                            </div>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8 text-[11px] gap-1"
+                                                                onClick={() => setViewingTest(t)}
+                                                            >
+                                                                <ExternalLink className="h-3 w-3" /> Detalle
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </TabsContent>
+
+                                {/* Tab: Economía */}
+                                <TabsContent value="economy" className="p-6 space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                                            <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Total Pagado</p>
+                                            <p className="text-2xl font-bold text-emerald-700">
+                                                ${payments.filter(p => p.status === 'paid').reduce((acc, p) => acc + Number(p.amount), 0)}
+                                            </p>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                                            <p className="text-[10px] font-bold text-amber-600 uppercase mb-1">Pendiente</p>
+                                            <p className="text-2xl font-bold text-amber-700">
+                                                ${payments.filter(p => p.status === 'pending').reduce((acc, p) => acc + Number(p.amount), 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Historial de Pagos</h4>
+                                        {payments.length === 0 ? (
+                                            <p className="text-sm text-center py-8 text-muted-foreground italic">No hay registros financieros.</p>
+                                        ) : (
+                                            payments.map(p => (
+                                                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border bg-card">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={cn(
+                                                            "h-9 w-9 rounded-lg flex items-center justify-center",
+                                                            p.status === 'paid' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+                                                        )}>
+                                                            <ShoppingCart className="h-4 w-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold">${p.amount} MXN</p>
+                                                            <p className="text-[10px] text-muted-foreground capitalize">{p.method} • {p.status}</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-medium text-muted-foreground">
+                                                        {format(parseISO(p.created_at), 'd MMM, yyyy', { locale: es })}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </TabsContent>
+
                                 {/* Tab: Consentimientos */}
                                 <TabsContent value="consents" className="p-6 space-y-4">
                                     <div className="flex items-center justify-between">
@@ -537,6 +848,77 @@ const PatientSlideOver = ({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Detailed Test View Dialog */}
+            <Dialog open={!!viewingTest} onOpenChange={(open) => !open && setViewingTest(null)}>
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden z-[100]">
+                    <DialogHeader className="px-6 py-4 border-b">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                                <ClipboardList className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <DialogTitle>{viewingTest ? psychometricTests[viewingTest.test_type]?.name : ''}</DialogTitle>
+                                <DialogDescription>
+                                    Resultados detallados • Completada el {viewingTest?.completed_at ? format(new Date(viewingTest.completed_at), "d 'de' MMMM, yyyy", { locale: es }) : ''}
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                        {viewingTest && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-muted/50 p-3 rounded-lg border">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Puntaje Total</p>
+                                        <p className="text-2xl font-bold text-primary">{viewingTest.score}</p>
+                                    </div>
+                                    <div className="bg-muted/50 p-3 rounded-lg border">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Interpretación</p>
+                                        <p className="font-semibold text-foreground leading-tight">{viewingTest.interpretation}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-sm border-b pb-2">Respuestas del Paciente</h4>
+                                    {psychometricTests[viewingTest.test_type]?.questions.map((q: any, idx: number) => {
+                                        const patientAnswerValue = viewingTest.answers?.[q.id];
+                                        const testOptions = psychometricTests[viewingTest.test_type]?.options || [];
+                                        
+                                        return (
+                                            <div key={q.id} className="space-y-2 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                                <p className="text-sm font-medium leading-normal">
+                                                    <span className="text-muted-foreground mr-2">{idx + 1}.</span>
+                                                    {q.text}
+                                                </p>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                    {testOptions.map((opt) => (
+                                                        <div 
+                                                            key={opt.value}
+                                                            className={cn(
+                                                                "text-[10px] px-2 py-1.5 rounded border text-center transition-colors",
+                                                                patientAnswerValue === opt.value 
+                                                                    ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                                                                    : "bg-white text-muted-foreground border-slate-200 opacity-60"
+                                                            )}
+                                                        >
+                                                            {opt.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="px-6 py-4 border-t bg-slate-50 flex justify-end">
+                        <Button onClick={() => setViewingTest(null)}>Cerrar</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 };

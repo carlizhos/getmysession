@@ -20,7 +20,7 @@ interface Step {
     done: boolean;
 }
 
-const DISMISSED_KEY = 'mindcare_onboarding_dismissed';
+const DISMISSED_KEY = 'saudade_onboarding_dismissed';
 
 const OnboardingChecklist = () => {
     const { user } = useAuth();

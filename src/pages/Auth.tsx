@@ -91,7 +91,7 @@ const Auth = () => {
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
                             <Brain className="h-8 w-8 text-primary-foreground" />
                         </div>
-                        <h1 className="text-2xl font-bold">PsicoGest</h1>
+                        <h1 className="text-2xl font-bold">Saudade</h1>
                         <p className="text-muted-foreground mt-2">
                             {isLogin ? 'Bienvenido de vuelta' : 'Crea tu cuenta profesional'}
                         </p>
@@ -211,20 +211,20 @@ const Auth = () => {
             </div>
 
             {/* Right Side - Info */}
-            <div className="hidden lg:flex lg:w-1/2 p-12 items-center justify-center text-white" style={{ background: 'linear-gradient(to bottom right, hsl(162 50% 52%) 0%, hsl(175 55% 55%) 30%, hsl(190 60% 58%) 70%, hsl(205 65% 60%) 100%)' }}>
+            <div className="hidden lg:flex lg:w-1/2 p-12 items-center justify-center text-white" style={{ background: 'var(--gradient-auth)' }}>
                 <div className="max-w-md space-y-8">
                     <h2 className="text-4xl font-bold leading-tight">
                         Gestiona tu práctica con tranquilidad
                     </h2>
                     <p className="text-lg opacity-90">
-                        PsicoGest te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
+                        Saudade te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
                     </p>
 
 
                     <div className="grid grid-cols-3 gap-6 pt-8">
                         <div className="text-center">
-                            <div className="text-2xl font-bold mb-1">HIPAA</div>
-                            <div className="text-sm opacity-75">Compatible</div>
+                            <div className="text-2xl font-bold mb-1">NOM-024</div>
+                            <div className="text-sm opacity-75">Cumplimiento</div>
                         </div>
                         <div className="text-center border-l border-r border-white/30 px-6">
                             <div className="text-2xl font-bold mb-1">256bit</div>

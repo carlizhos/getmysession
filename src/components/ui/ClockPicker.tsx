@@ -60,11 +60,22 @@ const ClockPicker = ({ value, onChange, disabled, minTime, maxTime }: ClockPicke
     const minH24 = minTime ? parseInt(minTime.split(':')[0]) : 0;
     const maxH24 = maxTime ? parseInt(maxTime.split(':')[0]) : 23;
     const isHourDisabled = (h12: number) => {
-        const h24am = to24h(h12, 'AM');
-        const h24pm = to24h(h12, 'PM');
-        // Disable if BOTH AM and PM versions of this face-number are out of range for the current period
         const h24 = to24h(h12, period);
         return h24 < minH24 || h24 > maxH24;
+    };
+
+    const isMinuteDisabled = (m: number) => {
+        const h24 = to24h(hour12, period);
+        if (h24 < minH24 || h24 > maxH24) return true;
+        if (h24 === minH24) {
+            const minM = minTime ? parseInt(minTime.split(':')[1]) : 0;
+            if (m < minM) return true;
+        }
+        if (h24 === maxH24) {
+            const maxM = maxTime ? parseInt(maxTime.split(':')[1]) : 59;
+            if (m > maxM) return true;
+        }
+        return false;
     };
 
     const snappedMinute = Math.round(minute / 5) * 5 % 60;
@@ -182,7 +193,7 @@ const ClockPicker = ({ value, onChange, disabled, minTime, maxTime }: ClockPicke
                     {(mode === 'hours' ? HOUR_ITEMS : MINUTE_ITEMS).map((val, i) => {
                         const pos = clockPos(i, 12);
                         const isSelected = mode === 'hours' ? val === hour12 : val === snappedMinute;
-                        const isDisabled = mode === 'hours' && isHourDisabled(val as number);
+                        const isDisabled = mode === 'hours' ? isHourDisabled(val as number) : isMinuteDisabled(val as number);
                         return (
                             <button
                                 key={val}

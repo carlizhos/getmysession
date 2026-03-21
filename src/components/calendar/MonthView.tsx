@@ -10,9 +10,12 @@ interface MonthViewProps {
     onSelectDate: (date: Date) => void;
     onDayClick?: (date: Date) => void;
     getStatusColor: (status: string) => string;
+    isWorkingDay?: (date: Date) => boolean;
+    isNonWorkingDay?: (date: Date) => boolean;
+    isPastDay?: (date: Date) => boolean;
 }
 
-const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDayClick, getStatusColor }: MonthViewProps) => {
+const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDayClick, getStatusColor, isWorkingDay, isNonWorkingDay, isPastDay }: MonthViewProps) => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -55,22 +58,29 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                     const dayAppointments = getAppointmentsForDay(day);
                     const isCurrentMonthDay = isCurrentMonth(day);
 
+                    const working = isWorkingDay ? isWorkingDay(day) : true;
+                    const nonWorking = isNonWorkingDay ? isNonWorkingDay(day) : false;
+                    const past = isPastDay ? isPastDay(day) : false;
+                    const isDisabled = !working || nonWorking || past;
+
                     return (
                         <div
                             key={day.toISOString()}
-                            onClick={() => handleDayClick(day)}
+                            onClick={() => !isDisabled && handleDayClick(day)}
                             className={cn(
-                                "min-h-[100px] p-2 border-r border-b border-border last:border-r-0 cursor-pointer transition-colors hover:bg-accent/30",
-                                !isCurrentMonthDay && "bg-muted/20",
-                                isToday(day) && "bg-primary/5",
-                                isSameDay(day, selectedDate) && "ring-2 ring-primary ring-inset"
+                                "min-h-[100px] p-2 border-r border-b border-border transition-colors last:border-r-0",
+                                isDisabled ? "bg-red-50/30 cursor-not-allowed" : "cursor-pointer hover:bg-accent/30",
+                                !isCurrentMonthDay && !isDisabled && "bg-muted/10",
+                                isToday(day) && !isDisabled && "bg-primary/5",
+                                isSameDay(day, selectedDate) && !isDisabled && "ring-2 ring-primary ring-inset"
                             )}
                         >
                             <div className="flex items-center justify-between mb-1">
                                 <span className={cn(
                                     "text-sm font-semibold",
                                     isToday(day) && "text-primary",
-                                    !isCurrentMonthDay && "text-muted-foreground"
+                                    (!isCurrentMonthDay || isDisabled) && "text-muted-foreground/50",
+                                    isDisabled && "text-red-400/50"
                                 )}>
                                     {format(day, 'd')}
                                 </span>

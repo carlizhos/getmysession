@@ -111,7 +111,7 @@ export function generateExpedientePDF(
             doc.setFontSize(7.5);
             doc.setTextColor(160, 160, 170);
             doc.text(
-                `Documento generado electrónicamente. MindCare © ${new Date().getFullYear()} | Página ${i} de ${total}`,
+                `Documento generado electrónicamente. Saudade © ${new Date().getFullYear()} | Página ${i} de ${total}`,
                 pageW / 2,
                 pageH - 8,
                 { align: 'center' },

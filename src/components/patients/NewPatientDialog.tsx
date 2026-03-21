@@ -247,6 +247,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                             type="date"
                                             value={formData.dateOfBirth}
                                             onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                                            onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                             max={new Date().toISOString().split('T')[0]}
                                             min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
                                             required

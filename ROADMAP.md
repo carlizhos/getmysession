@@ -95,20 +95,38 @@
 
 ---
 
-## Fase 4: Pulido y Lanzamiento 📅
-- ✅ **Responsividad móvil completa** (todas las páginas)
-- ✅ **Configuración**: splits financieros, perfil básico
-- 📅 Notificaciones — recordatorio de citas por email/SMS
-- 📅 Auto-mover lead en Pipeline al agendar cita
-- 📅 Contexto de paciente en el chat de IA
-- 📅 Testing e2e (flujos críticos)
-- 📅 Despliegue en producción con dominio personalizado
+## Fase 4: Experiencia Integral y Portales ✅
+- ✅ **Expediente Clínico 360**:
+  - ✅ Fusión de lista y detalle (layout full-width)
+  - ✅ Edición rápida de perfil de paciente
+  - ✅ Header unificado y dinámico
+- ✅ **Portal Público de Reservas**:
+  - ✅ Configuración de "slug" único y horario laboral por día
+  - ✅ Página estilo Calendly pública (`/reservar/:slug`)
+  - ✅ Motor de disponibilidad en tiempo real
+- ✅ **Portal de Pacientes (MVP)**:
+  - ✅ Login con match de correo y teléfono
+  - ✅ Dashboard de próximas citas para el paciente
+  - ✅ Cancelación autónoma por el paciente
+- ✅ **Gestor de Pruebas Psicométricas**:
+  - ✅ Diálogo de asignación de pruebas con generación de URL segura
+- ✅ **Identidad y Configuración Premium**:
+  - ✅ Rebranding a Saudade (estética UI/UX glassmorphism)
+  - ✅ Sistema de Avatar y subida de imágenes a Storage con soporte de iniciales
 
 ---
 
-## 📌 Próximas Prioridades
+## 📌 Fase 5: Saudade Premium (Inteligencia y Retención) 📅
 
-1. 📅 **Contexto de paciente en IA** — enriquecer el chat con historial clínico
-2. 📅 **Notificaciones** — recordatorio de citas por email/SMS
-3. 📅 **Deploy a producción** — Vercel + dominio personalizado
-4. 📅 **Auto-pipeline** — mover lead a "Cita Agendada" al crear cita
+1. 📅 **Firma Digital de Consentimientos Integrada** — Conectar `SignaturePad` al Portal de Pacientes para firmas remotas previas a la primera cita.
+2. 📅 **Asistente de IA (Voz a Texto / Análisis)** — Subir audio o nota de voz al expediente y generar la nota clínica SOAP/CIE-10 automáticamente.
+3. 📅 **Paquetes de Sesiones y "Créditos" (Stripe)** — Venta de paquetes de N sesiones por adelantado, descontando créditos al agendar.
+4. 📅 **Diario Emocional y Tareas Clínicas** — Módulo en el Portal de Pacientes para registrar Mood y responder ejercicios entre sesiones.
+5. 📅 **Recordatorios Automáticos (Notificaciones)** — Edge Functions para envío de correos/SMS 24h antes de la cita.
+
+---
+
+## Tareas Menores Pendientes 📅
+- 📅 Contexto de paciente en la pestaña del chat de IA
+- 📅 Auto-mover lead en Pipeline a "Cita Agendada" al guardar cita
+- 📅 Despliegue en producción con dominio personalizado y SMTP real

@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 
 interface UserMenuProps {
     pendingCount?: number;
+    avatarUrl?: string | null;
 }
 
-const UserMenu = ({ pendingCount = 0 }: UserMenuProps) => {
+const UserMenu = ({ pendingCount = 0, avatarUrl }: UserMenuProps) => {
     const [open, setOpen] = useState(false);
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
@@ -61,8 +62,12 @@ const UserMenu = ({ pendingCount = 0 }: UserMenuProps) => {
                 )}
             >
                 {/* Avatar */}
-                <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-xs">
-                    {initials}
+                <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-[10px] overflow-hidden">
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover" />
+                    ) : (
+                        initials
+                    )}
                     {pendingCount > 0 && (
                         <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-destructive text-[7px] font-bold text-white leading-none">
                             {pendingCount}

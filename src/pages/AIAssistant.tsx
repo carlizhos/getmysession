@@ -22,6 +22,8 @@ import {
   Send,
   User,
   Bot,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -134,6 +136,81 @@ const AIAssistant = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // ── Dictation state ────────────────────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  const toggleDictation = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    
+    // Lazy initialize to avoid SSR issues or premature blocking
+    if (!recognitionRef.current) {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        toast.error("Tu navegador no soporta el dictado por voz. Usa Chrome o Edge.", {
+          position: 'top-center'
+        });
+        return;
+      }
+      
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'es-MX'; // Soporte en español
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast.success("Micrófono activado. Puedes empezar a hablar.", { icon: <Mic className="h-4 w-4" /> });
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech') {
+            toast.error(`Error en el micrófono: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        setInterimTranscript('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        
+        if (final) {
+          setBulletPoints(prev => prev + (prev && !prev.endsWith(' ') && !prev.endsWith('\n') ? ' ' : '') + final);
+        }
+        setInterimTranscript(interim);
+      };
+
+      recognitionRef.current = recognition;
+    }
+    
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      // In case it was already started but states got out of sync
+      recognitionRef.current.stop();
+      setTimeout(() => recognitionRef.current.start(), 100);
+    }
+  };
 
   // ── Chat state ─────────────────────────────────────────────────────────────
   const [chatPatientId, setChatPatientId] = useState('');
@@ -463,9 +540,23 @@ const AIAssistant = () => {
 
                 {/* Bullet Points */}
                 <Card variant="default">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Puntos de la Sesión</CardTitle>
-                    <CardDescription>Ingresa los puntos clave o edita el texto extraído</CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div>
+                        <CardTitle className="text-lg">Puntos de la Sesión</CardTitle>
+                        <CardDescription>Ingresa los puntos clave o edita el texto extraído</CardDescription>
+                    </div>
+                    <Button 
+                        variant={isListening ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={toggleDictation}
+                        className={cn("gap-2 shadow-sm transition-all duration-300", isListening && "animate-pulse-soft ring-4 ring-destructive/20")}
+                    >
+                        {isListening ? (
+                            <><MicOff className="h-4 w-4" /> Detener grabación</>
+                        ) : (
+                            <><Mic className="h-4 w-4 text-primary" /> Dictar con voz</>
+                        )}
+                    </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Patient selector */}
@@ -495,11 +586,20 @@ const AIAssistant = () => {
                       </div>
                     )}
 
-                    <Textarea
-                      placeholder={"• Paciente reporta mejora en síntomas...\n• Técnicas aplicadas...\n• Próximos pasos..."}
-                      value={bulletPoints} onChange={(e) => setBulletPoints(e.target.value)}
-                      className="min-h-[150px] resize-none whitespace-pre-wrap"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        placeholder={"• Paciente reporta mejora en síntomas...\n• Técnicas aplicadas...\n• Próximos pasos..."}
+                        value={bulletPoints} onChange={(e) => setBulletPoints(e.target.value)}
+                        className={cn("min-h-[150px] resize-none whitespace-pre-wrap transition-colors", 
+                            isListening && "border-primary/50 ring-2 ring-primary/20 bg-primary/5"
+                        )}
+                      />
+                      {isListening && (
+                          <div className="absolute -bottom-6 left-0 text-xs italic text-primary animate-pulse">
+                              Escuchando... {interimTranscript}
+                          </div>
+                      )}
+                    </div>
 
                     {detectedFormat && (
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/50 animate-fade-in">

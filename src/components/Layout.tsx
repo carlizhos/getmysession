@@ -16,6 +16,7 @@ import {
   FileSignature,
   PanelLeftClose,
   PanelLeftOpen,
+  BrainCircuit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Calendario', href: '/calendar', icon: Calendar },
   { name: 'IA Asistente', href: '/ai-assistant', icon: Brain },
   { name: 'Notas Clínicas', href: '/notes', icon: FileText },
+  { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
   { name: 'Consentimientos', href: '/consents', icon: FileSignature },
   { name: 'Finanzas', href: '/finance', icon: DollarSign },
 ];
@@ -52,6 +54,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -96,12 +99,13 @@ const Layout = ({ children }: LayoutProps) => {
     if (!user) return;
     supabase
       .from('profiles')
-      .select('full_name, cedula_profesional, especialidad, institucion_formadora')
+      .select('full_name, avatar_url, cedula_profesional, especialidad, institucion_formadora')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
         const fields = [data?.full_name, data?.cedula_profesional, data?.especialidad, data?.institucion_formadora];
         setPendingCount(fields.filter(v => !v || v.trim() === '').length);
+        setAvatarUrl(data?.avatar_url || null);
       });
   }, [user, location.pathname]);
 
@@ -140,15 +144,32 @@ const Layout = ({ children }: LayoutProps) => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex h-full flex-col overflow-hidden">
-          {/* Mobile close */}
-          <div className="flex h-10 items-center justify-end border-b border-sidebar-border px-3 lg:hidden">
+          {/* Sidebar Header (Mobile: Close only) */}
+          <div className="flex h-12 items-center px-3 border-b border-sidebar-border/50 lg:hidden">
             <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
 
+          {/* Floating Desktop Toggle (Aligned with Dashboard - "por fuera") */}
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            className={cn(
+                "absolute -right-3 top-[5.75rem] hidden lg:flex h-6 w-6 items-center justify-center rounded-full",
+                "border border-border bg-background shadow-md hover:bg-muted text-muted-foreground/60 hover:text-foreground",
+                "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 group/toggle"
+            )}
+          >
+            {collapsed ? (
+                <PanelLeftOpen className="h-3 w-3 transition-transform group-active/toggle:scale-95" />
+            ) : (
+                <PanelLeftClose className="h-3 w-3 transition-transform group-active/toggle:scale-95" />
+            )}
+          </button>
+
           {/* Navigation links */}
-          <nav className={cn('flex-1 space-y-1 py-4', collapsed ? 'px-2' : 'px-3')}>
+          <nav className={cn('flex-1 space-y-1', collapsed ? 'px-2 py-4' : 'px-3 py-4')}>
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -192,7 +213,7 @@ const Layout = ({ children }: LayoutProps) => {
           </nav>
 
           {/* Settings link — bottom of sidebar */}
-          <div className={cn('border-t border-sidebar-border pt-2 pb-1', collapsed ? 'px-2' : 'px-3')}>
+          <div className={cn('border-t border-sidebar-border pt-4 pb-6 mt-auto', collapsed ? 'px-2' : 'px-3')}>
             <div className="relative group/nav">
               <NavLink
                 to="/settings"
@@ -233,22 +254,6 @@ const Layout = ({ children }: LayoutProps) => {
               )}
             </div>
           </div>
-
-          {/* Collapse toggle — desktop only */}
-          <div className={cn(
-            'border-sidebar-border py-3 hidden lg:flex',
-            collapsed ? 'justify-center px-2' : 'justify-end px-3'
-          )}>
-            <button
-              onClick={toggleCollapsed}
-              title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-all duration-150"
-            >
-              {collapsed
-                ? <PanelLeftOpen className="h-4 w-4" />
-                : <PanelLeftClose className="h-4 w-4" />}
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -265,7 +270,7 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
             <Heart className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sm tracking-tight">MindCare Pro</span>
+          <span className="font-semibold text-sm tracking-tight text-foreground">Saudade</span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -273,7 +278,7 @@ const Layout = ({ children }: LayoutProps) => {
             {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-zen-lavender" />}
           </Button>
 
-          <UserMenu pendingCount={pendingCount} />
+          <UserMenu pendingCount={pendingCount} avatarUrl={avatarUrl} />
         </div>
       </header>
 

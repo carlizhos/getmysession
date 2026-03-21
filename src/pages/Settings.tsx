@@ -15,12 +15,13 @@ import {
 } from '@/components/ui/select';
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
-    Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2,
+    Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import AvatarUpload from '@/components/settings/AvatarUpload';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -88,10 +89,13 @@ const Settings = () => {
         prefix: 'none',
         full_name: '',
         email: '',
+        avatar_url: null as string | null,
         institucion_formadora: '',
         telefono_profesional: '',
         porcentaje_consultorio: 30,
         stripe_fee_percent: 5.14,
+        slug: '',
+        is_public: false,
     });
 
     const [cedulas, setCedulas] = useState<Cedula[]>([]);
@@ -105,11 +109,17 @@ const Settings = () => {
     const [showAddCedula, setShowAddCedula] = useState(false);
     const [showAddCurso, setShowAddCurso] = useState(false);
 
-    const [horario, setHorario] = useState({
-        inicio: '08:00',
-        fin: '17:00',
-        dias: [1, 2, 3, 4, 5] as number[],
-        dias_no_laborables: [] as string[], // YYYY-MM-DD
+    const [horario, setHorario] = useState<any>({
+        dias: {
+            1: { activo: true, inicio: '08:00', fin: '17:00' },
+            2: { activo: true, inicio: '08:00', fin: '17:00' },
+            3: { activo: true, inicio: '08:00', fin: '17:00' },
+            4: { activo: true, inicio: '08:00', fin: '17:00' },
+            5: { activo: true, inicio: '08:00', fin: '17:00' },
+            6: { activo: false, inicio: '08:00', fin: '13:00' },
+            0: { activo: false, inicio: '08:00', fin: '13:00' },
+        },
+        dias_no_laborables: [],
     });
 
     const [newNonWorkingDay, setNewNonWorkingDay] = useState('');
@@ -129,7 +139,7 @@ const Settings = () => {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('prefix, full_name, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings')
+                    .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public')
                     .eq('id', user.id)
                     .single();
 
@@ -139,10 +149,13 @@ const Settings = () => {
                     prefix: data?.prefix || 'none',
                     full_name: data?.full_name || user.user_metadata?.full_name || '',
                     email: user.email || '',
+                    avatar_url: data?.avatar_url || null,
                     institucion_formadora: data?.institucion_formadora || '',
                     telefono_profesional: data?.telefono_profesional || '',
                     porcentaje_consultorio: data?.porcentaje_consultorio ?? 30,
                     stripe_fee_percent: data?.stripe_fee_percent ?? 5.14,
+                    slug: data?.slug || '',
+                    is_public: data?.is_public || false,
                 });
 
                 // Dynamic lists — stored as JSONB in profiles
@@ -152,12 +165,26 @@ const Settings = () => {
                 if (Array.isArray(d?.cursos)) setCursos(d.cursos);
 
                 if (data?.horario_atencion) {
-                    setHorario({
-                        inicio: data.horario_atencion.inicio ?? '08:00',
-                        fin: data.horario_atencion.fin ?? '17:00',
-                        dias: data.horario_atencion.dias ?? [1, 2, 3, 4, 5],
-                        dias_no_laborables: data.horario_atencion.dias_no_laborables ?? [],
-                    });
+                    const h = data.horario_atencion;
+                    
+                    // Migración si viene en formato antiguo (array de días y horas globales)
+                    if (Array.isArray(h.dias)) {
+                        const newDias: any = {};
+                        [0, 1, 2, 3, 4, 5, 6].forEach(d => {
+                            newDias[d] = {
+                                activo: h.dias.includes(d),
+                                inicio: h.inicio || '08:00',
+                                fin: h.fin || '17:00'
+                            };
+                        });
+                        setHorario({
+                            dias: newDias,
+                            dias_no_laborables: h.dias_no_laborables || [],
+                        });
+                    } else if (h.dias) {
+                        // Formato nuevo ya existe
+                        setHorario(h);
+                    }
                 }
 
                 if (data?.notification_settings) {
@@ -189,10 +216,13 @@ const Settings = () => {
                 id: user.id,
                 prefix: profile.prefix === 'none' ? null : profile.prefix,
                 full_name: profile.full_name,
+                avatar_url: profile.avatar_url,
                 cedulas: cedulas,
                 cursos: cursos,
                 institucion_formadora: profile.institucion_formadora || null,
                 telefono_profesional: profile.telefono_profesional || null,
+                slug: profile.slug || null,
+                is_public: profile.is_public,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'id' });
             if (error) throw error;
@@ -226,6 +256,17 @@ const Settings = () => {
 
     const handleSaveHorarios = async () => {
         if (!user) return;
+        
+        // Validation: Catch any active days with invalid ranges
+        const invalidDays = Object.entries(horario.dias).filter(([_, config]: [string, any]) => {
+            return config.activo && config.fin <= config.inicio;
+        });
+
+        if (invalidDays.length > 0) {
+            toast.error('Uno o más días tienen un horario inválido (Fin debe ser mayor a Inicio)');
+            return;
+        }
+
         setIsSaving(true);
         try {
             const { error } = await supabase.from('profiles').upsert({
@@ -263,12 +304,49 @@ const Settings = () => {
     };
 
     const toggleDia = (d: number) => {
-        setHorario(prev => ({
+        setHorario((prev: any) => ({
             ...prev,
-            dias: prev.dias.includes(d)
-                ? prev.dias.filter(x => x !== d)
-                : [...prev.dias, d].sort(),
+            dias: {
+                ...prev.dias,
+                [d]: {
+                    ...prev.dias[d],
+                    activo: !prev.dias[d].activo
+                }
+            }
         }));
+    };
+
+    const updateDiaHorario = (d: number, field: 'inicio' | 'fin', value: string) => {
+        const current = horario.dias[d];
+        const nextInicio = field === 'inicio' ? value : current.inicio;
+        const nextFin = field === 'fin' ? value : current.fin;
+
+        if (nextFin <= nextInicio) {
+            toast.warning('La hora de fin debe ser posterior a la de inicio');
+        }
+
+        setHorario((prev: any) => ({
+            ...prev,
+            dias: {
+                ...prev.dias,
+                [d]: {
+                    ...prev.dias[d],
+                    [field]: value
+                }
+            }
+        }));
+    };
+
+    const copiarHorarioATodos = (sourceDia: number) => {
+        const { inicio, fin } = horario.dias[sourceDia];
+        const newDias = { ...horario.dias };
+        Object.keys(newDias).forEach((key: any) => {
+            if (newDias[key].activo) {
+                newDias[key] = { ...newDias[key], inicio, fin };
+            }
+        });
+        setHorario({ ...horario, dias: newDias });
+        toast.success(`Copiado ${inicio} - ${fin} a todos los días activos`);
     };
 
     const addNonWorkingDay = () => {
@@ -353,6 +431,15 @@ const Settings = () => {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
+                                    <div className="flex flex-col items-center pb-8 border-b border-border/50 mb-6">
+                                        <AvatarUpload
+                                            url={profile.avatar_url}
+                                            fullName={profile.full_name}
+                                            onUpload={(url) => setProfile({ ...profile, avatar_url: url })}
+                                            onRemove={() => setProfile({ ...profile, avatar_url: null })}
+                                        />
+                                    </div>
+
                                     <form onSubmit={handleSavePerfil} className="space-y-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="full_name">Nombre completo</Label>
@@ -394,7 +481,41 @@ const Settings = () => {
                                             <p className="text-xs text-muted-foreground">El correo se gestiona desde tu proveedor de autenticación.</p>
                                         </div>
 
+                                        {/* ── Perfil Público ── */}
                                         <div className="pt-2 space-y-6">
+                                            <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                                                            Portal de Reservas Público
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground mt-1">Permite que tus pacientes agenden directamente usando tu enlace personal.</p>
+                                                    </div>
+                                                    <Switch
+                                                        checked={profile.is_public}
+                                                        onCheckedChange={(c) => setProfile({ ...profile, is_public: c })}
+                                                        disabled={isSaving}
+                                                    />
+                                                </div>
+
+                                                <div className={cn("space-y-2 transition-all", !profile.is_public && "opacity-50 pointer-events-none")}>
+                                                    <Label htmlFor="slug">Tu enlace personalizado</Label>
+                                                    <div className="flex rounded-md shadow-sm">
+                                                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-border bg-muted px-3 text-muted-foreground sm:text-sm">
+                                                            saudade.app/reservar/
+                                                        </span>
+                                                        <Input
+                                                            id="slug"
+                                                            className="rounded-none rounded-r-md"
+                                                            placeholder="tu-nombre"
+                                                            value={profile.slug}
+                                                            onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                                                            disabled={isSaving || !profile.is_public}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">O usa letras minúsculas, números y guiones.</p>
+                                                </div>
+                                            </div>
 
                                             {/* ── Teléfono profesional */}
                                             <div className="space-y-2">
@@ -587,47 +708,74 @@ const Settings = () => {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-5">
-                                        {/* Días laborables */}
-                                        <div className="space-y-2">
-                                            <Label>Días laborables</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {DIAS_SEMANA.map((d) => (
-                                                    <button
-                                                        key={d.value}
-                                                        type="button"
-                                                        onClick={() => toggleDia(d.value)}
-                                                        className={cn(
-                                                            'h-9 w-12 rounded-lg text-sm font-medium border transition-all duration-150',
-                                                            horario.dias.includes(d.value)
-                                                                ? 'bg-primary text-primary-foreground border-primary'
-                                                                : 'bg-background text-muted-foreground border-border hover:border-primary/50'
-                                                        )}
-                                                    >
-                                                        {d.label}
-                                                    </button>
-                                                ))}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm font-semibold">Días y Horas de Atención</Label>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Activo | Inicio | Fin</p>
                                             </div>
-                                        </div>
+                                            
+                                            <div className="space-y-3">
+                                                {DIAS_SEMANA.map((d) => {
+                                                    const config = horario.dias?.[d.value] || { activo: false, inicio: '08:00', fin: '17:00' };
+                                                    const isInvalid = config.activo && config.fin <= config.inicio;
+                                                    
+                                                    return (
+                                                        <div key={d.value} className={cn(
+                                                            "flex items-center gap-4 p-3 rounded-lg border transition-all relative",
+                                                            config.activo 
+                                                                ? (isInvalid ? "bg-red-50 border-red-500" : "bg-primary/5 border-primary/20") 
+                                                                : "bg-muted/10 border-transparent opacity-60"
+                                                        )}>
+                                                            <div className="w-24 shrink-0">
+                                                                <p className={cn(
+                                                                    "font-medium text-sm",
+                                                                    isInvalid && "text-red-700"
+                                                                )}>{d.label.length > 3 ? d.label : d.label + " (V)"}</p>
+                                                            </div>
 
-                                        {/* Horas */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="hora_inicio">Hora inicio</Label>
-                                                <Input
-                                                    id="hora_inicio"
-                                                    type="time"
-                                                    value={horario.inicio}
-                                                    onChange={(e) => setHorario({ ...horario, inicio: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="hora_fin">Hora fin</Label>
-                                                <Input
-                                                    id="hora_fin"
-                                                    type="time"
-                                                    value={horario.fin}
-                                                    onChange={(e) => setHorario({ ...horario, fin: e.target.value })}
-                                                />
+                                                            <Switch
+                                                                checked={config.activo}
+                                                                onCheckedChange={() => toggleDia(d.value)}
+                                                            />
+
+                                                            {config.activo ? (
+                                                                <>
+                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                        <Input
+                                                                            type="time"
+                                                                            value={config.inicio}
+                                                                            onChange={(e) => updateDiaHorario(d.value, 'inicio', e.target.value)}
+                                                                            className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
+                                                                            onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                                                        />
+                                                                        <span className="text-muted-foreground">—</span>
+                                                                        <Input
+                                                                            type="time"
+                                                                            value={config.fin}
+                                                                            onChange={(e) => updateDiaHorario(d.value, 'fin', e.target.value)}
+                                                                            className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
+                                                                            onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                                                        />
+                                                                    </div>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                                        title="Copiar este horario a todos los días activos"
+                                                                        onClick={() => copiarHorarioATodos(d.value)}
+                                                                    >
+                                                                        <Copy className="h-4 w-4" />
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <div className="flex-1 text-xs text-muted-foreground italic">
+                                                                    Cerrado
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
@@ -635,7 +783,7 @@ const Settings = () => {
                                         <div className="space-y-3">
                                             <div className="flex items-center gap-2">
                                                 <CalendarOff className="h-4 w-4 text-muted-foreground" />
-                                                <Label>Días festivos / No laborables</Label>
+                                                <Label>Días No Laborables</Label>
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 Estos días aparecerán bloqueados en el calendario y no podrán agendarse citas.
@@ -646,6 +794,7 @@ const Settings = () => {
                                                     type="date"
                                                     value={newNonWorkingDay}
                                                     onChange={(e) => setNewNonWorkingDay(e.target.value)}
+                                                    onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                                     className="max-w-[200px]"
                                                 />
                                                 <Button

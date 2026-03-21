@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -16,9 +16,10 @@ interface PatientAutocompleteProps {
     value: string;
     onSelect: (patientId: string, patientName: string) => void;
     placeholder?: string;
+    className?: string;
 }
 
-const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..." }: PatientAutocompleteProps) => {
+const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente...", className }: PatientAutocompleteProps) => {
     const [open, setOpen] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +60,14 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
         setSearchQuery('');
     };
 
+    const handleClear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedPatientName('');
+        setSearchQuery('');
+        onSelect('', '');
+        setOpen(false);
+    };
+
     let emptyMessage = "No se encontraron pacientes.";
     if (searchQuery.trim().length === 0) {
         emptyMessage = "Escribe al menos 3 letras para buscar un paciente...";
@@ -69,19 +78,28 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <div className="relative">
+                <div className={cn("relative flex items-center group", className)}>
                     <Input
                         value={selectedPatientName || searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
-                            setSelectedPatientName(''); // Clear selection to allow typing
-                            if (value) onSelect('', '');    // Notify parent of clearance
+                            setSelectedPatientName(''); 
+                            if (value) onSelect('', ''); 
                             setOpen(true);
                         }}
                         onFocus={() => setOpen(true)}
                         placeholder={placeholder}
-                        className="w-full"
+                        className="w-full pr-10"
                     />
+                    {(selectedPatientName || searchQuery) && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="absolute right-3 h-4 w-4 text-muted-foreground hover:text-foreground transition-all rounded-full hover:bg-muted/50 flex items-center justify-center -translate-y-px"
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
             </PopoverTrigger>
             <PopoverContent
