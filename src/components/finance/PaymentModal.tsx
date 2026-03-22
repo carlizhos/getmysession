@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { logActivity } from '@/lib/activityLogger';
 
 interface Appointment {
     id: string;
@@ -133,6 +134,14 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
 
             const label = selected === 'efectivo' ? 'Efectivo' : 'Transferencia';
             toast.success(`Pago en ${label} registrado correctamente`);
+            
+            await logActivity({
+                profile_id: user!.id,
+                type: 'payment_received',
+                title: 'Pago Recibido',
+                description: `Has registrado un pago de ${appointment.patient_name} por $${appointment.fee} (${label}).`,
+            });
+            
             handleClose();
             onSuccess();
         } catch (err: any) {

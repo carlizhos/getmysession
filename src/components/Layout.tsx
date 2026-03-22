@@ -29,6 +29,7 @@ import InactivityModal from '@/components/auth/InactivityModal';
 import { supabase } from '@/lib/supabase';
 import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -278,6 +279,7 @@ const Layout = ({ children }: LayoutProps) => {
             {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-zen-lavender" />}
           </Button>
 
+          <NotificationBell />
           <UserMenu pendingCount={pendingCount} avatarUrl={avatarUrl} />
         </div>
       </header>

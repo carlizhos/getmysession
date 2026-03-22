@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import {
     Select,
     SelectContent,
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
-    Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy,
+    Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy, CalendarPlus
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,6 +85,7 @@ const Settings = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<TabId>('perfil');
+    const [hasGoogleCalendar, setHasGoogleCalendar] = useState(false);
 
     const [profile, setProfile] = useState({
         prefix: 'none',
@@ -139,11 +141,15 @@ const Settings = () => {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public')
+                    .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token')
                     .eq('id', user.id)
                     .single();
 
                 if (error && error.code !== 'PGRST116') throw error;
+
+                if (data?.google_refresh_token) {
+                    setHasGoogleCalendar(true);
+                }
 
                 setProfile({
                     prefix: data?.prefix || 'none',
@@ -202,6 +208,21 @@ const Settings = () => {
             }
         };
         load();
+
+        // Escuchar si venimos de un redirect de Google OAuth con tokens nuevos
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.provider_refresh_token) {
+                supabase.from('profiles').update({
+                    google_refresh_token: session.provider_refresh_token,
+                    google_access_token: session.provider_token
+                }).eq('id', session.user.id).then(({ error }) => {
+                    if (!error) {
+                        setHasGoogleCalendar(true);
+                        toast.success('¡Google Calendar se conectó existosamente!');
+                    }
+                });
+            }
+        });
     }, [user]);
 
     // ── Saves ─────────────────────────────────────────────────────────────────
@@ -367,6 +388,25 @@ const Settings = () => {
             ...prev,
             dias_no_laborables: prev.dias_no_laborables.filter(d => d !== day),
         }));
+    };
+
+    const handleLinkGoogleCalendar = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    scopes: 'https://www.googleapis.com/auth/calendar.events',
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    },
+                    redirectTo: `${window.location.origin}/settings`,
+                }
+            });
+            if (error) throw error;
+        } catch (err: any) {
+            toast.error('Error al conectar Google Calendar: ' + err.message);
+        }
     };
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -943,8 +983,32 @@ const Settings = () => {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
-                                        {/* Psicólogo */}
+                                        {/* Integraciones de Terceros */}
                                         <div className="space-y-3">
+                                            <p className="text-sm font-semibold text-foreground">Integraciones</p>
+                                            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-4 bg-primary/5">
+                                                <div className="flex items-center gap-3">
+                                                    <CalendarPlus className="h-5 w-5 text-primary" />
+                                                    <div>
+                                                        <p className="text-sm font-bold text-primary">Google Calendar (Sincronización)</p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">Bloquea tus espacios ocupados personales para evitar choques en Saudade y agrega nuevas citas a tu calendario personal.</p>
+                                                    </div>
+                                                </div>
+                                                {hasGoogleCalendar ? (
+                                                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                                                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                        Conectado
+                                                    </Badge>
+                                                ) : (
+                                                    <Button variant="zen" size="sm" onClick={handleLinkGoogleCalendar}>
+                                                        Conectar
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Psicólogo */}
+                                        <div className="space-y-3 border-t border-border pt-5">
                                             <p className="text-sm font-semibold text-foreground">Mis notificaciones (Psicólogo)</p>
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">

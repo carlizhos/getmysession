@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { checkReactivations } from '@/lib/reactivationService';
 
 // ── Tipos locales ────────────────────────────────────────────────────────────
 interface DashboardAppointment {
@@ -74,7 +75,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchAll();
-  }, []);
+    if (user?.id) {
+      checkReactivations(user.id);
+    }
+  }, [user?.id]);
 
   const fetchAll = async () => {
     setLoading(true);

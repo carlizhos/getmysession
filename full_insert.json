@@ -1,0 +1,59 @@
+{
+  "kind": "calendar#event",
+  "etag": "\"3548327537465534\"",
+  "id": "mtctucotl8h5s58np1t4hepei4",
+  "status": "confirmed",
+  "htmlLink": "https://www.google.com/calendar/event?eid=bXRjdHVjb3RsOGg1czU4bnAxdDRoZXBlaTQgY2FybGl6aG9zQG0",
+  "created": "2026-03-22T07:16:08.000Z",
+  "updated": "2026-03-22T07:16:08.732Z",
+  "summary": "meet test",
+  "creator": {
+    "email": "carlizhos@gmail.com",
+    "self": true
+  },
+  "organizer": {
+    "email": "carlizhos@gmail.com",
+    "self": true
+  },
+  "start": {
+    "dateTime": "2026-03-24T03:00:00-07:00",
+    "timeZone": "America/Tijuana"
+  },
+  "end": {
+    "dateTime": "2026-03-24T04:00:00-07:00",
+    "timeZone": "America/Tijuana"
+  },
+  "iCalUID": "mtctucotl8h5s58np1t4hepei4@google.com",
+  "sequence": 0,
+  "hangoutLink": "https://meet.google.com/cet-xqve-gpr",
+  "conferenceData": {
+    "createRequest": {
+      "requestId": "o8149k",
+      "conferenceSolutionKey": {
+        "type": "hangoutsMeet"
+      },
+      "status": {
+        "statusCode": "success"
+      }
+    },
+    "entryPoints": [
+      {
+        "entryPointType": "video",
+        "uri": "https://meet.google.com/cet-xqve-gpr",
+        "label": "meet.google.com/cet-xqve-gpr"
+      }
+    ],
+    "conferenceSolution": {
+      "key": {
+        "type": "hangoutsMeet"
+      },
+      "name": "Google Meet",
+      "iconUri": "https://fonts.gstatic.com/s/i/productlogos/meet_2020q4/v6/web-512dp/logo_meet_2020q4_color_2x_web_512dp.png"
+    },
+    "conferenceId": "cet-xqve-gpr"
+  },
+  "reminders": {
+    "useDefault": true
+  },
+  "eventType": "default"
+}

@@ -4,13 +4,14 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, isSameDay, addDays, startOfToday, parseISO, isBefore } from 'date-fns';
+import { format, isSameDay, addDays, startOfToday, parseISO, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, ArrowLeft, Clock, Calendar as CalendarIcon, User, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logActivity } from '@/lib/activityLogger';
 
 interface SpecialistProfile {
   id: string;
@@ -18,6 +19,7 @@ interface SpecialistProfile {
   avatar_url: string | null;
   prefix: string | null;
   horario_atencion: any;
+  slug: string;
 }
 
 const BookingPage = () => {
@@ -41,6 +43,8 @@ const BookingPage = () => {
     email: '',
     phone: '',
   });
+  const [sessionType, setSessionType] = useState('Primera vez');
+  const [modality, setModality] = useState('Videollamada');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 1. Fetch Specialist Profile
@@ -51,7 +55,7 @@ const BookingPage = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, prefix, horario_atencion')
+          .select('id, full_name, avatar_url, prefix, horario_atencion, slug')
           .eq('slug', slug)
           .eq('is_public', true)
           .single();
@@ -88,18 +92,39 @@ const BookingPage = () => {
         }
 
         // Fetch existing appointments for this date
-        const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const nextDayStr = format(addDays(selectedDate, 1), 'yyyy-MM-dd');
+        const dayStartIso = startOfDay(selectedDate).toISOString();
+        const dayEndIso = endOfDay(selectedDate).toISOString();
+        const dateStr = format(selectedDate, 'yyyy-MM-dd'); // Kept for current and end below
 
-        const { data: apts } = await supabase
-          .from('appointments')
-          .select('start_time, end_time')
-          .eq('user_id', profile.id)
-          .gte('start_time', `${dateStr}T00:00:00Z`)
-          .lt('start_time', `${nextDayStr}T00:00:00Z`)
-          .in('status', ['confirmed', 'pending']); // Exclude cancelled
+        const { data: apts, error: rpcError } = await supabase.rpc('get_busy_slots', {
+          p_user_id: profile.id,
+          p_start_date: dayStartIso,
+          p_end_date: dayEndIso
+        });
+        
+        if (rpcError) console.error("Error fetching busy slots via RPC:", rpcError);
 
         const busySlots = (apts || []).map(a => format(parseISO(a.start_time), 'HH:mm'));
+
+        // Query Edge Function for Google Calendar free/busy
+        const gcalBusyRanges: { start: Date, end: Date }[] = [];
+        try {
+          // Generar ISO strings completos para el día seleccionado en la zona horaria del usuario
+          const timeMin = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString();
+          const timeMax = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1, 0, 0, 0).toISOString();
+          
+          const { data: gcalData, error: gcalError } = await supabase.functions.invoke('google-calendar-freebusy', {
+            body: { slug: profile.slug, timeMin, timeMax }
+          });
+          
+          if (!gcalError && gcalData?.busy) {
+            for (const b of gcalData.busy) {
+              gcalBusyRanges.push({ start: parseISO(b.start), end: parseISO(b.end) });
+            }
+          }
+        } catch (e) {
+          console.error('Error al obtener disponibilidad de Google Calendar:', e);
+        }
 
         // Generate 60-min slots between configDia.inicio and configDia.fin
         const slots: string[] = [];
@@ -111,11 +136,19 @@ const BookingPage = () => {
           // Check if it's in the past (if today)
           const isToday = isSameDay(selectedDate, new Date());
           const isPast = isToday && isBefore(current, new Date());
+          
+          const slotEnd = new Date(current.getTime() + 60 * 60 * 1000); // Add 1 hour
+          
+          // Verificar colisión con Google Calendar
+          const hasGoogleCollision = gcalBusyRanges.some(busy => {
+            // Hay traslape si: inicio_slot < fin_busy Y fin_slot > inicio_busy
+            return current < busy.end && slotEnd > busy.start;
+          });
 
-          if (!busySlots.includes(timeStr) && !isPast) {
+          if (!busySlots.includes(timeStr) && !isPast && !hasGoogleCollision) {
             slots.push(timeStr);
           }
-          current = new Date(current.getTime() + 60 * 60 * 1000); // Add 1 hour
+          current = slotEnd;
         }
 
         setAvailableSlots(slots);
@@ -174,26 +207,91 @@ const BookingPage = () => {
         
       if (leadError) throw leadError;
 
-      // 2. Create the appointment
       const startTime = parseISO(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}`);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
+      // Sincronizar hacia Google Calendar a través de la Edge Function (y generar Meet si aplica)
+      let finalMeetLink = null;
+      let finalPlatform = null;
+
+      if (modality === 'Videollamada') {
+        finalPlatform = 'Google Meet';
+        try {
+          const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
+            body: {
+              slug: profile.slug,
+              createMeet: true,
+              event: {
+                summary: `Cita Saudade: ${patientInfo.name}`,
+                description: `Teléfono: ${patientInfo.phone}\nCorreo: ${patientInfo.email}\nAgendada desde el Portal Público.`,
+                start: { dateTime: startTime.toISOString() },
+                end: { dateTime: endTime.toISOString() },
+              }
+            }
+          });
+          if (!syncErr && data?.meetLink) {
+            finalMeetLink = data.meetLink;
+          }
+        } catch (err) {
+          console.error("Error sincronizando y creando Meet:", err);
+        }
+      } else {
+        // Presencial: sincronizamos asíncronamente en el fondo sin esperar
+        supabase.functions.invoke('google-calendar-sync', {
+          body: {
+            slug: profile.slug,
+            event: {
+              summary: `Cita Saudade: ${patientInfo.name} (Presencial)`,
+              description: `Teléfono: ${patientInfo.phone}\nCorreo: ${patientInfo.email}\nAgendada desde el Portal Público.`,
+              start: { dateTime: startTime.toISOString() },
+              end: { dateTime: endTime.toISOString() },
+            }
+          }
+        }).catch(err => console.error('Error sincronizando calendario:', err));
+      }
+
+      // 2. Create the appointment
       const { error: aptError } = await supabase
         .from('appointments')
         .insert({
           user_id: profile.id,
-          // We don't have a formal patient_id yet until the specialist converts the lead
           patient_name: patientInfo.name, 
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           status: 'pending',
-          type: 'primera_vez', // Default type for portal
-          fee: 0, // Pending to be set by specialist
+          type: 'primera_vez', 
+          fee: 0,
           payment_status: 'pending',
-          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}`
+          meeting_platform: finalPlatform,
+          meeting_link: finalMeetLink,
+          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nModalidad: ${modality}`
         });
 
       if (aptError) throw aptError;
+
+      // 3. Send Email Notifications
+      supabase.functions.invoke('notify-appointment', {
+        body: {
+          psychologistId: profile.id,
+          patientName: patientInfo.name,
+          patientEmail: patientInfo.email,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          sessionType: 'primera_vez',
+          fee: 0,
+          meetingLink: finalMeetLink,
+          meetingPlatform: finalPlatform,
+          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nModalidad: ${modality}`
+        }
+      }).catch(err => console.error('Error enviando notificación:', err));
+
+      // 4. Log Activity
+      await logActivity({
+        profile_id: profile.id,
+        type: 'appointment_created',
+        title: 'Nueva Cita Agendada',
+        description: `${patientInfo.name} ha agendado una sesión el ${format(selectedDate!, "d 'de' MMMM", { locale: es })} a las ${selectedTime}.`,
+      });
 
       setStep(3);
     } catch (err: any) {

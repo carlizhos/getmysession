@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import ClockPicker from '@/components/ui/ClockPicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertTriangle } from 'lucide-react';
+import { logActivity } from '@/lib/activityLogger';
 
 
 
@@ -84,6 +85,7 @@ const NewAppointmentDialog = ({
     const [confirmCancel, setConfirmCancel] = useState(false);
 
     const [specialistName, setSpecialistName] = useState('');
+    const [profileSlug, setProfileSlug] = useState<string>('');
     
     // Schedule config loaded from profile
     const [horarioConfig, setHorarioConfig] = useState<any>({
@@ -95,11 +97,12 @@ const NewAppointmentDialog = ({
         if (!user) return;
         supabase
             .from('profiles')
-            .select('horario_atencion, full_name')
+            .select('horario_atencion, full_name, slug')
             .eq('id', user.id)
             .single()
             .then(({ data }) => {
                 if (data?.full_name) setSpecialistName(data.full_name);
+                if (data?.slug) setProfileSlug(data.slug);
                 if (data?.horario_atencion) {
                     const h = data.horario_atencion;
                     let normalized: any;
@@ -297,13 +300,46 @@ const NewAppointmentDialog = ({
                 if (error) throw error;
                 toast.success('Cita actualizada');
             } else {
+                let finalMeetingLink = payload.meeting_link;
+
+                // Enviar la nueva cita a Google Calendar si está conectado (antes de DB/email para agarrar link de Meet)
+                if (profileSlug) {
+                    try {
+                        const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
+                            body: {
+                                slug: profileSlug,
+                                createMeet: formData.meetingPlatform === 'meet' || formData.meetingPlatform === 'Google Meet',
+                                event: {
+                                    summary: `Cita Saudade: ${formData.patientName}`,
+                                    description: `Tipo: ${formData.type}\nNotas: ${formData.notes || 'Ninguna'}`,
+                                    start: { dateTime: startDateTime.toISOString() },
+                                    end: { dateTime: endDateTime.toISOString() },
+                                }
+                            }
+                        });
+                        if (!syncErr && data?.meetLink) {
+                            finalMeetingLink = data.meetLink;
+                        }
+                    } catch (err) {
+                        console.error('Error sincronizando calendario de Google:', err);
+                    }
+                }
+
                 const { error } = await supabase.from('appointments').insert([{
                     ...payload,
+                    meeting_link: finalMeetingLink,
                     status: formData.status || 'scheduled',
                     payment_status: 'pending',
                 }]);
                 if (error) throw error;
                 toast.success(`Cita con ${formData.patientName} agendada correctamente`);
+
+                await logActivity({
+                    profile_id: user!.id,
+                    type: 'appointment_created',
+                    title: 'Nueva Cita Agendada',
+                    description: `Has agendado una cita con ${formData.patientName} el ${format(startDateTime, "d 'de' MMMM", { locale: es })} a las ${format(startDateTime, "HH:mm")}.`,
+                });
 
                 // Send email notifications (non-blocking): psychologist + patient confirmation
                 const { data: { session } } = await supabase.auth.getSession();
@@ -318,7 +354,7 @@ const NewAppointmentDialog = ({
                         endTime: endDateTime.toISOString(),
                         sessionType: formData.type || 'individual',
                         fee: formData.fee || 0,
-                        meetingLink: formData.meetingLink || null,
+                        meetingLink: finalMeetingLink,
                         meetingPlatform: formData.meetingPlatform || null,
                         notes: formData.notes || null,
                     },
