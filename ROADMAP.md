@@ -80,6 +80,10 @@
   - ✅ UI en Finanzas: modal "Registrar Pago" con métodos (Efectivo / Transferencia / Stripe)
   - ✅ Registro automático al regresar del checkout de Stripe (`?payment=success&apt=ID`)
   - ✅ Notas/referencia en pagos de efectivo y transferencia
+- ✅ **Facturación Electrónica (Facturapi)**:
+  - ✅ Integración con CFDI 4.0 (México)
+  - ✅ Automatización de correo al paciente
+  - ✅ Descarga directa de PDF
 
 - ✅ **Finanzas**:
   - ✅ KPIs: Total cobrado, Por cobrar, Sesiones cobradas, Honorarios netos

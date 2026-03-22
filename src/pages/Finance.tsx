@@ -21,6 +21,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   DollarSign,
   TrendingUp,
   CreditCard,
@@ -34,6 +40,10 @@ import {
   Building2,
   ChevronDown,
   GripVertical,
+  FileText,
+  Download,
+  Mail,
+  ExternalLink,
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -63,6 +73,8 @@ interface Payment {
   paid_at: string | null;
   created_at: string;
   notes: string | null;
+  invoice_url?: string | null;
+  invoice_id?: string | null;
 }
 
 type PaymentMethod = 'efectivo' | 'transferencia' | 'stripe';
@@ -128,6 +140,73 @@ const Finance = () => {
   const [lastMonthAppointments, setLastMonthAppointments] = useState<Appointment[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed(p => ({ ...p, [key]: !p[key] }));
+  const [generatingInvoiceId, setGeneratingInvoiceId] = useState<string | null>(null);
+
+  const handleGenerateInvoice = async (paymentId: string) => {
+    setGeneratingInvoiceId(paymentId);
+    try {
+      const { data, error: funcError } = await supabase.functions.invoke('generate-invoice', {
+        body: { payment_id: paymentId, action: 'create' }
+      });
+
+      if (funcError) throw new Error(funcError.message);
+      
+      if (data?.success === false) {
+        throw new Error(data.error || 'Error desconocido en el servidor');
+      }
+
+      toast.success('Factura generada exitosamente');
+      fetchData(); // Refresh to show the new invoice
+    } catch (err: any) {
+      console.error('Error facturando:', err);
+      toast.error(err.message || 'Ocurrió un error al procesar el timbrado.');
+    } finally {
+      setGeneratingInvoiceId(null);
+    }
+  };
+
+  const handleSendEmail = async (invoiceId: string) => {
+    try {
+      toast.loading('Enviando correo...');
+      const { data, error: funcError } = await supabase.functions.invoke('generate-invoice', {
+        body: { invoice_id: invoiceId, action: 'send_email' }
+      });
+
+      toast.dismiss();
+      if (funcError) throw new Error(funcError.message);
+      if (data?.success === false) throw new Error(data.error);
+
+      toast.success('Factura enviada por correo al paciente');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al enviar el correo');
+    }
+  };
+
+  const handleDownloadDirect = async (invoiceId: string) => {
+    try {
+      toast.loading('Preparando descarga...');
+      const { data, error: funcError } = await supabase.functions.invoke('generate-invoice', {
+        body: { invoice_id: invoiceId, action: 'download' }
+      });
+
+      toast.dismiss();
+      if (funcError) throw new Error(funcError.message);
+      
+      // La data es un blob
+      const blob = data;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `factura_${invoiceId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (err: any) {
+      toast.error(err.message || 'Error al descargar el archivo');
+    }
+  };
 
   // ── Delta badge helper ────────────────────────────────────────────────
   const DeltaBadge = ({ current, previous }: { current: number; previous: number }) => {
@@ -253,7 +332,7 @@ const Finance = () => {
           .order('start_time', { ascending: false }),
         supabase
           .from('payments')
-          .select('id, appointment_id, patient_name, amount, currency, status, method, paid_at, created_at, notes')
+          .select('*, invoice_url, invoice_id')
           .gte('created_at', start)
           .lte('created_at', end)
           .order('created_at', { ascending: false }),
@@ -805,6 +884,36 @@ const Finance = () => {
                                             <span className="text-lg font-semibold text-success">
                                               +${p.amount.toLocaleString('es-MX')} MXN
                                             </span>
+                                            {p.invoice_url ? (
+                                              <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                  <Button variant="outline" size="sm" className="gap-1 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
+                                                    <FileText className="h-3.5 w-3.5" />
+                                                    Factura
+                                                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                                  </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                  <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                                    <Download className="h-4 w-4" />
+                                                    Descargar PDF
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => handleSendEmail(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                                    <Mail className="h-4 w-4" />
+                                                    Enviar por Correo
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => window.open(p.invoice_url!, '_blank')} className="gap-2 cursor-pointer">
+                                                    <ExternalLink className="h-4 w-4" />
+                                                    Ver en Facturapi
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                              </DropdownMenu>
+                                            ) : (
+                                              <Button variant="outline" size="sm" onClick={() => handleGenerateInvoice(p.id)} disabled={generatingInvoiceId === p.id} className="gap-1">
+                                                {generatingInvoiceId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
+                                                Facturar
+                                              </Button>
+                                            )}
                                           </div>
                                         </div>
                                         <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 pb-3 text-xs text-muted-foreground border-t border-border/40 pt-2">

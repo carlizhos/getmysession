@@ -15,6 +15,7 @@ import {
 import { X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { logActivity } from '@/lib/activityLogger';
 
 interface NewPatientDialogProps {
     open: boolean;
@@ -58,6 +59,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         emergencyContactName: '',
         emergencyContactPhone: '',
         notes: '',
+        rfc: '',
+        taxName: '',
+        taxZipCode: '',
+        taxRegime: '',
+        cfdiUse: '',
     });
     const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState('');
@@ -78,6 +84,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 emergencyContactName: editingPatient.emergency_contact_name || '',
                 emergencyContactPhone: editingPatient.emergency_contact_phone || '',
                 notes: editingPatient.notes || '',
+                rfc: (editingPatient as any).rfc || '',
+                taxName: (editingPatient as any).tax_name || '',
+                taxZipCode: (editingPatient as any).tax_zip_code || '',
+                taxRegime: (editingPatient as any).tax_regime || '',
+                cfdiUse: (editingPatient as any).cfdi_use || '',
             });
             setTags(editingPatient.tags || []);
         } else {
@@ -85,6 +96,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 name: '', email: '', phone: '', dateOfBirth: '',
                 curp: '', sex: '', occupation: '',
                 emergencyContactName: '', emergencyContactPhone: '', notes: '',
+                rfc: '', taxName: '', taxZipCode: '', taxRegime: '', cfdiUse: '',
             });
             setTags([]);
         }
@@ -132,6 +144,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 emergency_contact_phone: formData.emergencyContactPhone || null,
                 notes: formData.notes,
                 tags: tags,
+                rfc: formData.rfc || null,
+                tax_name: formData.taxName || null,
+                tax_zip_code: formData.taxZipCode || null,
+                tax_regime: formData.taxRegime || null,
+                cfdi_use: formData.cfdiUse || null,
                 user_id: user?.id ?? null,
             };
 
@@ -149,6 +166,13 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     .select();
                 if (error) throw error;
                 toast.success('Paciente agregado exitosamente');
+
+                await logActivity({
+                    profile_id: user!.id,
+                    type: 'patient_created',
+                    title: 'Nuevo Paciente Registrado',
+                    description: `Has registrado a ${formData.name} en tu expediente clínico.`,
+                });
             }
 
             if (onPatientAdded) onPatientAdded();
@@ -343,6 +367,78 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         placeholder="+52 55 1234 5678"
                                         disabled={isSubmitting}
                                     />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── CFDI 4.0 (Facturación) ────────────────────────── */}
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Información Fiscal (CFDI 4.0)</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="rfc">RFC</Label>
+                                    <Input
+                                        id="rfc"
+                                        value={formData.rfc}
+                                        onChange={(e) => setFormData({ ...formData, rfc: e.target.value.toUpperCase() })}
+                                        placeholder="XAXX010101000"
+                                        disabled={isSubmitting}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="taxName">Razón Social</Label>
+                                    <Input
+                                        id="taxName"
+                                        value={formData.taxName}
+                                        onChange={(e) => setFormData({ ...formData, taxName: e.target.value.toUpperCase() })}
+                                        placeholder="Ej: Juan Pérez López"
+                                        disabled={isSubmitting}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="taxZipCode">Código Postal Fiscal</Label>
+                                    <Input
+                                        id="taxZipCode"
+                                        value={formData.taxZipCode}
+                                        onChange={(e) => setFormData({ ...formData, taxZipCode: e.target.value })}
+                                        placeholder="Ej: 06000"
+                                        maxLength={5}
+                                        disabled={isSubmitting}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="cfdiUse">Uso de CFDI</Label>
+                                    <Select
+                                        value={formData.cfdiUse}
+                                        onValueChange={(v) => setFormData({ ...formData, cfdiUse: v })}
+                                    >
+                                        <SelectTrigger id="cfdiUse">
+                                            <SelectValue placeholder="Selecciona" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="D01">D01 - Honorarios médicos, dentales y gastos hospitalarios</SelectItem>
+                                            <SelectItem value="G03">G03 - Gastos en general</SelectItem>
+                                            <SelectItem value="P01">P01 - Por definir</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="taxRegime">Régimen Fiscal</Label>
+                                    <Select
+                                        value={formData.taxRegime}
+                                        onValueChange={(v) => setFormData({ ...formData, taxRegime: v })}
+                                    >
+                                        <SelectTrigger id="taxRegime">
+                                            <SelectValue placeholder="Selecciona" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="605">605 - Sueldos y Salarios e Ingresos Asimilados a Salarios</SelectItem>
+                                            <SelectItem value="612">612 - Personas Físicas con Actividades Empresariales y Profesionales</SelectItem>
+                                            <SelectItem value="601">601 - General de Ley Personas Morales</SelectItem>
+                                            <SelectItem value="616">616 - Sin obligaciones fiscales</SelectItem>
+                                            <SelectItem value="626">626 - Régimen Simplificado de Confianza</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                         </div>
