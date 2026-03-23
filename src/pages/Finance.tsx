@@ -48,6 +48,8 @@ import {
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PaymentModal from '@/components/finance/PaymentModal';
@@ -131,6 +133,8 @@ const SortableSection = ({ id, children }: { id: string; children: React.ReactNo
 };
 
 const Finance = () => {
+  const { user } = useAuth();
+  const { organization } = useOrganization();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -327,25 +331,29 @@ const Finance = () => {
         supabase
           .from('appointments')
           .select('id, patient_name, start_time, fee, payment_status, status, stripe_checkout_id')
+          .eq('organization_id', organization?.id)
           .gte('start_time', start)
           .lte('start_time', end)
           .order('start_time', { ascending: false }),
         supabase
           .from('payments')
           .select('*, invoice_url, invoice_id')
+          .eq('organization_id', organization?.id)
           .gte('created_at', start)
           .lte('created_at', end)
           .order('created_at', { ascending: false }),
-        supabase.from('fee_config').select('porcentaje_consultorio, stripe_fee_percent').limit(1).maybeSingle(),
+        supabase.from('profiles').select('porcentaje_consultorio, stripe_fee_percent').eq('id', user?.id).maybeSingle(),
         supabase
           .from('payments')
           .select('id, amount, status, method')
+          .eq('organization_id', organization?.id)
           .eq('status', 'paid')
           .gte('created_at', lastStart)
           .lte('created_at', lastEnd),
         supabase
           .from('appointments')
           .select('id, fee, status')
+          .eq('organization_id', organization?.id)
           .gte('start_time', lastStart)
           .lte('start_time', lastEnd),
       ]);
@@ -360,7 +368,7 @@ const Finance = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?.id, organization?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

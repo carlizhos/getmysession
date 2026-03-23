@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/lib/utils';
 import { logActivity } from '@/lib/activityLogger';
 
@@ -58,6 +59,7 @@ const METHODS: { id: Method; label: string; description: string; icon: typeof Wa
 ];
 
 const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentModalProps) => {
+    const { organization } = useOrganization();
     const [selected, setSelected] = useState<Method | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [note, setNote] = useState('');
@@ -129,6 +131,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 method: selected,
                 paid_at: new Date().toISOString(),
                 user_id: user?.id,
+                organization_id: organization?.id,
                 notes: note.trim() || null,
             });
 
@@ -140,6 +143,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 type: 'payment_received',
                 title: 'Pago Recibido',
                 description: `Has registrado un pago de ${appointment.patient_name} por $${appointment.fee} (${label}).`,
+                organization_id: organization?.id,
             });
             
             handleClose();

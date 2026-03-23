@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { psychometricTests } from '@/lib/psychometricTests';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 import { Brain, Link as LinkIcon, Check, Copy, Loader2, AlertCircle } from 'lucide-react';
 
 interface AssignTestDialogProps {
@@ -15,6 +16,7 @@ interface AssignTestDialogProps {
 }
 
 const AssignTestDialog = ({ open, onOpenChange, patientId, patientName, onAssigned }: AssignTestDialogProps) => {
+    const { organization } = useOrganization();
     const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
     const [isAssigning, setIsAssigning] = useState(false);
     const [generatedLink, setGeneratedLink] = useState<string | null>(null);
@@ -32,7 +34,8 @@ const AssignTestDialog = ({ open, onOpenChange, patientId, patientName, onAssign
                     patient_id: patientId,
                     user_id: user?.id,
                     test_type: selectedTestId,
-                    status: 'pending'
+                    status: 'pending',
+                    organization_id: organization?.id,
                 })
                 .select('token')
                 .single();

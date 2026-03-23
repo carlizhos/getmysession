@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
+import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF } from '@/lib/generateExpedientePDF';
 
 interface SessionNote {
@@ -59,6 +60,7 @@ interface SessionNote {
 
 const Patients = () => {
   const navigate = useNavigate();
+  const { organization } = useOrganization();
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
 
@@ -79,6 +81,7 @@ const Patients = () => {
     const { data } = await supabase
       .from('session_notes')
       .select('agenda, action_plan, bridge, date')
+      .eq('organization_id', organization?.id)
       .eq('patient_id', patientId)
       .order('date', { ascending: false })
       .limit(1)
@@ -128,7 +131,7 @@ const Patients = () => {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Cargar pacientes desde Supabase
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       setIsLoading(true);
       const now = new Date().toISOString();
@@ -136,6 +139,7 @@ const Patients = () => {
       const { data: patientsData, error: pErr } = await supabase
         .from('patients')
         .select('*')
+        .eq('organization_id', organization?.id)
         .is('deleted_at', null)
         .order('name');
       if (pErr) throw pErr;
@@ -144,6 +148,7 @@ const Patients = () => {
       const { data: aptsData } = await supabase
         .from('appointments')
         .select('patient_id, start_time, status')
+        .eq('organization_id', organization?.id)
         .neq('status', 'cancelled')
         .order('start_time', { ascending: true });
 
@@ -173,11 +178,11 @@ const Patients = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organization?.id]);
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [fetchPatients]);
 
   const fetchPatientDetails = useCallback(async (patientId: string) => {
     setDataLoading(true);

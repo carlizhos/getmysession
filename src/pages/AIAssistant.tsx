@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -112,6 +113,7 @@ async function buildPatientContext(patientId: string): Promise<string> {
 }
 
 const AIAssistant = () => {
+  const { organization } = useOrganization();
   // ── Shared tab state ───────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'notas' | 'chat'>('notas');
 
@@ -409,6 +411,7 @@ const AIAssistant = () => {
         bridge: { items: [], notes: bulletPoints },
         agenda: [{ topic: format, situation: '', thoughts: generatedReport, emotions: '', interventions: '' }],
         beliefs: {}, action_plan: [],
+        organization_id: organization?.id,
       });
       if (error) throw error;
       toast.success(`Nota guardada en el expediente de ${patientName}`);

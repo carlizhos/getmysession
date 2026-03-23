@@ -4,8 +4,8 @@ import { logActivity } from './activityLogger';
 // Bandera para evitar ejecuciones simultáneas si el componente se monta/desmonta rápido (React StrictMode)
 let isChecking = false;
 
-export const checkReactivations = async (userId: string) => {
-    if (!userId || isChecking) return;
+export const checkReactivations = async (userId: string, organizationId: string) => {
+    if (!userId || !organizationId || isChecking) return;
     isChecking = true;
 
     try {
@@ -20,7 +20,7 @@ export const checkReactivations = async (userId: string) => {
         const { data: patients, error: patientsError } = await supabase
             .from('patients')
             .select('id, name')
-            .eq('user_id', userId);
+            .eq('organization_id', organizationId);
             
         if (patientsError || !patients || patients.length === 0) return;
 
@@ -31,7 +31,8 @@ export const checkReactivations = async (userId: string) => {
         // pero para volúmenes promedio de consultas, esto es muy rápido vía Supabase de forma asíncrona.
         const { data: appointments, error: apptError } = await supabase
             .from('appointments')
-            .select('patient_id, start_time, status'); // RLS protects other users' data implicitly
+            .select('patient_id, start_time, status')
+            .eq('organization_id', organizationId);
             
         if (apptError || !appointments) return;
 
@@ -39,7 +40,7 @@ export const checkReactivations = async (userId: string) => {
         const { data: recentLogs, error: logsError } = await supabase
             .from('activity_logs')
             .select('metadata')
-            .eq('profile_id', userId)
+            .eq('organization_id', organizationId)
             .eq('type', 'patient_reactivation')
             .gte('created_at', fifteenDaysAgo.toISOString());
             
@@ -77,7 +78,8 @@ export const checkReactivations = async (userId: string) => {
                         type: 'patient_reactivation',
                         title: 'Seguimiento de Paciente',
                         description: `${patient.name} no ha tenido sesiones en más de 30 días y no tiene próximas citas. Considera contactarlo para darle seguimiento.`,
-                        metadata: { patient_id: patient.id }
+                        metadata: { patient_id: patient.id },
+                        organization_id: organizationId
                     });
                 }
             }

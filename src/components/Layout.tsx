@@ -14,11 +14,17 @@ import {
   Settings,
   Kanban,
   FileSignature,
+  Calendar as CalendarIcon,
+  CheckSquare,
+  ChevronDown,
+  User,
   PanelLeftClose,
   PanelLeftOpen,
   BrainCircuit,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useEffect } from 'react';
 import useDarkMode from '@/hooks/useDarkMode';
@@ -30,6 +36,7 @@ import { supabase } from '@/lib/supabase';
 import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import { useOrganization } from '@/hooks/useOrganization';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -51,7 +58,8 @@ const COUNTDOWN_SECONDS = 30;
 const COLLAPSED_KEY = 'sidebar_collapsed';
 
 const Layout = ({ children }: LayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { organization } = useOrganization();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -271,7 +279,27 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
             <Heart className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sm tracking-tight text-foreground">Saudade</span>
+          <span className="font-semibold text-sm tracking-tight text-foreground flex items-center gap-2">
+            Saudade
+            {organization && (
+              <>
+                <span className="text-muted-foreground/40 font-light">/</span>
+                <span className="text-primary text-[13px] font-medium truncate max-w-[150px]">{organization.name}</span>
+                <Badge variant="outline" className={cn(
+                  "ml-2 text-[10px] px-1.5 py-0 h-4 border-none flex items-center gap-1",
+                  organization.type === 'personal' 
+                    ? "bg-zen-lavender/10 text-zen-lavender" 
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                )}>
+                  {organization.type === 'personal' ? (
+                    <><User className="h-2.5 w-2.5" /> Personal</>
+                  ) : (
+                    <><Users className="h-2.5 w-2.5" /> Equipo {organization.member_count && `(${organization.member_count})`}</>
+                  )}
+                </Badge>
+              </>
+            )}
+          </span>
         </div>
 
         <div className="flex items-center gap-1">

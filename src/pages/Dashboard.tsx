@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useOrganization } from '@/hooks/useOrganization';
 import { checkReactivations } from '@/lib/reactivationService';
 
 // ── Tipos locales ────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
 // ── Componente ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const { user } = useAuth();
+  const { organization } = useOrganization();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [todayAppts, setTodayAppts] = useState<DashboardAppointment[]>([]);
@@ -75,10 +77,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchAll();
-    if (user?.id) {
-      checkReactivations(user.id);
+    if (user?.id && organization?.id) {
+      checkReactivations(user.id, organization.id);
     }
-  }, [user?.id]);
+  }, [user?.id, organization?.id]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -101,33 +103,38 @@ const Dashboard = () => {
       { data: chartRaw },
     ] = await Promise.all([
       // Total pacientes activos
-      supabase.from('patients').select('id, created_at'),
+      supabase.from('patients').select('id, created_at').eq('organization_id', organization?.id),
       // Pacientes nuevos este mes
-      supabase.from('patients').select('id').gte('created_at', monthStart).lte('created_at', monthEnd),
+      supabase.from('patients').select('id').eq('organization_id', organization?.id).gte('created_at', monthStart).lte('created_at', monthEnd),
       // Citas de hoy
       supabase.from('appointments')
         .select('id, patient_name, start_time, end_time, status, type')
+        .eq('organization_id', organization?.id)
         .gte('start_time', todayStart)
         .lte('start_time', todayEnd)
         .order('start_time'),
       // Citas del mes actual (para ingresos y sesiones)
       supabase.from('appointments')
         .select('fee, payment_status, status')
+        .eq('organization_id', organization?.id)
         .gte('start_time', monthStart)
         .lte('start_time', monthEnd),
       // Citas del mes anterior (para comparar ingresos)
       supabase.from('appointments')
         .select('fee, payment_status')
+        .eq('organization_id', organization?.id)
         .gte('start_time', prevMonthStart)
         .lte('start_time', prevMonthEnd),
       // Notas clínicas recientes (tabla session_notes)
       supabase.from('session_notes')
         .select('id, patient_name, session_number, agenda, created_at')
+        .eq('organization_id', organization?.id)
         .order('created_at', { ascending: false })
         .limit(3),
       // Datos de los últimos 6 meses para el gráfico
       supabase.from('appointments')
         .select('start_time, fee, payment_status, status')
+        .eq('organization_id', organization?.id)
         .gte('start_time', new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString())
         .lte('start_time', monthEnd),
     ]);

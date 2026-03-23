@@ -26,6 +26,7 @@ import { es } from 'date-fns/locale';
 import StructuredNoteForm from '@/components/notes/StructuredNoteForm';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface SessionNote {
@@ -44,6 +45,7 @@ interface SessionNote {
 
 // ── Componente ────────────────────────────────────────────────────────────────
 const Notes = () => {
+  const { organization } = useOrganization();
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -105,6 +107,7 @@ const Notes = () => {
       cie10_code: noteData.cie10Code || null,
       cie10_description: noteData.cie10Description || null,
       diagnostico_principal: noteData.diagnosticoPrincipal || null,
+      organization_id: organization?.id,
     };
 
     const { error } = await supabase.from('session_notes').insert([payload]);

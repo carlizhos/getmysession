@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 import jsPDF from 'jspdf';
 import { DEFAULT_CONSENT_TEXTS } from '@/components/consent/ConsentTemplateEditor';
 
@@ -30,6 +31,7 @@ interface ConsentFormViewProps {
 // ── Componente ─────────────────────────────────────────────────────────────
 const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
     const { user } = useAuth();
+    const { organization } = useOrganization();
     const [patientId, setPatientId] = useState('');
     const [patientName, setPatientName] = useState('');
     const [formType, setFormType] = useState<'general' | 'tratamiento' | 'datos_personales'>('general');
@@ -174,6 +176,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                     signature_data_url: signatureDataUrl,
                     signature_hash: hashHex,
                     is_valid: true,
+                    organization_id: organization?.id,
                 })
                 .select()
                 .single();

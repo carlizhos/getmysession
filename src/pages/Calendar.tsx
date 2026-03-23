@@ -16,6 +16,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { format as fmtDate } from 'date-fns';
 import {
   DropdownMenu,
@@ -53,6 +54,7 @@ type ViewMode = 'day' | 'week' | 'month';
 
 const CalendarPage = () => {
   const { user } = useAuth();
+  const { organization } = useOrganization();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -119,6 +121,7 @@ const CalendarPage = () => {
       const { data, error } = await supabase
         .from('appointments')
         .select('*')
+        .eq('organization_id', organization?.id)
         .order('start_time', { ascending: true });
       if (error) throw error;
       // Mapear campos de BD al formato que usa el calendario
@@ -140,10 +143,10 @@ const CalendarPage = () => {
       setAppointments(mapped);
     } catch (error) {
       console.error('Error al cargar citas:', error);
-      // Fallback a mock data si hay error de conexión
-      setAppointments([]);
+    } finally {
+      // no-op
     }
-  }, []);
+  }, [organization?.id]);
 
   useEffect(() => {
     fetchAppointments();

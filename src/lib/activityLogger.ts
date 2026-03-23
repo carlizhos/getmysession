@@ -15,6 +15,7 @@ interface LogActivityParams {
   title: string;
   description?: string;
   metadata?: Record<string, any>;
+  organization_id?: string;
 }
 
 export const logActivity = async ({
@@ -22,7 +23,8 @@ export const logActivity = async ({
   type,
   title,
   description,
-  metadata
+  metadata,
+  organization_id
 }: LogActivityParams) => {
   try {
     const { error } = await supabase.from('activity_logs').insert({
@@ -30,7 +32,8 @@ export const logActivity = async ({
       type,
       title,
       description,
-      metadata
+      metadata,
+      organization_id,
     });
 
     if (error) {

@@ -15,6 +15,7 @@ import {
 import { X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { useOrganization } from '@/hooks/useOrganization';
 import { logActivity } from '@/lib/activityLogger';
 
 interface NewPatientDialogProps {
@@ -46,6 +47,7 @@ const validateCURP = (curp: string): boolean => {
 };
 
 const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }: NewPatientDialogProps) => {
+    const { organization } = useOrganization();
     const isEditing = !!editingPatient;
 
     const [formData, setFormData] = useState({
@@ -150,6 +152,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 tax_regime: formData.taxRegime || null,
                 cfdi_use: formData.cfdiUse || null,
                 user_id: user?.id ?? null,
+                organization_id: organization?.id,
             };
 
             if (isEditing && editingPatient) {
@@ -172,6 +175,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     type: 'patient_created',
                     title: 'Nuevo Paciente Registrado',
                     description: `Has registrado a ${formData.name} en tu expediente clínico.`,
+                    organization_id: organization?.id,
                 });
             }
 

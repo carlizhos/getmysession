@@ -20,6 +20,7 @@ interface SpecialistProfile {
   prefix: string | null;
   horario_atencion: any;
   slug: string;
+  current_organization_id: string;
 }
 
 const BookingPage = () => {
@@ -55,7 +56,7 @@ const BookingPage = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, prefix, horario_atencion, slug')
+          .select('id, full_name, avatar_url, prefix, horario_atencion, slug, current_organization_id')
           .eq('slug', slug)
           .eq('is_public', true)
           .single();
@@ -202,7 +203,8 @@ const BookingPage = () => {
           phone: patientInfo.phone,
           source: 'web',
           status: 'nuevo_lead',
-          user_id: profile.id
+          user_id: profile.id,
+          organization_id: profile.current_organization_id,
         });
         
       if (leadError) throw leadError;
@@ -264,7 +266,8 @@ const BookingPage = () => {
           payment_status: 'pending',
           meeting_platform: finalPlatform,
           meeting_link: finalMeetLink,
-          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nModalidad: ${modality}`
+          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nModalidad: ${modality}`,
+          organization_id: profile.current_organization_id,
         });
 
       if (aptError) throw aptError;
@@ -291,6 +294,7 @@ const BookingPage = () => {
         type: 'appointment_created',
         title: 'Nueva Cita Agendada',
         description: `${patientInfo.name} ha agendado una sesión el ${format(selectedDate!, "d 'de' MMMM", { locale: es })} a las ${selectedTime}.`,
+        organization_id: profile.current_organization_id,
       });
 
       setStep(3);

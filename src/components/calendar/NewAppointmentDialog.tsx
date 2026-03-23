@@ -42,6 +42,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import ClockPicker from '@/components/ui/ClockPicker';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { AlertTriangle } from 'lucide-react';
 import { logActivity } from '@/lib/activityLogger';
 
@@ -78,6 +79,7 @@ const NewAppointmentDialog = ({
     editingAppointment,
 }: NewAppointmentDialogProps) => {
     const { user } = useAuth();
+    const { organization } = useOrganization();
     const isEditing = !!editingAppointment;
     const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -282,6 +284,7 @@ const NewAppointmentDialog = ({
                 notes: formData.notes || null,
                 color: formData.color || 'violet',
                 user_id: user?.id ?? null,
+                organization_id: organization?.id,
             };
 
             if (isEditing && editingAppointment) {
@@ -339,6 +342,7 @@ const NewAppointmentDialog = ({
                     type: 'appointment_created',
                     title: 'Nueva Cita Agendada',
                     description: `Has agendado una cita con ${formData.patientName} el ${format(startDateTime, "d 'de' MMMM", { locale: es })} a las ${format(startDateTime, "HH:mm")}.`,
+                    organization_id: organization?.id,
                 });
 
                 // Send email notifications (non-blocking): psychologist + patient confirmation

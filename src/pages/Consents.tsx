@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 import jsPDF from 'jspdf';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,7 @@ type ActiveTab = 'firmados' | 'plantillas';
 // ── Componente ─────────────────────────────────────────────────────────────
 const Consents = () => {
     const { user } = useAuth();
+    const { organization } = useOrganization();
     const [activeTab, setActiveTab] = useState<ActiveTab>('firmados');
     const [isCreating, setIsCreating] = useState(false);
     const [consents, setConsents] = useState<ConsentRecord[]>([]);
@@ -68,7 +70,7 @@ const Consents = () => {
             const { data, error } = await supabase
                 .from('consent_forms')
                 .select('id, patient_name, form_type, signed_at, is_valid, signature_data_url, consent_text, created_at')
-                .eq('user_id', user.id)
+                .eq('organization_id', organization?.id)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
 
@@ -79,7 +81,7 @@ const Consents = () => {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, organization?.id]);
 
     useEffect(() => { fetchConsents(); }, [fetchConsents]);
 

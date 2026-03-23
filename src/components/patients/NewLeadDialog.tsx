@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
 import { SOURCE_CONFIG, LeadSource } from './LeadSourceBadge';
 
 interface NewLeadDialogProps {
@@ -16,6 +17,7 @@ interface NewLeadDialogProps {
 }
 
 const NewLeadDialog = ({ open, onOpenChange, onLeadAdded }: NewLeadDialogProps) => {
+    const { organization } = useOrganization();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: '', email: '', phone: '', source: 'directo' as LeadSource, notes: '',
@@ -38,6 +40,7 @@ const NewLeadDialog = ({ open, onOpenChange, onLeadAdded }: NewLeadDialogProps) 
                 position: 0,
                 notes: formData.notes || null,
                 user_id: user?.id ?? null,
+                organization_id: organization?.id,
             }]);
             if (error) throw error;
             toast.success(`Lead "${formData.name}" agregado`);
