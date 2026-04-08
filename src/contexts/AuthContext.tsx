@@ -7,6 +7,10 @@ export interface Organization {
     name: string;
     slug: string;
     subscription_status: string;
+    plan_id: string;
+    current_period_end: string | null;
+    cancel_at_period_end: boolean;
+    stripe_customer_id: string | null;
     settings: any;
     type: 'personal' | 'team';
     role?: 'owner' | 'admin' | 'therapist' | 'receptionist';
@@ -73,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .from('organization_members')
                 .select(`
                     role,
-                    organizations (id, name, slug, subscription_status, settings, type)
+                    organizations (id, name, slug, subscription_status, plan_id, current_period_end, cancel_at_period_end, stripe_customer_id, settings, type)
                 `)
                 .eq('user_id', userId);
 
@@ -201,7 +205,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await supabase.from('profiles').upsert({
                     id: data.user.id,
                     full_name: fullName,
-                    email,
                     current_organization_id: org.id,
                 }, { onConflict: 'id' });
                 
@@ -211,7 +214,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await supabase.from('profiles').upsert({
                     id: data.user.id,
                     full_name: fullName,
-                    email,
                 }, { onConflict: 'id' });
             }
         }
@@ -223,11 +225,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (data.user && !error) {
-            // Sincronizar perfil (optional, updates email if changed)
+            // Sincronizar perfil (optional, updates metadata if changed)
             await supabase.from('profiles').upsert({
                 id: data.user.id,
                 full_name: data.user.user_metadata?.full_name ?? null,
-                email,
             }, { onConflict: 'id' });
 
             // Audit log: login

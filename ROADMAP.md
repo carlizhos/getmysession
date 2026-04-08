@@ -133,4 +133,10 @@
 ## Tareas Menores Pendientes 📅
 - 📅 Contexto de paciente en la pestaña del chat de IA
 - 📅 Auto-mover lead en Pipeline a "Cita Agendada" al guardar cita
-- 📅 Despliegue en producción con dominio personalizado y SMTP real
+---
+
+## Fase 6: Mantenimiento e Infraestructura ✅
+- ✅ **Optimización de Hosting (Vercel)**:
+  - ✅ Configuración de rewrites en `vercel.json` para soporte de SPA (soluciona error 404 en refresco y navegación directa).
+- ✅ **Experiencia de Usuario (Branding)**:
+  - ✅ Rediseño premium de la página 404 con identidad Saudade (ilustración 3D, gradientes y animaciones).

@@ -17,7 +17,7 @@ import {
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
     Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy, CalendarPlus,
-    Building2
+    Building2, CreditCard
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +25,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AvatarUpload from '@/components/settings/AvatarUpload';
+import SubscriptionTab from '@/components/settings/SubscriptionTab';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -71,12 +72,13 @@ const DIAS_SEMANA = [
     { value: 6, label: 'Sáb' },
 ];
 
-type TabId = 'perfil' | 'horarios' | 'seguridad' | 'organizacion';
+type TabId = 'perfil' | 'horarios' | 'seguridad' | 'organizacion' | 'suscripcion';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'perfil', label: 'Perfil Profesional', icon: User },
     { id: 'horarios', label: 'Horarios y Comisiones', icon: Clock },
     { id: 'organizacion', label: 'Mi Organización', icon: Building2 },
+    { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
     { id: 'seguridad', label: 'Seguridad y Notificaciones', icon: ShieldCheck },
 ];
 
@@ -589,8 +591,8 @@ const Settings = () => {
                                                 {/* Existing cedulas */}
                                                 {cedulas.length > 0 && (
                                                     <div className="space-y-2">
-                                                        {cedulas.map((c) => (
-                                                            <div key={c.id} className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                                                        {cedulas.map((c, i) => (
+                                                            <div key={c.id || `cedula-${i}`} className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className="text-sm font-mono font-semibold">{c.numero}</p>
                                                                     <p className="text-xs text-muted-foreground capitalize">
@@ -663,8 +665,8 @@ const Settings = () => {
 
                                                 {cursos.length > 0 && (
                                                     <div className="space-y-2">
-                                                        {cursos.map((c) => (
-                                                            <div key={c.id} className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                                                        {cursos.map((c, i) => (
+                                                            <div key={c.id || `curso-${i}`} className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className="text-sm font-medium">{c.nombre}</p>
                                                                     <p className="text-xs text-muted-foreground">
@@ -1048,6 +1050,10 @@ const Settings = () => {
                                     </CardContent>
                                 </Card>
                             </div>
+                        )}
+                        
+                        {activeTab === 'suscripcion' && (
+                            <SubscriptionTab />
                         )}
 
                         {/* ── Tab: Seguridad y Notificaciones ────────────────── */}
