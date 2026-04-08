@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '57982623920-afu95mjoklp5pmipaejstbeq67gqgr03.apps.googleusercontent.com';
 
 // Official Google "G" SVG logo
 const GoogleSVG = () => (

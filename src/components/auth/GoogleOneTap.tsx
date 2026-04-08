@@ -9,6 +9,7 @@ declare global {
             accounts: {
                 id: {
                     initialize: (config: object) => void;
+                    renderButton: (element: HTMLElement, options: object) => void;
                     prompt: () => void;
                     cancel: () => void;
                 };
@@ -18,7 +19,7 @@ declare global {
     }
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '57982623920-afu95mjoklp5pmipaejstbeq67gqgr03.apps.googleusercontent.com';
 
 const GoogleOneTap = () => {
     const navigate = useNavigate();
