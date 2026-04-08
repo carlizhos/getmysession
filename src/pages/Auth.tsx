@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,14 @@ const Auth = () => {
     const [loading, setLoading] = useState(false);
     const [mfaPending, setMfaPending] = useState(false);
     const [mfaFactorId, setMfaFactorId] = useState('');
-    const { signIn, signUp, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
+    const { signIn, signUp, signInWithGoogle } = useAuth();
+
+    useEffect(() => {
+        // Asegurar que el estado de carga se reinicie si el usuario vuelve a la página
+        setLoading(false);
+    }, []);
+
 
     const handleGoogleLogin = async () => {
         try {
