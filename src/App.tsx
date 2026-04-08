@@ -22,6 +22,7 @@ import Consents from "./pages/Consents";
 import BookingPage from "./pages/BookingPage";
 import PortalLogin from "./pages/PortalLogin";
 import Portal from "./pages/Portal";
+import { Analytics } from "@vercel/analytics/react";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
       <Sonner position="top-right" />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
+          <Analytics />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
