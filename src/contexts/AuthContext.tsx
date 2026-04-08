@@ -27,6 +27,7 @@ interface AuthContextType {
     signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
     signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
     signInWithGoogle: () => Promise<{ error: AuthError | null }>;
+    signInWithGoogleIdToken: (credential: string) => Promise<{ error: AuthError | null }>;
     signOut: (event?: 'logout' | 'timeout') => Promise<void>;
     refreshOrganization: () => Promise<void>;
     switchOrganization: (organizationId: string) => Promise<void>;
@@ -250,6 +251,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
     };
 
+    /** Sign in using Google Identity Services ID Token (no redirect, no supabase.co domain shown) */
+    const signInWithGoogleIdToken = async (credential: string) => {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: credential,
+        });
+
+        if (data.user && !error) {
+            await supabase.from('profiles').upsert({
+                id: data.user.id,
+                full_name: data.user.user_metadata?.full_name ?? null,
+            }, { onConflict: 'id' });
+
+            await logSessionEvent(data.user.id, data.user.email ?? '', 'login');
+            await fetchOrganization(data.user.id);
+        }
+
+        return { error };
+    };
+
     const signOut = async (event: 'logout' | 'timeout' = 'logout') => {
         if (user && sessionStartRef.current) {
             const durationSeconds = Math.round(
@@ -270,7 +291,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             sessionStartTime, 
             signUp, 
             signIn, 
-            signInWithGoogle, 
+            signInWithGoogle,
+            signInWithGoogleIdToken,
             signOut, 
             refreshOrganization,
             switchOrganization
