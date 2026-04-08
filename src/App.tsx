@@ -23,6 +23,7 @@ import BookingPage from "./pages/BookingPage";
 import PortalLogin from "./pages/PortalLogin";
 import Portal from "./pages/Portal";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <Analytics />
+          <SpeedInsights />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
