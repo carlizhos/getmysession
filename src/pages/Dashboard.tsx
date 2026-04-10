@@ -30,8 +30,9 @@ interface DashboardAppointment {
   patientName: string;
   startTime: string;
   endTime: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  status: 'scheduled' | 'confirmed' | 'pending' | 'cancelled' | 'completed';
   type: string;
+  phone?: string | null;
 }
 
 interface DashboardNote {
@@ -108,7 +109,7 @@ const Dashboard = () => {
       supabase.from('patients').select('id').eq('organization_id', organization?.id).gte('created_at', monthStart).lte('created_at', monthEnd),
       // Citas de hoy
       supabase.from('appointments')
-        .select('id, patient_name, start_time, end_time, status, type')
+        .select('id, patient_name, start_time, end_time, status, type, patients(phone)')
         .eq('organization_id', organization?.id)
         .gte('start_time', todayStart)
         .lte('start_time', todayEnd)
@@ -178,6 +179,7 @@ const Dashboard = () => {
       endTime: a.end_time,
       status: a.status as DashboardAppointment['status'],
       type: a.type ?? 'Consulta',
+      phone: (a.patients as any)?.phone || null
     })));
 
     // ── Notas recientes ───────────────────────────────────────────────────────

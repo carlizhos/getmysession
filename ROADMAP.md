@@ -135,8 +135,12 @@
 - 📅 Auto-mover lead en Pipeline a "Cita Agendada" al guardar cita
 ---
 
-## Fase 6: Mantenimiento e Infraestructura ✅
+## Fase 6: Infraestructura, Branding y UX ✅
 - ✅ **Optimización de Hosting (Vercel)**:
   - ✅ Configuración de rewrites en `vercel.json` para soporte de SPA (soluciona error 404 en refresco y navegación directa).
 - ✅ **Experiencia de Usuario (Branding)**:
   - ✅ Rediseño premium de la página 404 con identidad Saudade (ilustración 3D, gradientes y animaciones).
+- ✅ **Autenticación de Siguiente Nivel**:
+  - ✅ **Google Authentication (Native/GSI)**: Implementación de popup nativo que muestra la marca "Saudade" en lugar del dominio de Supabase.
+  - ✅ **Google One Tap**: Activación de inicio de sesión con un solo clic.
+  - ✅ **Fix de UX**: Resolución del bug de botón deshabilitado al navegar hacia atrás.

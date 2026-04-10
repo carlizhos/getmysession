@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, User, MoreHorizontal } from 'lucide-react';
+import { Clock, User, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -13,6 +13,7 @@ export interface AgendaAppointment {
   endTime: string;
   status: 'scheduled' | 'confirmed' | 'pending' | 'cancelled' | 'completed';
   type: string;
+  phone?: string | null;
 }
 
 interface TodayAgendaProps {
@@ -94,6 +95,17 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
               {/* Estado y acción */}
               <div className="flex items-center gap-2">
                 {getStatusBadge(appointment.status)}
+                {appointment.phone && (
+                  <a
+                    href={`https://wa.me/${appointment.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${appointment.patientName}, te recuerdo tu cita de ${appointment.type} hoy a las ${format(parseISO(appointment.startTime), 'HH:mm')}. ¿Confirmas asistencia?`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-md hover:bg-success/10 text-success transition-all"
+                    title="WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </a>
+                )}
                 <Button variant="ghost" size="icon-sm">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>

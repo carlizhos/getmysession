@@ -10,6 +10,7 @@ import {
   Mail,
   Calendar,
   User,
+  MessageCircle,
   Loader2,
   Clock,
   Pencil,
@@ -18,10 +19,11 @@ import {
   Download,
   ClipboardList,
   TrendingUp,
-  X,
   Activity,
   DollarSign,
-  LineChart as LucideLineChart
+  LineChart as LucideLineChart,
+  Send,
+  ExternalLink
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -262,6 +264,28 @@ const Patients = () => {
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Function to send WhatsApp via Edge Function (Integrated)
+  const handleIntegratedSend = async (phone: string, body: string, templateId: string) => {
+    if (!organization?.id) return;
+    
+    const promise = supabase.functions.invoke('twilio-whatsapp', {
+      body: {
+        action: 'send',
+        phone,
+        body,
+        organization_id: organization.id,
+        patient_id: selectedPatientData?.id,
+        template_id: templateId
+      }
+    });
+
+    toast.promise(promise, {
+      loading: 'Enviando WhatsApp...',
+      success: 'Mensaje enviado y registrado',
+      error: 'Error al enviar mensaje'
+    });
+  };
+
 
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
 
@@ -396,9 +420,23 @@ const Patients = () => {
                         <div className="p-3 rounded-lg bg-white/50 border border-border/50 hover:bg-white transition-colors">
                           <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Contacto</p>
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-3.5 w-3.5 text-primary" />
-                              <span>{selectedPatientData.phone || 'N/A'}</span>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-3.5 w-3.5 text-primary" />
+                                <span>{selectedPatientData.phone || 'N/A'}</span>
+                              </div>
+                              {selectedPatientData.phone && (
+                                <a
+                                  href={`https://wa.me/${selectedPatientData.phone.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 px-2 rounded-md hover:bg-success/10 text-success transition-all flex items-center gap-1.5"
+                                  title="Enviar WhatsApp"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  <span className="text-[10px] font-bold uppercase">WA</span>
+                                </a>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <Mail className="h-3.5 w-3.5 text-primary" />
@@ -485,6 +523,12 @@ const Patients = () => {
                               className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
                             >
                               Economía
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="whatsapp"
+                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-success data-[state=active]:text-success rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5 mr-1.5" /> WhatsApp
                             </TabsTrigger>
                           </TabsList>
                         </div>
@@ -792,6 +836,130 @@ const Patients = () => {
                                   ))}
                                 </div>
                               </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="whatsapp" className="m-0 animate-in fade-in duration-500">
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-xl font-bold flex items-center gap-2">
+                                    <MessageCircle className="h-5 w-5 text-success" /> Mensajes WhatsApp
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground mt-1">Envía mensajes predefinidos con un solo clic</p>
+                                </div>
+                                {selectedPatientData.phone && (
+                                  <Badge className="bg-success/10 text-success border-success/20">
+                                    {selectedPatientData.phone}
+                                  </Badge>
+                                )}
+                              </div>
+
+                              {!selectedPatientData.phone ? (
+                                <div className="text-center p-12 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
+                                  <Phone className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-4" />
+                                  <p className="text-muted-foreground font-medium">Este paciente no tiene teléfono registrado.</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Agrega un número en el perfil para habilitar WhatsApp.</p>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* Recordatorio de Cita */}
+                                  {(() => {
+                                    const phone = selectedPatientData.phone.replace(/[^0-9]/g, '');
+                                    const name = selectedPatientData.name?.split(' ')[0] || 'paciente';
+                                    const nextApt = selectedPatientData._next_appointment;
+                                    const templates = [
+                                      {
+                                        id: 'reminder',
+                                        title: 'Recordatorio de Cita',
+                                        description: nextApt ? `Próxima: ${format(parseISO(nextApt), "d MMM, HH:mm", { locale: es })}` : 'Sin cita próxima',
+                                        icon: <Calendar className="h-5 w-5" />,
+                                        color: 'primary',
+                                        message: nextApt
+                                          ? `Hola ${name}, te recuerdo tu cita el ${format(parseISO(nextApt), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}. ¿Confirmas asistencia? 😊`
+                                          : `Hola ${name}, ¿te gustaría agendar tu próxima cita? Quedo pendiente.`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'followup',
+                                        title: 'Seguimiento Terapéutico',
+                                        description: 'Mensaje de seguimiento post-sesión',
+                                        icon: <Brain className="h-5 w-5" />,
+                                        color: 'accent',
+                                        message: `Hola ${name}, espero que estés teniendo una buena semana. Recuerda practicar los ejercicios que trabajamos en tu última sesión. Si necesitas algo antes de nuestra próxima cita, no dudes en escribirme. 💙`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'payment',
+                                        title: 'Recordatorio de Pago',
+                                        description: 'Cobro pendiente cortés',
+                                        icon: <DollarSign className="h-5 w-5" />,
+                                        color: 'warning',
+                                        message: `Hola ${name}, te envío un recordatorio amable de tu saldo pendiente de sesión. Puedes realizarlo por transferencia o en tu próxima cita. ¡Gracias! 🙏`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'reactivation',
+                                        title: 'Reactivación',
+                                        description: 'Paciente inactivo',
+                                        icon: <Activity className="h-5 w-5" />,
+                                        color: 'secondary',
+                                        message: `Hola ${name}, ha pasado un tiempo desde nuestra última sesión y quería saber cómo te encuentras. Si deseas retomar el proceso terapéutico, con gusto agendamos una cita. Quedo a tus órdenes. 🌿`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'test',
+                                        title: 'Prueba Psicométrica',
+                                        description: 'Enviar link de test pendiente',
+                                        icon: <ClipboardList className="h-5 w-5" />,
+                                        color: 'accent',
+                                        message: `Hola ${name}, te comparto el enlace para completar tu prueba psicológica antes de nuestra próxima sesión. Es rápida y nos ayudará mucho en tu proceso. 📋`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'custom',
+                                        title: 'Mensaje Libre',
+                                        description: 'Abre WhatsApp sin texto predefinido',
+                                        icon: <Send className="h-5 w-5" />,
+                                        color: 'success',
+                                        message: '',
+                                        disabled: false,
+                                      },
+                                    ];
+
+                                    return templates.map((tpl) => (
+                                      <div
+                                        key={tpl.id}
+                                        onClick={() => {
+                                          if (tpl.id === 'custom') {
+                                            window.open(`https://wa.me/${phone}`, '_blank');
+                                          } else {
+                                            handleIntegratedSend(phone, tpl.message, tpl.id);
+                                          }
+                                        }}
+                                        className={cn(
+                                          "group p-5 rounded-2xl border transition-all duration-200 hover:shadow-medium hover:-translate-y-1 cursor-pointer",
+                                          `border-${tpl.color}/20 hover:border-${tpl.color}/40 bg-${tpl.color}/5 hover:bg-${tpl.color}/10`
+                                        )}
+                                      >
+                                        <div className="flex items-start justify-between mb-3">
+                                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110", `bg-${tpl.color}/10 text-${tpl.color}`)}>
+                                            {tpl.icon}
+                                          </div>
+                                          <Send className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                        <h4 className="font-bold text-sm mb-1">{tpl.title}</h4>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">{tpl.description}</p>
+                                        {tpl.message && (
+                                          <div className="mt-3 p-3 rounded-xl bg-white/60 border border-border/30 text-xs text-foreground/70 leading-relaxed line-clamp-2 italic">
+                                            "{tpl.message}"
+                                          </div>
+                                        )}
+                                      </div>
+                                    ));
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           </TabsContent>
                         </div>

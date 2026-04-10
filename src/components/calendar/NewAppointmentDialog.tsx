@@ -287,6 +287,56 @@ const NewAppointmentDialog = ({
                 organization_id: organization?.id,
             };
 
+            let finalMeetingLink = formData.meetingLink;
+
+            // --- Google Calendar Sync (for Create and Edit) ---
+            const isMeetSelected = formData.meetingPlatform === 'meet' || formData.meetingPlatform === 'Google Meet';
+            const wasMeetSelected = isEditing && (editingAppointment?.meetingPlatform === 'meet' || editingAppointment?.meetingPlatform === 'Google Meet');
+            
+            // Logic: 
+            // 1. If was Meet and now it's NOT Meet -> Clear link (per user request)
+            // 2. If it is Meet and (didn't have link OR was not Meet before) -> Generate link
+            let shouldSync = false;
+            let syncReason = '';
+
+            if (isEditing && wasMeetSelected && !isMeetSelected) {
+                finalMeetingLink = '';
+            } else if (isMeetSelected && (!isEditing || !wasMeetSelected || !formData.meetingLink)) {
+                shouldSync = true;
+                syncReason = isEditing ? 'updating to Google Meet' : 'new appointment with Google Meet';
+            }
+
+            if (shouldSync && profileSlug) {
+                try {
+                    const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
+                        body: {
+                            slug: profileSlug,
+                            createMeet: true,
+                            event: {
+                                summary: `Cita Saudade: ${formData.patientName}`,
+                                description: `Tipo: ${formData.type}\nNotas: ${formData.notes || 'Ninguna'}`,
+                                start: { dateTime: startDateTime.toISOString() },
+                                end: { dateTime: endDateTime.toISOString() },
+                            }
+                        }
+                    });
+
+                    if (syncErr) {
+                        console.error('Error invocando google-calendar-sync:', syncErr);
+                        toast.warning('No se pudo sincronizar con Google Calendar. La cita se guardará sin link actualizado.');
+                    } else if (data?.error || data?.success === false) {
+                        console.warn('Google Calendar sync respondió con error:', data.error || data.googleApiError);
+                        toast.warning('No se pudo generar el link de Google Meet. Verifica tu conexión con Google en Configuración.');
+                    } else if (data?.meetLink) {
+                        finalMeetingLink = data.meetLink;
+                    } else if (data?.message === 'Google Calendar not connected') {
+                        toast.warning('Google Calendar no está conectado. Conéctalo para generar links automáticamente.');
+                    }
+                } catch (err) {
+                    console.error('Error sincronizando calendario de Google:', err);
+                }
+            }
+
             if (isEditing && editingAppointment) {
                 let finalNotes = formData.notes;
                 // Add cancellation audit if status changed to cancelled
@@ -298,50 +348,16 @@ const NewAppointmentDialog = ({
 
                 const { error } = await supabase
                     .from('appointments')
-                    .update({ ...payload, notes: finalNotes, status: formData.status })
+                    .update({ 
+                        ...payload, 
+                        meeting_link: finalMeetingLink,
+                        notes: finalNotes, 
+                        status: formData.status 
+                    })
                     .eq('id', editingAppointment.id);
                 if (error) throw error;
                 toast.success('Cita actualizada');
             } else {
-                let finalMeetingLink = payload.meeting_link;
-
-                // Enviar la nueva cita a Google Calendar si está conectado (antes de DB/email para agarrar link de Meet)
-                if (profileSlug) {
-                    try {
-                        const wantsMeet = formData.meetingPlatform === 'meet' || formData.meetingPlatform === 'Google Meet';
-                        const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
-                            body: {
-                                slug: profileSlug,
-                                createMeet: wantsMeet,
-                                event: {
-                                    summary: `Cita Saudade: ${formData.patientName}`,
-                                    description: `Tipo: ${formData.type}\nNotas: ${formData.notes || 'Ninguna'}`,
-                                    start: { dateTime: startDateTime.toISOString() },
-                                    end: { dateTime: endDateTime.toISOString() },
-                                }
-                            }
-                        });
-
-                        if (syncErr) {
-                            console.error('Error invocando google-calendar-sync:', syncErr);
-                            toast.warning('No se pudo sincronizar con Google Calendar. La cita se creará sin link de Meet.');
-                        } else if (data?.error || data?.success === false) {
-                            console.warn('Google Calendar sync respondió con error:', data.error || data.googleApiError);
-                            toast.warning('No se pudo generar el link de Google Meet. Verifica tu conexión con Google Calendar en Configuración.');
-                        } else if (data?.meetLink) {
-                            finalMeetingLink = data.meetLink;
-                        } else if (wantsMeet && data?.message === 'Google Calendar not connected') {
-                            toast.warning('Google Calendar no está conectado. Conéctalo en Configuración para generar links de Meet automáticamente.');
-                        } else if (wantsMeet && !data?.meetLink) {
-                            console.warn('Meet solicitado pero no se recibió link. Respuesta:', data);
-                            toast.warning('La cita se creó en Google Calendar pero no se generó un link de Meet.');
-                        }
-                    } catch (err) {
-                        console.error('Error sincronizando calendario de Google:', err);
-                        toast.warning('Error inesperado al sincronizar con Google Calendar.');
-                    }
-                }
-
                 const { error } = await supabase.from('appointments').insert([{
                     ...payload,
                     meeting_link: finalMeetingLink,

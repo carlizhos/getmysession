@@ -28,6 +28,7 @@ import {
 import { createWorker } from 'tesseract.js';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
+import DOMPurify from 'dompurify';
 import { reportFormats } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
@@ -352,8 +353,9 @@ const AIAssistant = () => {
           await new Promise(r => setTimeout(r, 300));
           const docBuffer = await file.arrayBuffer();
           const htmlResult = await mammoth.convertToHtml({ arrayBuffer: docBuffer });
+          const sanitizedHtml = DOMPurify.sanitize(htmlResult.value, { ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'table', 'tr', 'td', 'th', 'thead', 'tbody'], ALLOWED_ATTR: [] });
           const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = htmlResult.value;
+          tempDiv.innerHTML = sanitizedHtml;
           tempDiv.querySelectorAll('p').forEach(p => { p.innerHTML = p.innerHTML + '\n'; });
           tempDiv.querySelectorAll('br').forEach(br => { br.replaceWith('\n'); });
           extractedText = tempDiv.textContent || tempDiv.innerText || '';

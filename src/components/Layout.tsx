@@ -21,7 +21,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BrainCircuit,
-  ShieldCheck
+  ShieldCheck,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ const navigation = [
   { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
   { name: 'Consentimientos', href: '/consents', icon: FileSignature },
   { name: 'Finanzas', href: '/finance', icon: DollarSign },
+  { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
 ];
 
 interface LayoutProps {
@@ -63,6 +65,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadWa, setUnreadWa] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user, signOut } = useAuth();
@@ -117,6 +120,33 @@ const Layout = ({ children }: LayoutProps) => {
         setAvatarUrl(data?.avatar_url || null);
       });
   }, [user, location.pathname]);
+
+  // Unread WhatsApp messages count
+  useEffect(() => {
+    if (!organization?.id) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('whatsapp_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organization.id)
+        .eq('direction', 'inbound')
+        .is('read_at', null);
+      setUnreadWa(count || 0);
+    };
+    fetchUnread();
+
+    const channel = supabase
+      .channel('wa-unread-sidebar')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'whatsapp_messages',
+        filter: `organization_id=eq.${organization.id}`,
+      }, () => { fetchUnread(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [organization?.id]);
 
   // Page-view tracking
   useEffect(() => {
@@ -197,10 +227,21 @@ const Layout = ({ children }: LayoutProps) => {
                     <item.icon className={cn(
                       'flex-shrink-0 transition-colors',
                       collapsed ? 'h-5 w-5' : 'h-5 w-5',
-                      isActive ? 'text-primary' : 'text-muted-foreground'
+                      isActive ? 'text-primary' : 'text-muted-foreground',
+                      item.name === 'WhatsApp' && isActive && 'text-success'
                     )} />
                     {!collapsed && (
-                      <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
+                      <span className="text-sm font-medium whitespace-nowrap flex-1">{item.name}</span>
+                    )}
+                    {!collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-success text-[10px] font-bold text-white px-1">
+                        {unreadWa > 99 ? '99+' : unreadWa}
+                      </span>
+                    )}
+                    {collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-success text-[8px] font-bold text-white">
+                        {unreadWa > 9 ? '9+' : unreadWa}
+                      </span>
                     )}
                   </NavLink>
 

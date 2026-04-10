@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Pipeline from "./pages/Pipeline";
 import Settings from "./pages/Settings";
 import Consents from "./pages/Consents";
+import Messages from "./pages/Messages";
 import BookingPage from "./pages/BookingPage";
 import PortalLogin from "./pages/PortalLogin";
 import Portal from "./pages/Portal";
@@ -137,6 +138,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TestsLibrary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
                 </ProtectedRoute>
               }
             />
