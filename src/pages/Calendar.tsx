@@ -316,8 +316,6 @@ const CalendarPage = () => {
                 <Button
                   variant="zen"
                   className="gap-2"
-                  disabled={isPastDay(selectedDate) || !isWorkingDay(selectedDate) || isNonWorkingDay(selectedDate)}
-                  title={isPastDay(selectedDate) ? 'No puedes crear citas en días pasados' : (!isWorkingDay(selectedDate) || isNonWorkingDay(selectedDate)) ? 'Este día no es laborable' : undefined}
                 >
                   <Plus className="h-4 w-4" />
                   Crear

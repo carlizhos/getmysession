@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import MFASetup from '@/components/auth/MFASetup';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,9 +17,33 @@ import {
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
     Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy, CalendarPlus,
-    Building2, CreditCard
+    Building2, CreditCard, Unlink, AlertTriangle
 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from '@/lib/supabase';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '57982623920-afu95mjoklp5pmipaejstbeq67gqgr03.apps.googleusercontent.com';
+
+declare global {
+    interface Window {
+        google?: {
+            accounts: {
+                oauth2: {
+                    initCodeClient: (config: any) => any;
+                };
+            };
+        };
+    }
+}
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
@@ -92,6 +116,10 @@ const Settings = () => {
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<TabId>('perfil');
     const [hasGoogleCalendar, setHasGoogleCalendar] = useState(false);
+    const [isUnlinking, setIsUnlinking] = useState(false);
+    const [isLinking, setIsLinking] = useState(false);
+    const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+    const [codeClient, setCodeClient] = useState<any>(null);
 
     const [profile, setProfile] = useState({
         prefix: 'none',
@@ -140,96 +168,127 @@ const Settings = () => {
     });
 
     // ── Load ──────────────────────────────────────────────────────────────────
-    useEffect(() => {
+    const fetchProfile = useCallback(async () => {
         if (!user) return;
-        const load = async () => {
-            setIsLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token')
-                    .eq('id', user.id)
-                    .single();
+        setIsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token')
+                .eq('id', user.id)
+                .single();
 
-                if (error && error.code !== 'PGRST116') throw error;
+            if (error && error.code !== 'PGRST116') throw error;
 
-                if (data?.google_refresh_token) {
-                    setHasGoogleCalendar(true);
-                }
+            if (data?.google_refresh_token) {
+                setHasGoogleCalendar(true);
+            }
 
-                setProfile({
-                    prefix: data?.prefix || 'none',
-                    full_name: data?.full_name || user.user_metadata?.full_name || '',
-                    email: user.email || '',
-                    avatar_url: data?.avatar_url || null,
-                    institucion_formadora: data?.institucion_formadora || '',
-                    telefono_profesional: data?.telefono_profesional || '',
-                    porcentaje_consultorio: data?.porcentaje_consultorio ?? 30,
-                    stripe_fee_percent: data?.stripe_fee_percent ?? 5.14,
-                    slug: data?.slug || '',
-                    is_public: data?.is_public || false,
-                });
+            setProfile({
+                prefix: data?.prefix || 'none',
+                full_name: data?.full_name || user.user_metadata?.full_name || '',
+                email: user.email || '',
+                avatar_url: data?.avatar_url || null,
+                institucion_formadora: data?.institucion_formadora || '',
+                telefono_profesional: data?.telefono_profesional || '',
+                porcentaje_consultorio: data?.porcentaje_consultorio ?? 30,
+                stripe_fee_percent: data?.stripe_fee_percent ?? 5.14,
+                slug: data?.slug || '',
+                is_public: data?.is_public || false,
+            });
 
-                // Dynamic lists — stored as JSONB in profiles
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const d = data as any;
-                if (Array.isArray(d?.cedulas)) setCedulas(d.cedulas);
-                if (Array.isArray(d?.cursos)) setCursos(d.cursos);
+            // Dynamic lists — stored as JSONB in profiles
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const d = data as any;
+            if (Array.isArray(d?.cedulas)) setCedulas(d.cedulas);
+            if (Array.isArray(d?.cursos)) setCursos(d.cursos);
 
-                if (data?.horario_atencion) {
-                    const h = data.horario_atencion;
-                    
-                    // Migración si viene en formato antiguo (array de días y horas globales)
-                    if (Array.isArray(h.dias)) {
-                        const newDias: any = {};
-                        [0, 1, 2, 3, 4, 5, 6].forEach(d => {
-                            newDias[d] = {
-                                activo: h.dias.includes(d),
-                                inicio: h.inicio || '08:00',
-                                fin: h.fin || '17:00'
-                            };
-                        });
-                        setHorario({
-                            dias: newDias,
-                            dias_no_laborables: h.dias_no_laborables || [],
-                        });
-                    } else if (h.dias) {
-                        // Formato nuevo ya existe
-                        setHorario(h);
-                    }
-                }
-
-                if (data?.notification_settings) {
-                    setNotif({
-                        psicologo_email: data.notification_settings.psicologo_email ?? true,
-                        psicologo_whatsapp: data.notification_settings.psicologo_whatsapp ?? false,
-                        paciente_email: data.notification_settings.paciente_email ?? true,
-                        paciente_whatsapp: data.notification_settings.paciente_whatsapp ?? false,
+            if (data?.horario_atencion) {
+                const h = data.horario_atencion;
+                
+                // Migración si viene en formato antiguo (array de días y horas globales)
+                if (Array.isArray(h.dias)) {
+                    const newDias: any = {};
+                    [0, 1, 2, 3, 4, 5, 6].forEach(d => {
+                        newDias[d] = {
+                            activo: h.dias.includes(d),
+                            inicio: h.inicio || '08:00',
+                            fin: h.fin || '17:00'
+                        };
                     });
+                    setHorario({
+                        dias: newDias,
+                        dias_no_laborables: h.dias_no_laborables || [],
+                    });
+                } else if (h.dias) {
+                    // Formato nuevo ya existe
+                    setHorario(h);
                 }
-            } catch (err: unknown) {
-                console.error('Error loading profile:', err);
-            } finally {
-                setIsLoading(false);
             }
-        };
-        load();
 
-        // Escuchar si venimos de un redirect de Google OAuth con tokens nuevos
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.provider_refresh_token) {
-                supabase.from('profiles').update({
-                    google_refresh_token: session.provider_refresh_token,
-                    google_access_token: session.provider_token
-                }).eq('id', session.user.id).then(({ error }) => {
-                    if (!error) {
-                        setHasGoogleCalendar(true);
-                        toast.success('¡Google Calendar se conectó existosamente!');
-                    }
+            if (data?.notification_settings) {
+                setNotif({
+                    psicologo_email: data.notification_settings.psicologo_email ?? true,
+                    psicologo_whatsapp: data.notification_settings.psicologo_whatsapp ?? false,
+                    paciente_email: data.notification_settings.paciente_email ?? true,
+                    paciente_whatsapp: data.notification_settings.paciente_whatsapp ?? false,
                 });
             }
-        });
+        } catch (err: unknown) {
+            console.error('Error loading profile:', err);
+        } finally {
+            setIsLoading(false);
+        }
     }, [user]);
+
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
+
+    // Initialize Google OAuth Code Client (for branded synchronization)
+    useEffect(() => {
+        if (!window.google || !GOOGLE_CLIENT_ID) return;
+
+        try {
+            console.log('[Settings] Initializing Google Code Client...');
+            const client = window.google.accounts.oauth2.initCodeClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/calendar.events',
+                ux_mode: 'popup',
+                callback: async (response: any) => {
+                    if (response.code) {
+                        console.log('[Settings] Google Code received, starting exchange...');
+                        await handleCodeResponse(response.code);
+                    }
+                },
+            });
+            setCodeClient(client);
+        } catch (err) {
+            console.error('Error initializing Google Code Client:', err);
+        }
+    }, [user]);
+
+    const handleCodeResponse = async (code: string) => {
+        if (!user) return;
+        setIsLinking(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('google-auth-exchange', {
+                body: { code, userId: user.id }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            setHasGoogleCalendar(true);
+            toast.success('¡Google Calendar conectado profesionalmente!');
+            fetchProfile(); // Refresh profile to be sure
+        } catch (err: any) {
+            console.error('Error exchanging code:', err);
+            toast.error('Error al vincular: ' + (err.message || 'Error desconocido'));
+        } finally {
+            setIsLinking(false);
+        }
+    };
 
     // ── Saves ─────────────────────────────────────────────────────────────────
 
@@ -397,21 +456,42 @@ const Settings = () => {
     };
 
     const handleLinkGoogleCalendar = async () => {
+        if (!codeClient) {
+            toast.error('El servicio de Google no está listo. Por favor, recarga la página.');
+            return;
+        }
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    scopes: 'https://www.googleapis.com/auth/calendar.events',
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    },
-                    redirectTo: `${window.location.origin}/settings`,
-                }
-            });
+            codeClient.requestCode();
+        } catch (err) {
+            console.error('Error requesting code:', err);
+            toast.error('No se pudo abrir la ventana de Google');
+        }
+    };
+
+    const handleUnlinkGoogleCalendar = async () => {
+        if (!user) return;
+        
+        setIsUnlinking(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    google_refresh_token: null,
+                    google_access_token: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+
             if (error) throw error;
+
+            setHasGoogleCalendar(false);
+            setShowUnlinkConfirm(false);
+            toast.success('Google Calendar se ha desconectado correctamente');
         } catch (err: any) {
-            toast.error('Error al conectar Google Calendar: ' + err.message);
+            console.error('Error unlinking Google Calendar:', err);
+            toast.error('Error al desconectar Google Calendar');
+        } finally {
+            setIsUnlinking(false);
         }
     };
 
@@ -1085,12 +1165,31 @@ const Settings = () => {
                                                     </div>
                                                 </div>
                                                 {hasGoogleCalendar ? (
-                                                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                                                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                        Conectado
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 py-1">
+                                                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                            Conectado
+                                                        </Badge>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
+                                                            onClick={() => setShowUnlinkConfirm(true)}
+                                                            disabled={isUnlinking}
+                                                        >
+                                                            {isUnlinking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlink className="h-3 w-3" />}
+                                                            Desconectar
+                                                        </Button>
+                                                    </div>
                                                 ) : (
-                                                    <Button variant="zen" size="sm" onClick={handleLinkGoogleCalendar}>
+                                                    <Button 
+                                                        variant="zen" 
+                                                        size="sm" 
+                                                        onClick={handleLinkGoogleCalendar}
+                                                        disabled={isLinking}
+                                                        className="gap-2"
+                                                    >
+                                                        {isLinking ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarPlus className="h-3 w-3" />}
                                                         Conectar
                                                     </Button>
                                                 )}
@@ -1192,6 +1291,36 @@ const Settings = () => {
                     </>
                 )}
             </div>
+
+            {/* Unlink Confirmation Dialog */}
+            <AlertDialog open={showUnlinkConfirm} onOpenChange={setShowUnlinkConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            ¿Desconectar Google Calendar?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esto detendrá la sincronización de citas y la creación automática de enlaces de Google Meet. 
+                            Deberás volver a conectar tu cuenta para restaurar estas funciones.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isUnlinking}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleUnlinkGoogleCalendar();
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isUnlinking}
+                        >
+                            {isUnlinking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Sí, desconectar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Layout>
     );
 };

@@ -87,7 +87,6 @@ const NewAppointmentDialog = ({
     const [confirmCancel, setConfirmCancel] = useState(false);
 
     const [specialistName, setSpecialistName] = useState('');
-    const [profileSlug, setProfileSlug] = useState<string>('');
     
     // Schedule config loaded from profile
     const [horarioConfig, setHorarioConfig] = useState<any>({
@@ -99,12 +98,11 @@ const NewAppointmentDialog = ({
         if (!user) return;
         supabase
             .from('profiles')
-            .select('horario_atencion, full_name, slug')
+            .select('horario_atencion, full_name')
             .eq('id', user.id)
             .single()
             .then(({ data }) => {
                 if (data?.full_name) setSpecialistName(data.full_name);
-                if (data?.slug) setProfileSlug(data.slug);
                 if (data?.horario_atencion) {
                     const h = data.horario_atencion;
                     let normalized: any;
@@ -270,7 +268,7 @@ const NewAppointmentDialog = ({
             // Duración fija: 1 hora
             const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user: sessionUser } } = await supabase.auth.getUser();
 
             const payload = {
                 patient_id: formData.patientId || null,
@@ -283,34 +281,35 @@ const NewAppointmentDialog = ({
                 meeting_platform: formData.meetingPlatform || null,
                 notes: formData.notes || null,
                 color: formData.color || 'violet',
-                user_id: user?.id ?? null,
+                user_id: sessionUser?.id ?? null,
                 organization_id: organization?.id,
             };
 
             let finalMeetingLink = formData.meetingLink;
 
             // --- Google Calendar Sync (for Create and Edit) ---
-            const isMeetSelected = formData.meetingPlatform === 'meet' || formData.meetingPlatform === 'Google Meet';
-            const wasMeetSelected = isEditing && (editingAppointment?.meetingPlatform === 'meet' || editingAppointment?.meetingPlatform === 'Google Meet');
+            const isMeetSelected = formData.meetingPlatform === 'meet';
+            const wasMeetSelected = isEditing && editingAppointment?.meetingPlatform === 'meet';
             
             // Logic: 
-            // 1. If was Meet and now it's NOT Meet -> Clear link (per user request)
+            // 1. If was Meet and now it's NOT Meet -> Clear link
             // 2. If it is Meet and (didn't have link OR was not Meet before) -> Generate link
             let shouldSync = false;
-            let syncReason = '';
 
             if (isEditing && wasMeetSelected && !isMeetSelected) {
                 finalMeetingLink = '';
-            } else if (isMeetSelected && (!isEditing || !wasMeetSelected || !formData.meetingLink)) {
+            } else if (isMeetSelected && (!finalMeetingLink || !wasMeetSelected)) {
                 shouldSync = true;
-                syncReason = isEditing ? 'updating to Google Meet' : 'new appointment with Google Meet';
             }
 
-            if (shouldSync && profileSlug) {
+            console.log('[MeetSync] shouldSync:', shouldSync, 'platform:', formData.meetingPlatform, 'linkExists:', !!finalMeetingLink);
+
+            if (shouldSync) {
                 try {
+                    console.log('[MeetSync] Invoking google-calendar-sync for user:', sessionUser?.id);
                     const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
                         body: {
-                            slug: profileSlug,
+                            userId: sessionUser?.id,
                             createMeet: true,
                             event: {
                                 summary: `Cita Saudade: ${formData.patientName}`,
@@ -322,18 +321,20 @@ const NewAppointmentDialog = ({
                     });
 
                     if (syncErr) {
-                        console.error('Error invocando google-calendar-sync:', syncErr);
+                        console.error('[MeetSync] Network/Invoke Error:', syncErr);
                         toast.warning('No se pudo sincronizar con Google Calendar. La cita se guardará sin link actualizado.');
                     } else if (data?.error || data?.success === false) {
-                        console.warn('Google Calendar sync respondió con error:', data.error || data.googleApiError);
+                        console.warn('[MeetSync] API Error:', data.error || data.googleApiError);
                         toast.warning('No se pudo generar el link de Google Meet. Verifica tu conexión con Google en Configuración.');
                     } else if (data?.meetLink) {
+                        console.log('[MeetSync] Success! Link generated:', data.meetLink);
                         finalMeetingLink = data.meetLink;
                     } else if (data?.message === 'Google Calendar not connected') {
-                        toast.warning('Google Calendar no está conectado. Conéctalo para generar links automáticamente.');
+                        console.warn('[MeetSync] Not connected');
+                        toast.warning('Google Calendar no está conectado. Conéctalo en Configuración para generar links.');
                     }
                 } catch (err) {
-                    console.error('Error sincronizando calendario de Google:', err);
+                    console.error('[MeetSync] Unexpected Exception:', err);
                 }
             }
 
@@ -368,7 +369,7 @@ const NewAppointmentDialog = ({
                 toast.success(`Cita con ${formData.patientName} agendada correctamente`);
 
                 await logActivity({
-                    profile_id: user!.id,
+                    profile_id: sessionUser!.id,
                     type: 'appointment_created',
                     title: 'Nueva Cita Agendada',
                     description: `Has agendado una cita con ${formData.patientName} el ${format(startDateTime, "d 'de' MMMM", { locale: es })} a las ${format(startDateTime, "HH:mm")}.`,
