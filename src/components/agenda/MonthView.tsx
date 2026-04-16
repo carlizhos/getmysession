@@ -2,6 +2,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO,
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Video, MapPin, Repeat, CreditCard, CircleDollarSign, Clock, CheckCircle, Timer, XCircle, CheckCircle2 } from 'lucide-react';
 
 interface MonthViewProps {
     currentDate: Date;
@@ -95,11 +96,34 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                                     <div
                                         key={apt.id}
                                         className={cn(
-                                            "text-xs p-1 rounded border truncate",
+                                            "text-[9px] p-1 rounded-md border flex items-center gap-1.5 min-w-0 transition-transform hover:scale-[1.02] shadow-sm relative overflow-hidden",
                                             getStatusColor(apt.status)
                                         )}
                                     >
-                                        {format(parseISO(apt.startTime), 'h:mm a')} {apt.patientName.split(' ')[0]}
+                                        <div className={cn("absolute left-0 top-0 bottom-0 w-0.5", getStatusColor(apt.status).split(' ')[1])} />
+                                        
+                                        <div className="flex-shrink-0">
+                                            {apt.modality === 'online' ? (
+                                                <Video className="h-2.5 w-2.5 text-blue-500" title="En línea" />
+                                            ) : (
+                                                <MapPin className="h-2.5 w-2.5 text-amber-600" title="Presencial" />
+                                            )}
+                                        </div>
+
+                                        <span className="truncate flex-1 font-bold leading-none">
+                                            {apt.patientName.split(' ')[0]}
+                                        </span>
+
+                                        <div className="flex items-center gap-0.5 ml-auto">
+                                            {apt.isRecurring && (
+                                                <Repeat className="h-2 w-2 text-blue-600" />
+                                            )}
+                                            {apt.paymentStatus === 'paid' ? (
+                                                <CreditCard className="h-2.5 w-2.5 text-green-600" title="Pagada" />
+                                            ) : (
+                                                <CircleDollarSign className="h-2.5 w-2.5 text-muted-foreground opacity-40" title="Pendiente" />
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                                 {dayAppointments.length > 3 && (

@@ -70,10 +70,10 @@ const OnboardingChecklist = () => {
                 {
                     id: 'appointment',
                     label: 'Agrega una cita',
-                    description: 'Agenda la primera sesión en el calendario.',
+                    description: 'Agenda la primera sesión en la agenda.',
                     icon: Calendar,
-                    href: '/calendar',
-                    cta: 'Ir al Calendario',
+                    href: '/agenda',
+                    cta: 'Ir a la Agenda',
                     done: (appointmentsCount ?? 0) > 0,
                 },
                 {

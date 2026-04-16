@@ -77,9 +77,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAll();
-    if (user?.id && organization?.id) {
-      checkReactivations(user.id, organization.id);
+    if (organization?.id) {
+      fetchAll();
+      if (user?.id) {
+        checkReactivations(user.id, organization.id);
+      }
     }
   }, [user?.id, organization?.id]);
 
@@ -95,47 +97,47 @@ const Dashboard = () => {
 
     // Fetch en paralelo
     const [
-      { data: patients },
-      { data: newPatients },
+      { count: patientsCount },
+      { count: newPatientsCount },
       { data: todayData },
       { data: monthAppts },
       { data: prevMonthAppts },
       { data: notes },
       { data: chartRaw },
     ] = await Promise.all([
-      // Total pacientes activos
-      supabase.from('patients').select('id, created_at').eq('organization_id', organization?.id),
-      // Pacientes nuevos este mes
-      supabase.from('patients').select('id').eq('organization_id', organization?.id).gte('created_at', monthStart).lte('created_at', monthEnd),
+      // Total pacientes activos (no eliminados)
+      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null),
+      // Pacientes nuevos este mes (no eliminados)
+      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null),
       // Citas de hoy
       supabase.from('appointments')
         .select('id, patient_name, start_time, end_time, status, type, patients(phone)')
-        .eq('organization_id', organization?.id)
+        .eq('organization_id', organization.id)
         .gte('start_time', todayStart)
         .lte('start_time', todayEnd)
         .order('start_time'),
       // Citas del mes actual (para ingresos y sesiones)
       supabase.from('appointments')
         .select('fee, payment_status, status')
-        .eq('organization_id', organization?.id)
+        .eq('organization_id', organization.id)
         .gte('start_time', monthStart)
         .lte('start_time', monthEnd),
       // Citas del mes anterior (para comparar ingresos)
       supabase.from('appointments')
         .select('fee, payment_status')
-        .eq('organization_id', organization?.id)
+        .eq('organization_id', organization.id)
         .gte('start_time', prevMonthStart)
         .lte('start_time', prevMonthEnd),
-      // Notas clínicas recientes (tabla session_notes)
+      // Notas clínicas recientes
       supabase.from('session_notes')
         .select('id, patient_name, session_number, agenda, created_at')
-        .eq('organization_id', organization?.id)
+        .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
         .limit(3),
       // Datos de los últimos 6 meses para el gráfico
       supabase.from('appointments')
         .select('start_time, fee, payment_status, status')
-        .eq('organization_id', organization?.id)
+        .eq('organization_id', organization.id)
         .gte('start_time', new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString())
         .lte('start_time', monthEnd),
     ]);
@@ -162,8 +164,8 @@ const Dashboard = () => {
     setStats({
       monthlyRevenue,
       previousMonthRevenue,
-      activePatients: patients?.length ?? 0,
-      newPatientsThisMonth: newPatients?.length ?? 0,
+      activePatients: patientsCount ?? 0,
+      newPatientsThisMonth: newPatientsCount ?? 0,
       todayAppointmentsCount: todayData?.length ?? 0,
       confirmedToday,
       pendingToday,

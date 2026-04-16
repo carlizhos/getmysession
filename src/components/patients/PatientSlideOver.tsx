@@ -216,7 +216,7 @@ const PatientSlideOver = ({
     // ── Booking guard handler ─────────────────────────────────────────────────
     const handleBookingClick = () => {
         if (hasValidConsent) {
-            navigate('/calendar');
+            navigate('/agenda');
         } else {
             setBookingGuardOpen(true);
         }
@@ -842,7 +842,7 @@ const PatientSlideOver = ({
                         <AlertDialogCancel onClick={() => { setBookingGuardOpen(false); navigate('/consents'); }}>
                             Ir a Consentimientos
                         </AlertDialogCancel>
-                        <AlertDialogAction onClick={() => { setBookingGuardOpen(false); navigate('/calendar'); }}>
+                        <AlertDialogAction onClick={() => { setBookingGuardOpen(false); navigate('/agenda'); }}>
                             Agendar de todas formas
                         </AlertDialogAction>
                     </AlertDialogFooter>

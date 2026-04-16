@@ -1,38 +1,30 @@
 # Task Checklist
 
-## High Priority (Must Do)
-- [x] **Finish CRM Pipeline Logic**:
-    - [x] Ensure drag-and-drop updates `status` in Supabase.
-    - [x] Persist column changes.
-- [x] **Calendar Appointments**:
-    - [x] Create/Edit appointments linked to Supabase.
-    - [x] Fetch real appointments for the calendar view.
-- [/] **Patient Management**:
-    - [/] Enhace patient list with search/filter (already implemented, needs refinement).
-    - [x] Implement Patient Detail View (History, Notes, Info).
-    - [ ] Add Edit/Delete functionality for patients.
-- [x] **Clinical Notes**:
-    - [x] Create `clinical_notes` table (renamed to `session_notes` to match form structure).
-    - [x] Save notes from `Notes.tsx` and `AIAssistant.tsx`.
-    - [x] Display notes history in Patient Detail View.
-- [x] **Dashboard Real Data**:
-    - [x] Replace `dashboardStats` with real counts.
-    - [x] `TodayAgenda` fetching from DB.
-    - [x] `RecentNotes` fetching from DB.
-    - [x] `RevenueChart` fetching from DB.
+## 🗺️ Roadmap Status Summary
+- **Fase 1: Fundamentos y MVP** — ✅ Completado
+- **Fase 2: Gestión Core** — ✅ Completado
+- **Fase 3: Inteligencia y Pagos** — ✅ Completado
+- **Fase 4: Experiencia Integral y Portales** — ✅ Completado
+- **Fase 5: Saudade Premium** — 📅 Pendiente
+- **Fase 6: Infraestructura y Branding** — ✅ Completado
 
-## Medium Priority (Should Do)
-- [x] **HIPAA/Security Features**:
-    - [x] Inactivity timer (auto-logout).
-    - [x] Audit logs (session_logs, page_views).
-    - [ ] Row Level Security (RLS) policies refinement (basic RLS is on).
-- [ ] **Payments/Finance**:
-    - [ ] Integrate Stripe for real payments.
-    - [ ] Sync payment status with appointments.
+## 🎯 Próximos Pasos (Fase 5)
+- [ ] **Firma Digital de Consentimientos Integrada**
+    - [ ] Conectar `SignaturePad` al Portal de Pacientes para firmas remotas.
+- [ ] **Asistente de IA (Voz a Texto)**
+    - [ ] Implementar transcripción de audio para generar notas SOAP automáticamente.
+- [ ] **Paquetes de Sesiones y Créditos**
+    - [ ] Integrar venta de paquetes en Stripe y descuento de créditos al agendar.
+- [ ] **Diario Emocional y Tareas**
+    - [ ] Módulo en Portal de Pacientes para Mood Tracking y ejercicios.
+- [ ] **Recordatorios Automáticos**
+    - [ ] Configurar cron jobs/edge functions para avisos 24h antes.
 
-## Low Priority (Nice to Have)
-- [ ] **Settings Page**:
-    - [ ] Profile management.
-    - [ ] Notification preferences.
-- [ ] **Mobile Responsiveness**:
-    - [ ] Check detailed views on mobile.
+## 🛠️ Tareas Menores Pendientes
+- [ ] **Contexto de Paciente en IA**: Pasar historial del paciente al chat para respuestas personalizadas.
+- [ ] **Automatización de Pipeline**: Mover leads a "Cita Agendada" automáticamente al crear el primer appointment.
+- [x] **Fix de UX**: Bug de botón deshabilitado al navegar hacia atrás (Completado en Fase 6).
+- [x] **Google GSI**: Implementar login nativo con marca Saudade (Completado en Fase 6).
+
+## 📊 Estado Actual
+La mayoría de la infraestructura core y las integraciones externas (Stripe, Facturapi, Google Calendar) están listas y funcionando. El enfoque ahora vira hacia la **retención del paciente** y la **automatización avanzada** mediante IA y el portal.

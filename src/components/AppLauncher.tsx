@@ -27,7 +27,7 @@ import { CSS } from '@dnd-kit/utilities';
 // ── App catalog ───────────────────────────────────────────────────────────────
 const APP_CATALOG = [
     { id: 'patients', label: 'Expedientes', href: '/patients', icon: Users, gradient: 'from-violet-500 to-purple-600', shadow: 'shadow-violet-500/30' },
-    { id: 'calendar', label: 'Calendario IA', href: '/calendar', icon: Calendar, gradient: 'from-sky-500 to-blue-600', shadow: 'shadow-sky-500/30' },
+    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: Calendar, gradient: 'from-sky-500 to-blue-600', shadow: 'shadow-sky-500/30' },
     { id: 'finance', label: 'Finanzas', href: '/finance', icon: DollarSign, gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/30' },
     { id: 'marketing', label: 'Marketing', href: '/pipeline', icon: Megaphone, gradient: 'from-orange-500 to-amber-500', shadow: 'shadow-orange-500/30' },
     { id: 'tests', label: 'Pruebas', href: '/tests', icon: BrainCircuit, gradient: 'from-pink-500 to-rose-600', shadow: 'shadow-pink-500/30' },

@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
-import CalendarPage from "./pages/Calendar";
+import AgendaPage from "./pages/Agenda";
 import AIAssistant from "./pages/AIAssistant";
 import Notes from "./pages/Notes";
 import Finance from "./pages/Finance";
@@ -65,6 +65,14 @@ const App = () => (
               path="/"
               element={
                 <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -78,10 +86,10 @@ const App = () => (
               }
             />
             <Route
-              path="/calendar"
+              path="/agenda"
               element={
                 <ProtectedRoute>
-                  <CalendarPage />
+                  <AgendaPage />
                 </ProtectedRoute>
               }
             />

@@ -22,7 +22,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Video, Loader2, XCircle } from 'lucide-react';
+import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 const APPOINTMENT_COLORS = [
     { value: 'violet', label: 'Morado', bg: 'bg-violet-500', ring: 'ring-violet-400' },
@@ -61,6 +62,10 @@ interface EditingAppointment {
     notes?: string;
     status?: string;
     color?: string;
+    modality?: 'presencial' | 'online';
+    isRecurring?: boolean;
+    recurrenceId?: string;
+    paymentStatus?: string;
 }
 
 interface NewAppointmentDialogProps {
@@ -137,7 +142,7 @@ const NewAppointmentDialog = ({
                     }
                 }
             });
-    }, [user]);
+    }, [user, isEditing]);
 
     // Returns a warning message if the given date is blocked
     const getDateWarning = (d: Date | undefined): string | null => {
@@ -159,6 +164,10 @@ const NewAppointmentDialog = ({
         meetingLink: '',
         meetingPlatform: '',
         notes: '',
+        modality: 'presencial' as 'presencial' | 'online',
+        isRecurring: false,
+        recurrenceWeeks: 8,
+        editSeries: false,
     });
 
     // Sincronizar fecha cuando cambia selectedDate
@@ -187,6 +196,10 @@ const NewAppointmentDialog = ({
                 meetingLink: editingAppointment.meetingLink || '',
                 meetingPlatform: editingAppointment.meetingPlatform || '',
                 notes: editingAppointment.notes || '',
+                modality: editingAppointment.modality || 'presencial',
+                isRecurring: editingAppointment.isRecurring || false,
+                recurrenceWeeks: 8,
+                editSeries: false,
             });
         } else {
             resetForm();
@@ -206,6 +219,10 @@ const NewAppointmentDialog = ({
             meetingLink: '',
             meetingPlatform: '',
             notes: '',
+            modality: 'presencial',
+            isRecurring: false,
+            recurrenceWeeks: 8,
+            editSeries: false,
         });
     };
 
@@ -283,6 +300,9 @@ const NewAppointmentDialog = ({
                 color: formData.color || 'violet',
                 user_id: sessionUser?.id ?? null,
                 organization_id: organization?.id,
+                modality: formData.modality,
+                is_recurring: formData.isRecurring,
+                recurrence_id: isEditing ? editingAppointment?.recurrenceId : (formData.isRecurring ? crypto.randomUUID() : null),
             };
 
             let finalMeetingLink = formData.meetingLink;
@@ -347,26 +367,71 @@ const NewAppointmentDialog = ({
                     finalNotes = (formData.notes || '') + cancelAudit;
                 }
 
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({ 
-                        ...payload, 
-                        meeting_link: finalMeetingLink,
-                        notes: finalNotes, 
-                        status: formData.status 
-                    })
-                    .eq('id', editingAppointment.id);
-                if (error) throw error;
-                toast.success('Cita actualizada');
+                if (formData.editSeries && editingAppointment.recurrenceId) {
+                    // Update this one and all future instances in the series
+                    const { error } = await supabase
+                        .from('appointments')
+                        .update({ 
+                            type: payload.type,
+                            fee: payload.fee,
+                            meeting_link: finalMeetingLink,
+                            meeting_platform: payload.meeting_platform,
+                            notes: finalNotes, 
+                            status: formData.status,
+                            color: payload.color,
+                            modality: payload.modality,
+                        })
+                        .eq('recurrence_id', editingAppointment.recurrenceId)
+                        .gte('start_time', editingAppointment.startTime);
+                    if (error) throw error;
+                    toast.success('Serie de citas actualizada');
+                } else {
+                    const { error } = await supabase
+                        .from('appointments')
+                        .update({ 
+                            ...payload, 
+                            meeting_link: finalMeetingLink,
+                            notes: finalNotes, 
+                            status: formData.status 
+                        })
+                        .eq('id', editingAppointment.id);
+                    if (error) throw error;
+                    toast.success('Cita actualizada');
+                }
             } else {
-                const { error } = await supabase.from('appointments').insert([{
-                    ...payload,
-                    meeting_link: finalMeetingLink,
-                    status: formData.status || 'scheduled',
-                    payment_status: 'pending',
-                }]);
-                if (error) throw error;
-                toast.success(`Cita con ${formData.patientName} agendada correctamente`);
+                if (formData.isRecurring) {
+                    // Bulk creation
+                    const sessions = [];
+                    const recurrenceId = payload.recurrence_id;
+                    
+                    for (let i = 0; i < formData.recurrenceWeeks; i++) {
+                        const currentStart = new Date(startDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+                        const currentEnd = new Date(endDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+                        
+                        sessions.push({
+                            ...payload,
+                            start_time: currentStart.toISOString(),
+                            end_time: currentEnd.toISOString(),
+                            recurrence_id: recurrenceId,
+                            meeting_link: finalMeetingLink,
+                            status: formData.status || 'scheduled',
+                            payment_status: 'pending',
+                        });
+                    }
+                    
+                    const { error } = await supabase.from('appointments').insert(sessions);
+                    if (error) throw error;
+                    toast.success(`${formData.recurrenceWeeks} citas agendadas correctamente`);
+                } else {
+                    const { error } = await supabase.from('appointments').insert([{
+                        ...payload,
+                        meeting_link: finalMeetingLink,
+                        status: formData.status || 'scheduled',
+                        payment_status: 'pending',
+                    }]);
+                    if (error) throw error;
+                    toast.success(`Cita con ${formData.patientName} agendada correctamente`);
+                }
 
                 await logActivity({
                     profile_id: sessionUser!.id,
@@ -521,7 +586,7 @@ const NewAppointmentDialog = ({
                                     <SelectItem value="scheduled">
                                         <span className="flex items-center gap-2">
                                             <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
-                                            Agendada
+                                            Sin confirmar
                                         </span>
                                     </SelectItem>
                                     <SelectItem value="confirmed">
@@ -627,6 +692,93 @@ const NewAppointmentDialog = ({
                                 <span className="text-sm text-muted-foreground">— Duración: 1 hora</span>
                             </div>
                         </div>
+
+                        {/* Modalidad */}
+                        <div className="space-y-2">
+                            <Label htmlFor="modality">Modalidad</Label>
+                            <Select
+                                value={formData.modality}
+                                onValueChange={(value: any) => {
+                                    const updates: any = { modality: value };
+                                    if (value === 'online' && !formData.meetingPlatform) {
+                                        updates.meetingPlatform = 'meet';
+                                    }
+                                    setFormData({ ...formData, ...updates });
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona la modalidad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="presencial">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="h-4 w-4" />
+                                            Presencial
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="online">
+                                        <div className="flex items-center gap-2">
+                                            <Video className="h-4 w-4" />
+                                            En línea
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Recurrencia */}
+                        {!isEditing && (
+                            <div className="space-y-4 p-3 border rounded-lg bg-muted/20">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">Cita Recurrente</Label>
+                                        <p className="text-xs text-muted-foreground">Repetir esta cita semanalmente</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.isRecurring}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isRecurring: checked })}
+                                    />
+                                </div>
+                                {formData.isRecurring && (
+                                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="flex-1 space-y-2">
+                                            <Label htmlFor="weeks" className="text-xs">Número de semanas</Label>
+                                            <Input
+                                                id="weeks"
+                                                type="number"
+                                                min={2}
+                                                max={12}
+                                                value={formData.recurrenceWeeks}
+                                                onChange={(e) => setFormData({ ...formData, recurrenceWeeks: parseInt(e.target.value) || 2 })}
+                                                className="h-8"
+                                            />
+                                        </div>
+                                        <div className="flex-[2] pt-6">
+                                            <p className="text-[10px] text-muted-foreground italic">
+                                                Se crearán {formData.recurrenceWeeks} sesiones en total.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Opción de editar serie */}
+                        {isEditing && editingAppointment?.recurrenceId && (
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Repeat className="h-4 w-4 text-blue-600" />
+                                        <Label className="text-sm font-medium">Editar Serie</Label>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Aplicar cambios a todas las citas futuras</p>
+                                </div>
+                                <Switch
+                                    checked={formData.editSeries}
+                                    onCheckedChange={(checked) => setFormData({ ...formData, editSeries: checked })}
+                                />
+                            </div>
+                        )}
 
                         {/* Tarifa */}
                         <div className="space-y-2">

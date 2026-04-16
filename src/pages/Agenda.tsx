@@ -11,7 +11,16 @@ import {
   User,
   Calendar as CalendarIcon,
   CheckSquare,
-  ChevronDown
+  ChevronDown,
+  MapPin,
+  Video,
+  Repeat,
+  CreditCard,
+  CircleDollarSign,
+  CheckCircle,
+  Timer,
+  XCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCallback } from 'react';
@@ -46,19 +55,22 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import NewAppointmentDialog from '@/components/calendar/NewAppointmentDialog';
-import DayView from '@/components/calendar/DayView';
-import MonthView from '@/components/calendar/MonthView';
+import NewAppointmentDialog from '@/components/agenda/NewAppointmentDialog';
+import AgendaListView from '@/components/agenda/AgendaListView';
+import { LayoutList, CalendarDays } from 'lucide-react';
+import DayView from '@/components/agenda/DayView';
+import MonthView from '@/components/agenda/MonthView';
 
 type ViewMode = 'day' | 'week' | 'month';
 
-const CalendarPage = () => {
+const AgendaPage = () => {
   const { user } = useAuth();
   const { organization } = useOrganization();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+  const [viewType, setViewType] = useState<'calendar' | 'list'>('calendar');
   const [appointments, setAppointments] = useState<any[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null);
   const [nonWorkingDays, setNonWorkingDays] = useState<string[]>([]); // YYYY-MM-DD
@@ -124,7 +136,7 @@ const CalendarPage = () => {
         .eq('organization_id', organization?.id)
         .order('start_time', { ascending: true });
       if (error) throw error;
-      // Mapear campos de BD al formato que usa el calendario
+      // Mapear campos de BD al formato que usa la agenda
       const mapped = (data || []).map((apt: any) => ({
         id: apt.id,
         patientId: apt.patient_id,
@@ -139,6 +151,9 @@ const CalendarPage = () => {
         color: apt.color,
         meetingLink: apt.meeting_link,
         meetingPlatform: apt.meeting_platform,
+        modality: apt.modality,
+        isRecurring: apt.is_recurring,
+        recurrenceId: apt.recurrence_id,
       }));
       setAppointments(mapped);
     } catch (error) {
@@ -263,6 +278,22 @@ const CalendarPage = () => {
       ? COLOR_CHIP[apt.color]
       : getStatusColor(apt.status);
 
+  const STATUS_ICON: Record<string, any> = {
+    scheduled: Clock,
+    confirmed: CheckCircle,
+    pending: Timer,
+    completed: CheckCircle2,
+    cancelled: XCircle,
+  };
+
+  const STATUS_LABEL: Record<string, string> = {
+    scheduled: 'Sin confirmar',
+    confirmed: 'Confirmada',
+    pending: 'En espera',
+    completed: 'Completada',
+    cancelled: 'Cancelada',
+  };
+
   const STATUS_DOT: Record<string, string> = {
     scheduled: 'bg-blue-500',
     confirmed: 'bg-green-500',
@@ -278,7 +309,7 @@ const CalendarPage = () => {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
             <p className="text-muted-foreground">
               Gestiona tus citas y disponibilidad
             </p>
@@ -311,6 +342,27 @@ const CalendarPage = () => {
                 Mes
               </Button>
             </div>
+            {/* Presentation Mode Switcher */}
+            <div className="flex items-center border rounded-lg p-1 bg-muted/30">
+              <Button
+                variant={viewType === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewType('calendar')}
+                className="gap-1.5 text-sm"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Calendario
+              </Button>
+              <Button
+                variant={viewType === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewType('list')}
+                className="gap-1.5 text-sm"
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+                Lista
+              </Button>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -334,7 +386,7 @@ const CalendarPage = () => {
                   <CalendarIcon className="h-4 w-4" />
                   <div>
                     <p className="font-medium">Evento</p>
-                    <p className="text-xs text-muted-foreground">Crear un evento en el calendario</p>
+                    <p className="text-xs text-muted-foreground">Crear un evento en la agenda</p>
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="gap-2 cursor-pointer">
@@ -384,6 +436,28 @@ const CalendarPage = () => {
             </Button>
           </CardHeader>
           <CardContent className="p-0">
+            {/* Agenda List View */}
+            {viewType === 'list' && (
+              <AgendaListView
+                appointments={(() => {
+                  const weekStartDate = startOfWeek(currentDate, { weekStartsOn: 1 });
+                  const weekEndDate = endOfWeek(currentDate, { weekStartsOn: 1 });
+                  const monthStartDate = startOfMonth(currentDate);
+                  const monthEndDate = endOfMonth(currentDate);
+                  return appointments.filter(apt => {
+                    const d = parseISO(apt.startTime);
+                    if (viewMode === 'day') return isSameDay(d, currentDate);
+                    if (viewMode === 'week') return d >= weekStartDate && d <= weekEndDate;
+                    return d >= monthStartDate && d <= monthEndDate;
+                  });
+                })()}
+                onEditAppointment={(apt) => {
+                  setEditingAppointment(apt);
+                  setIsNewAppointmentOpen(true);
+                }}
+              />
+            )}
+            {viewType === 'calendar' && <>
             {/* Day View */}
             {viewMode === 'day' && (
               <DayView
@@ -507,25 +581,65 @@ const CalendarPage = () => {
                                         setIsNewAppointmentOpen(true);
                                       }}
                                       className={cn(
-                                        "rounded-lg border p-2 text-xs cursor-pointer transition-all hover:shadow-soft hover:scale-[1.02] space-y-0.5",
+                                        "rounded-xl border p-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] flex flex-col gap-1.5 relative overflow-hidden",
                                         getChipStyle(apt),
-                                        apt.status === 'cancelled' && 'opacity-60'
+                                        apt.status === 'cancelled' && 'opacity-60 grayscale-[0.2]'
                                       )}
                                     >
-                                      <div className="flex items-center gap-1.5 font-semibold">
-                                        {apt.status && STATUS_DOT[apt.status] && (
-                                          <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', STATUS_DOT[apt.status])} />
+                                      {/* Side accent */}
+                                      <div className={cn("absolute left-0 top-0 bottom-0 w-1", STATUS_DOT[apt.status])} />
+
+                                      {/* Row 1: Identity */}
+                                      <div className="flex items-center gap-1.5 font-bold text-[10px] leading-tight">
+                                        {apt.modality === 'online' ? (
+                                          <Video className="h-2.5 w-2.5 flex-shrink-0 text-blue-500" title="En línea" />
+                                        ) : (
+                                          <MapPin className="h-2.5 w-2.5 flex-shrink-0 text-amber-600 dark:text-amber-400" title="Presencial" />
                                         )}
-                                        <User className="h-3 w-3 flex-shrink-0" />
-                                        <span className="truncate">{apt.patientName.split(' ')[0]}</span>
+                                        <span className="truncate flex-1">{apt.patientName.split(' ')[0]}</span>
                                       </div>
-                                      <div className="flex items-center gap-1 opacity-75">
-                                        <Clock className="h-3 w-3" />
-                                        <span>{format(parseISO(apt.startTime), 'h:mm a')}</span>
+
+                                      {/* Row 2: Time & Recurrence */}
+                                      <div className="flex items-center gap-1 text-[9px] font-semibold opacity-80">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        <span>{format(parseISO(apt.startTime), 'HH:mm')}</span>
+                                        {apt.isRecurring && (
+                                          <Repeat className="h-2 w-2 text-blue-600" title="Recurrente" />
+                                        )}
                                       </div>
-                                      {apt.notes && (
-                                        <p className="text-[10px] opacity-60 truncate italic mt-0.5">{apt.notes}</p>
-                                      )}
+
+                                      {/* Row 3: Pills (Status & Payment) */}
+                                      <div className="flex flex-wrap gap-1 mt-auto">
+                                        {apt.status && STATUS_LABEL[apt.status] && (
+                                          <div className={cn(
+                                            "flex items-center gap-0.5 text-[7px] px-1 py-0.5 rounded-sm uppercase tracking-tighter font-black",
+                                            STATUS_DOT[apt.status],
+                                            "bg-opacity-20 text-current border border-current/10"
+                                          )}>
+                                            {(() => {
+                                              const Icon = STATUS_ICON[apt.status] || Clock;
+                                              return <Icon className="h-1.5 w-1.5" />;
+                                            })()}
+                                            <span>{STATUS_LABEL[apt.status]}</span>
+                                          </div>
+                                        )}
+                                        <div className={cn(
+                                          "flex items-center gap-0.5 text-[7px] px-1 py-0.5 rounded-sm uppercase tracking-tighter font-black border border-current/10",
+                                          apt.paymentStatus === 'paid' ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                                        )}>
+                                          {apt.paymentStatus === 'paid' ? (
+                                            <>
+                                              <CreditCard className="h-1.5 w-1.5" />
+                                              <span>PAG</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CircleDollarSign className="h-1.5 w-1.5 opacity-60" />
+                                              <span>SIN</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -557,12 +671,14 @@ const CalendarPage = () => {
                 isPastDay={isPastDay}
               />
             )}
+            </>
+            }
           </CardContent>
         </Card>
 
         {/* Legend */}
         <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-blue-500" /><span className="text-sm text-muted-foreground">Agendada</span></div>
+          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-blue-500" /><span className="text-sm text-muted-foreground">Sin confirmar</span></div>
           <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-green-500" /><span className="text-sm text-muted-foreground">Confirmada</span></div>
           <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-yellow-400" /><span className="text-sm text-muted-foreground">En espera</span></div>
           <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-violet-500" /><span className="text-sm text-muted-foreground">Completada</span></div>
@@ -588,4 +704,4 @@ const CalendarPage = () => {
   );
 };
 
-export default CalendarPage;
+export default AgendaPage;

@@ -249,7 +249,7 @@ const BookingPage = () => {
               end: { dateTime: endTime.toISOString() },
             }
           }
-        }).catch(err => console.error('Error sincronizando calendario:', err));
+        }).catch(err => console.error('Error sincronizando agenda:', err));
       }
 
       // 2. Create the appointment
@@ -372,7 +372,7 @@ const BookingPage = () => {
             {step === 2 && (
               <Button variant="ghost" className="justify-start px-0 w-fit text-muted-foreground hover:text-foreground hover:bg-transparent" onClick={() => setStep(1)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver al calendario
+                Volver a la agenda
               </Button>
             )}
           </div>

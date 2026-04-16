@@ -40,9 +40,9 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import { useOrganization } from '@/hooks/useOrganization';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Pacientes', href: '/patients', icon: Users },
-  { name: 'Calendario', href: '/calendar', icon: Calendar },
+  { name: 'Agenda', href: '/agenda', icon: Calendar },
   { name: 'IA Asistente', href: '/ai-assistant', icon: Brain },
   { name: 'Notas Clínicas', href: '/notes', icon: FileText },
   { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
@@ -153,7 +153,7 @@ const Layout = ({ children }: LayoutProps) => {
     if (!user) return;
     const PAGE_NAMES: Record<string, string> = {
       '/': 'Dashboard', '/patients': 'Pacientes', '/pipeline': 'Pipeline',
-      '/calendar': 'Calendario', '/ai-assistant': 'IA Asistente',
+      '/agenda': 'Agenda', '/ai-assistant': 'IA Asistente',
       '/notes': 'Notas Clínicas', '/finance': 'Finanzas', '/settings': 'Configuración',
     };
     supabase.from('page_views').insert({

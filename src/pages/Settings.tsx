@@ -912,7 +912,7 @@ const Settings = () => {
                                                 <Label>Días No Laborables</Label>
                                             </div>
                                             <p className="text-xs text-muted-foreground">
-                                                Estos días aparecerán bloqueados en el calendario y no podrán agendarse citas.
+                                                Estos días aparecerán bloqueados en la agenda y no podrán agendarse citas.
                                             </p>
 
                                             <div className="flex gap-2">
@@ -1161,7 +1161,7 @@ const Settings = () => {
                                                     <CalendarPlus className="h-5 w-5 text-primary" />
                                                     <div>
                                                         <p className="text-sm font-bold text-primary">Google Calendar (Sincronización)</p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">Bloquea tus espacios ocupados personales para evitar choques en Saudade y agrega nuevas citas a tu calendario personal.</p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">Bloquea tus espacios ocupados personales para evitar choques en Saudade y agrega nuevas citas a tu agenda personal.</p>
                                                     </div>
                                                 </div>
                                                 {hasGoogleCalendar ? (
