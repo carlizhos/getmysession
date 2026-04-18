@@ -312,20 +312,20 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* ── Top Bar ──────────────────────────────────────────────── */}
       <header className={cn(
-        "fixed top-3 lg:top-4 left-3 lg:left-4 right-3 lg:right-4 z-40 h-14 flex items-center justify-between gap-4",
-        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-4 shadow-soft rounded-[20px]"
+        "fixed top-2 sm:top-3 lg:top-4 left-2 sm:left-3 lg:left-4 right-2 sm:right-3 lg:right-4 z-40 h-14 flex items-center justify-between gap-2 sm:gap-4",
+        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-3 sm:px-4 shadow-soft rounded-[16px] sm:rounded-[20px]"
       )}>
         {/* Left: Brand */}
-        <div className="flex items-center gap-3 w-1/4">
+        <div className="flex items-center gap-2 w-max">
           <AppLauncher />
-          <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground/90 leading-none">Saudade</span>
+          <Button variant="ghost" size="icon-sm" className="lg:hidden ml-1" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="text-xl font-bold tracking-tight text-foreground/90 hidden sm:inline-block">Saudade</span>
         </div>
 
-        {/* Center: Search Bar */}
-        <div className="flex-1 flex justify-center max-w-2xl">
+        {/* Center: Search Bar (Hidden on mobile) */}
+        <div className="flex-1 hidden md:flex justify-center max-w-2xl">
           <div className="relative w-full max-w-md group">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
@@ -347,8 +347,8 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1 w-1/4 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={toggleDarkMode} title={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}>
+        <div className="flex items-center gap-0.5 sm:gap-1 w-1/4 justify-end">
+          <Button variant="ghost" size="icon-sm" onClick={toggleDarkMode} title={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'} className="hidden sm:inline-flex">
             {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-zen-lavender" />}
           </Button>
 
@@ -363,8 +363,8 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Main content — Glassmorphism card container */}
       <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>
-        <main className="min-h-screen p-3 lg:p-4 flex flex-col pt-14 lg:pt-[5.25rem]">
-          <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-6 lg:p-8">
+        <main className="min-h-screen p-2 sm:p-3 lg:p-4 flex flex-col pt-14 lg:pt-[5.25rem]">
+          <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[18px] sm:rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-4 sm:p-6 lg:p-8">
             {children}
           </div>
         </main>

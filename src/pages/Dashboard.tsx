@@ -228,8 +228,8 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">
+        <div className="flex flex-col gap-1 sm:gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {getGreeting()},{' '}
             <span className="text-gradient-zen">
               {user?.user_metadata?.full_name || 'Doctor'}

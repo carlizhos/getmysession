@@ -172,6 +172,25 @@ const AgendaPage = () => {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  const handleCancelAppointment = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error al cancelar la cita:', error);
+    }
+  };
+
+  const handleRescheduleAppointment = (apt: any) => {
+    setEditingAppointment(apt);
+    setIsNewAppointmentOpen(true);
+  };
+
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
@@ -460,6 +479,8 @@ const AgendaPage = () => {
                   setEditingAppointment(apt);
                   setIsNewAppointmentOpen(true);
                 }}
+                onCancelAppointment={handleCancelAppointment}
+                onRescheduleAppointment={handleRescheduleAppointment}
               />
             )}
             {viewType === 'calendar' && <>

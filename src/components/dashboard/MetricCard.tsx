@@ -45,15 +45,15 @@ const MetricCard = ({
           {title}
         </CardTitle>
         <div className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl",
+          "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl",
           variantStyles[variant]
         )}>
-          <Icon className={cn("h-5 w-5", iconStyles[variant])} />
+          <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", iconStyles[variant])} />
         </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold tracking-tight">{value}</span>
+          <span className="text-2xl sm:text-3xl font-bold tracking-tight">{value}</span>
           {trend && (
             <span className={cn(
               "flex items-center gap-0.5 text-sm font-medium",

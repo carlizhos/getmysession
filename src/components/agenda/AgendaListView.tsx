@@ -17,6 +17,7 @@ import {
     ChevronDown,
     ChevronUp,
     ExternalLink,
+    Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,8 @@ interface Appointment {
 interface AgendaListViewProps {
     appointments: Appointment[];
     onEditAppointment: (apt: Appointment) => void;
+    onCancelAppointment: (id: string) => void;
+    onRescheduleAppointment: (apt: Appointment) => void;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -140,9 +143,13 @@ const getFormattedDate = (dateStr: string): string => {
 const AppointmentRow = ({
     apt,
     onEdit,
+    onCancel,
+    onReschedule,
 }: {
     apt: Appointment;
     onEdit: (apt: Appointment) => void;
+    onCancel: (id: string) => void;
+    onReschedule: (apt: Appointment) => void;
 }) => {
     const [expanded, setExpanded] = useState(false);
     const cfg = STATUS_CONFIG[apt.status] || STATUS_CONFIG.scheduled;
@@ -345,17 +352,38 @@ const AppointmentRow = ({
                     )}
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                        {apt.status !== 'cancelled' && apt.status !== 'completed' && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(apt);
-                                }}
-                                className="px-4 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                            >
-                                Editar
-                            </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                        {isToday(parseISO(apt.startTime)) && apt.status !== 'cancelled' && apt.status !== 'completed' && (
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onCancel(apt.id);
+                                    }}
+                                    className="px-4 py-2 text-xs font-bold text-destructive border border-destructive/20 rounded-xl hover:bg-destructive/10 transition-colors uppercase tracking-tight"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onReschedule(apt);
+                                    }}
+                                    className="px-4 py-2 text-xs font-bold text-primary border border-primary/20 rounded-xl hover:bg-primary/5 transition-colors flex items-center gap-1.5 uppercase tracking-tight"
+                                >
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    Reagendar
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit(apt);
+                                    }}
+                                    className="px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-xl shadow-sm transition-all active:scale-95 uppercase tracking-tight"
+                                >
+                                    Editar
+                                </button>
+                            </>
                         )}
                         {apt.modality === 'online' && apt.meetingLink && (
                             <a
@@ -363,10 +391,10 @@ const AppointmentRow = ({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-colors flex items-center gap-1.5"
+                                className="px-5 py-2 text-xs font-bold text-white bg-[#0066FF] hover:bg-[#0052CC] rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2 uppercase tracking-tight"
                             >
-                                <Video className="h-3.5 w-3.5" />
-                                Unirse
+                                <Video className="h-4 w-4" />
+                                Unirse a la reunión
                             </a>
                         )}
                     </div>
@@ -377,7 +405,12 @@ const AppointmentRow = ({
 };
 
 /* ── Main list view ────────────────────────────────────────── */
-const AgendaListView = ({ appointments, onEditAppointment }: AgendaListViewProps) => {
+const AgendaListView = ({ 
+    appointments, 
+    onEditAppointment,
+    onCancelAppointment,
+    onRescheduleAppointment
+}: AgendaListViewProps) => {
     const grouped = appointments.reduce((acc: Record<string, Appointment[]>, apt) => {
         const dateKey = apt.startTime.slice(0, 10);
         if (!acc[dateKey]) acc[dateKey] = [];
@@ -448,6 +481,8 @@ const AgendaListView = ({ appointments, onEditAppointment }: AgendaListViewProps
                                         key={apt.id}
                                         apt={apt}
                                         onEdit={onEditAppointment}
+                                        onCancel={onCancelAppointment}
+                                        onReschedule={onRescheduleAppointment}
                                     />
                                 ))}
                             </div>

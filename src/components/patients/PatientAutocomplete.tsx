@@ -2,9 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, X } from 'lucide-react';
+import { Check, X, Search, User, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 interface Patient {
     id: string;
@@ -24,6 +32,8 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPatientName, setSelectedPatientName] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalResults, setModalResults] = useState<Patient[]>([]);
 
     // Cargar pacientes desde Supabase
     useEffect(() => {
@@ -57,7 +67,29 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
         setSelectedPatientName(patient.name);
         onSelect(patient.id, patient.name);
         setOpen(false);
+        setIsModalOpen(false);
         setSearchQuery('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = searchQuery.trim();
+            if (query.length < 3) return;
+
+            const results = patients.filter(patient =>
+                (patient.name?.toLowerCase() || '').includes(query.toLowerCase()) ||
+                (patient.email?.toLowerCase() || '').includes(query.toLowerCase())
+            );
+
+            if (results.length === 1) {
+                handleSelect(results[0]);
+            } else if (results.length > 1) {
+                setModalResults(results);
+                setIsModalOpen(true);
+                setOpen(false);
+            }
+        }
     };
 
     const handleClear = (e: React.MouseEvent) => {
@@ -76,6 +108,7 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
     }
 
     return (
+        <>
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <div className={cn("relative flex items-center group", className)}>
@@ -88,6 +121,7 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
                             setOpen(true);
                         }}
                         onFocus={() => setOpen(true)}
+                        onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         className="w-full pr-10"
                     />
@@ -137,6 +171,58 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
                 </Command>
             </PopoverContent>
         </Popover>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+                    <DialogTitle className="flex items-center gap-2 text-xl font-bold tracking-tight text-primary">
+                        <Search className="h-5 w-5" />
+                        Resultados de búsqueda
+                    </DialogTitle>
+                </DialogHeader>
+                
+                <div className="p-2 bg-muted/5">
+                    <p className="px-4 py-2 text-sm text-muted-foreground italic">
+                        Se encontraron {modalResults.length} pacientes que coinciden con "{searchQuery}"
+                    </p>
+                    
+                    <ScrollArea className="h-[350px] w-full px-2 pb-2">
+                        <div className="space-y-1">
+                            {modalResults.map((patient) => (
+                                <button
+                                    key={patient.id}
+                                    onClick={() => handleSelect(patient)}
+                                    className="w-full text-left p-3 rounded-lg hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 transition-all group flex items-start gap-3 border border-transparent"
+                                >
+                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <User className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors truncate">
+                                            {patient.name}
+                                        </h4>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <Mail className="h-3 w-3" />
+                                            {patient.email}
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Seleccionar
+                                    </Button>
+                                </button>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
+                
+                <div className="px-6 py-4 bg-muted/30 border-t flex justify-end">
+                    <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                        Cancelar
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 };
 

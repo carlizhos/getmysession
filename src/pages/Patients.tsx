@@ -402,7 +402,7 @@ const Patients = () => {
                   {/* Detailed Information Section */}
                   <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                     {/* Left: Basic Info (Compact Sidebar) */}
-                    <div className="lg:w-80 border-r border-border bg-muted/30 p-8 flex-shrink-0">
+                    <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-muted/30 p-4 sm:p-6 lg:p-8 flex-shrink-0">
                       <div className="flex flex-col items-center text-center mb-8">
                         <div className="relative mb-4 group">
                           <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20 group-hover:border-primary/40 transition-all">
@@ -412,8 +412,8 @@ const Patients = () => {
                             {selectedPatientData.status}
                           </Badge>
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-foreground">{selectedPatientData.name}</h2>
-                        <p className="text-sm text-muted-foreground mt-1 truncate max-w-full italic">ID: {selectedPatientData.id.slice(0,8)}</p>
+                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{selectedPatientData.name}</h2>
+                        <p className="text-sm text-muted-foreground mt-0.5 truncate max-w-full italic">ID: {selectedPatientData.id.slice(0,8)}</p>
                       </div>
 
                       <div className="space-y-5">
@@ -486,7 +486,7 @@ const Patients = () => {
                     {/* Right: Modern Tabbed Layout */}
                     <div className="flex-1 flex flex-col overflow-hidden bg-white">
                       <Tabs defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
-                        <div className="px-8 border-b border-border bg-muted/5">
+                        <div className="px-4 sm:px-8 border-b border-border bg-muted/5">
                           <TabsList className="h-14 w-full justify-start gap-8 bg-transparent border-none p-0 overflow-x-auto no-scrollbar">
                             <TabsTrigger
                               value="info"
@@ -533,7 +533,7 @@ const Patients = () => {
                           </TabsList>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 scrollbar-zen">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-zen">
                           <TabsContent value="info" className="m-0 space-y-6 animate-in fade-in duration-500">
                             {/* General section content remains the same but benefits from extra width */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
