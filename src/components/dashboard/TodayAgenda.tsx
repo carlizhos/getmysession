@@ -37,32 +37,32 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
     format(parseISO(dateStr), 'HH:mm', { locale: es });
 
   return (
-    <Card variant="default" className="animate-fade-in">
+    <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Agenda de Hoy</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+          <CardTitle className="text-slate-800 dark:text-slate-100">Agenda de Hoy</CardTitle>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
           </p>
         </div>
-        <Badge variant="zen" size="lg">
+        <Badge variant="zen" size="lg" className="bg-primary/10 text-primary border-none">
           {appointments.length} citas
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         {appointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
               <Clock className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground">No hay citas programadas para hoy</p>
+            <p className="text-slate-500">No hay citas programadas para hoy</p>
           </div>
         ) : (
           appointments.map((appointment, index) => (
             <div
               key={appointment.id}
               className={cn(
-                'flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-accent/50',
+                'flex items-center gap-4 rounded-xl p-4 transition-all duration-200 border border-transparent hover:border-white/20 hover:bg-white/40 dark:hover:bg-white/5',
                 appointment.status === 'cancelled' && 'opacity-60'
               )}
               style={{ animationDelay: `${index * 100}ms` }}

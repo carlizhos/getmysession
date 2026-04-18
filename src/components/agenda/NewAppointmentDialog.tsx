@@ -74,6 +74,7 @@ interface NewAppointmentDialogProps {
     selectedDate?: Date;
     onAppointmentAdded?: () => void;
     editingAppointment?: EditingAppointment | null;
+    isReadOnly?: boolean;
 }
 
 const NewAppointmentDialog = ({
@@ -82,6 +83,7 @@ const NewAppointmentDialog = ({
     selectedDate,
     onAppointmentAdded,
     editingAppointment,
+    isReadOnly = false,
 }: NewAppointmentDialogProps) => {
     const { user } = useAuth();
     const { organization } = useOrganization();
@@ -92,7 +94,7 @@ const NewAppointmentDialog = ({
     const [confirmCancel, setConfirmCancel] = useState(false);
 
     const [specialistName, setSpecialistName] = useState('');
-    
+
     // Schedule config loaded from profile
     const [horarioConfig, setHorarioConfig] = useState<any>({
         dias: {},
@@ -251,7 +253,7 @@ const NewAppointmentDialog = ({
             // 1. Validar días laborables y festivos
             const weekday = date.getDay();
             const config = horarioConfig.dias?.[weekday];
-            
+
             if (!config?.activo) {
                 toast.error('Este día no es un día de atención configurado.');
                 setIsSubmitting(false);
@@ -267,7 +269,7 @@ const NewAppointmentDialog = ({
             const [hMin, mMin] = config.inicio.split(':').map(Number);
             const [hMax, mMax] = config.fin.split(':').map(Number);
             const [hSel, mSel] = formData.startTime.split(':').map(Number);
-            
+
             if (hSel < hMin || (hSel === hMin && mSel < mMin) || hSel > hMax || (hSel === hMax && mSel > mMax)) {
                 toast.error(`La hora seleccionada está fuera del horario de este día (${config.inicio} - ${config.fin})`);
                 setIsSubmitting(false);
@@ -310,7 +312,7 @@ const NewAppointmentDialog = ({
             // --- Google Calendar Sync (for Create and Edit) ---
             const isMeetSelected = formData.meetingPlatform === 'meet';
             const wasMeetSelected = isEditing && editingAppointment?.meetingPlatform === 'meet';
-            
+
             // Logic: 
             // 1. If was Meet and now it's NOT Meet -> Clear link
             // 2. If it is Meet and (didn't have link OR was not Meet before) -> Generate link
@@ -371,12 +373,12 @@ const NewAppointmentDialog = ({
                     // Update this one and all future instances in the series
                     const { error } = await supabase
                         .from('appointments')
-                        .update({ 
+                        .update({
                             type: payload.type,
                             fee: payload.fee,
                             meeting_link: finalMeetingLink,
                             meeting_platform: payload.meeting_platform,
-                            notes: finalNotes, 
+                            notes: finalNotes,
                             status: formData.status,
                             color: payload.color,
                             modality: payload.modality,
@@ -388,11 +390,11 @@ const NewAppointmentDialog = ({
                 } else {
                     const { error } = await supabase
                         .from('appointments')
-                        .update({ 
-                            ...payload, 
+                        .update({
+                            ...payload,
                             meeting_link: finalMeetingLink,
-                            notes: finalNotes, 
-                            status: formData.status 
+                            notes: finalNotes,
+                            status: formData.status
                         })
                         .eq('id', editingAppointment.id);
                     if (error) throw error;
@@ -403,11 +405,11 @@ const NewAppointmentDialog = ({
                     // Bulk creation
                     const sessions = [];
                     const recurrenceId = payload.recurrence_id;
-                    
+
                     for (let i = 0; i < formData.recurrenceWeeks; i++) {
                         const currentStart = new Date(startDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
                         const currentEnd = new Date(endDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-                        
+
                         sessions.push({
                             ...payload,
                             start_time: currentStart.toISOString(),
@@ -418,7 +420,7 @@ const NewAppointmentDialog = ({
                             payment_status: 'pending',
                         });
                     }
-                    
+
                     const { error } = await supabase.from('appointments').insert(sessions);
                     if (error) throw error;
                     toast.success(`${formData.recurrenceWeeks} citas agendadas correctamente`);
@@ -500,14 +502,25 @@ const NewAppointmentDialog = ({
             <DialogContent className="sm:max-w-[600px] h-[85vh] p-0 flex flex-col gap-0 overflow-hidden">
                 <div className="px-6 py-4 border-b">
                     <DialogHeader>
-                        <DialogTitle>{isEditing ? 'Editar Cita' : 'Nueva Cita'}</DialogTitle>
+                        <DialogTitle>{isReadOnly ? 'Detalles de la Cita' : isEditing ? 'Editar Cita' : 'Nueva Cita'}</DialogTitle>
                         <DialogDescription>
-                            {isEditing
-                                ? 'Modifica los datos de la cita o cancélala'
-                                : 'Agenda una nueva sesión con un paciente'}
+                            {isReadOnly
+                                ? 'Esta cita ya pasó y no puede ser modificada'
+                                : isEditing
+                                    ? 'Modifica los datos de la cita o cancélala'
+                                    : 'Agenda una nueva sesión con un paciente'}
                         </DialogDescription>
                     </DialogHeader>
                 </div>
+
+                {isReadOnly && (
+                    <div className="px-6 py-3 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/50">
+                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                            <AlertTriangle className="h-4 w-4" />
+                            <p className="text-xs font-medium">Cita en el pasado: Solo lectura</p>
+                        </div>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -527,36 +540,38 @@ const NewAppointmentDialog = ({
                                         {date ? format(date, 'PPP', { locale: es }) : 'Selecciona una fecha'}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={date}
-                                        onSelect={setDate}
-                                        locale={es}
-                                        initialFocus
-                                        disabled={(d) => {
-                                            const now = new Date();
-                                            // 1. Past days
-                                            if (isBefore(startOfDay(d), startOfDay(now))) return true;
+                                {!isReadOnly && (
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={date}
+                                            onSelect={setDate}
+                                            locale={es}
+                                            initialFocus
+                                            disabled={(d) => {
+                                                const now = new Date();
+                                                // 1. Past days
+                                                if (isBefore(startOfDay(d), startOfDay(now))) return true;
 
-                                            // 2. Specific Non-working days (holidays)
-                                            const isoDate = format(d, 'yyyy-MM-dd');
-                                            if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
+                                                // 2. Specific Non-working days (holidays)
+                                                const isoDate = format(d, 'yyyy-MM-dd');
+                                                if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
 
-                                            // 3. Regular non-working weekdays
-                                            const weekday = d.getDay();
-                                            const config = horarioConfig.dias?.[weekday];
-                                            if (!config?.activo) return true;
+                                                // 3. Regular non-working weekdays
+                                                const weekday = d.getDay();
+                                                const config = horarioConfig.dias?.[weekday];
+                                                if (!config?.activo) return true;
 
-                                            // 4. Today if past end hour
-                                            if (isoDate === format(now, 'yyyy-MM-dd')) {
-                                                const [finH, finM] = config.fin.split(':').map(Number);
-                                                if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
-                                            }
-                                            return false;
-                                        }}
-                                    />
-                                </PopoverContent>
+                                                // 4. Today if past end hour
+                                                if (isoDate === format(now, 'yyyy-MM-dd')) {
+                                                    const [finH, finM] = config.fin.split(':').map(Number);
+                                                    if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
+                                                }
+                                                return false;
+                                            }}
+                                        />
+                                    </PopoverContent>
+                                )}
                             </Popover>
                         </div>
 
@@ -566,9 +581,10 @@ const NewAppointmentDialog = ({
                             <PatientAutocomplete
                                 value={formData.patientId}
                                 onSelect={(patientId, patientName) => {
-                                    setFormData({ ...formData, patientId, patientName });
+                                    if (!isReadOnly) setFormData({ ...formData, patientId, patientName });
                                 }}
-                                placeholder={formData.patientName || 'Buscar paciente por nombre o email...'}
+                                placeholder={isReadOnly ? formData.patientName : (formData.patientName || 'Buscar paciente por nombre o email...')}
+                                disabled={isReadOnly}
                             />
                         </div>
 
@@ -577,7 +593,8 @@ const NewAppointmentDialog = ({
                             <Label htmlFor="status">Estado de la cita</Label>
                             <Select
                                 value={formData.status}
-                                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                onValueChange={(value) => !isReadOnly && setFormData({ ...formData, status: value })}
+                                disabled={isReadOnly}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecciona el estado" />
@@ -626,13 +643,14 @@ const NewAppointmentDialog = ({
                                         key={c.value}
                                         type="button"
                                         title={c.label}
-                                        onClick={() => setFormData({ ...formData, color: c.value })}
+                                        onClick={() => !isReadOnly && setFormData({ ...formData, color: c.value })}
+                                        disabled={isReadOnly}
                                         className={cn(
                                             'h-7 w-7 rounded-full transition-all',
                                             c.bg,
                                             formData.color === c.value
                                                 ? `ring-2 ring-offset-2 ${c.ring} scale-110`
-                                                : 'opacity-70 hover:opacity-100 hover:scale-105'
+                                                : isReadOnly ? 'opacity-50' : 'opacity-70 hover:opacity-100 hover:scale-105'
                                         )}
                                     />
                                 ))}
@@ -644,7 +662,8 @@ const NewAppointmentDialog = ({
                             <Label htmlFor="type">Tipo de Sesión</Label>
                             <Select
                                 value={formData.type}
-                                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                                onValueChange={(value) => !isReadOnly && setFormData({ ...formData, type: value })}
+                                disabled={isReadOnly}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecciona el tipo" />
@@ -682,8 +701,8 @@ const NewAppointmentDialog = ({
                                     return (
                                         <ClockPicker
                                             value={formData.startTime}
-                                            onChange={(v) => setFormData({ ...formData, startTime: v })}
-                                            disabled={isSubmitting}
+                                            onChange={(v) => !isReadOnly && setFormData({ ...formData, startTime: v })}
+                                            disabled={isSubmitting || isReadOnly}
                                             minTime={effectiveMin}
                                             maxTime={config.fin}
                                         />
@@ -699,12 +718,14 @@ const NewAppointmentDialog = ({
                             <Select
                                 value={formData.modality}
                                 onValueChange={(value: any) => {
+                                    if (isReadOnly) return;
                                     const updates: any = { modality: value };
                                     if (value === 'online' && !formData.meetingPlatform) {
                                         updates.meetingPlatform = 'meet';
                                     }
                                     setFormData({ ...formData, ...updates });
                                 }}
+                                disabled={isReadOnly}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecciona la modalidad" />
@@ -736,7 +757,8 @@ const NewAppointmentDialog = ({
                                     </div>
                                     <Switch
                                         checked={formData.isRecurring}
-                                        onCheckedChange={(checked) => setFormData({ ...formData, isRecurring: checked })}
+                                        onCheckedChange={(checked) => !isReadOnly && setFormData({ ...formData, isRecurring: checked })}
+                                        disabled={isReadOnly}
                                     />
                                 </div>
                                 {formData.isRecurring && (
@@ -749,8 +771,9 @@ const NewAppointmentDialog = ({
                                                 min={2}
                                                 max={12}
                                                 value={formData.recurrenceWeeks}
-                                                onChange={(e) => setFormData({ ...formData, recurrenceWeeks: parseInt(e.target.value) || 2 })}
+                                                onChange={(e) => !isReadOnly && setFormData({ ...formData, recurrenceWeeks: parseInt(e.target.value) || 2 })}
                                                 className="h-8"
+                                                disabled={isReadOnly}
                                             />
                                         </div>
                                         <div className="flex-[2] pt-6">
@@ -775,7 +798,8 @@ const NewAppointmentDialog = ({
                                 </div>
                                 <Switch
                                     checked={formData.editSeries}
-                                    onCheckedChange={(checked) => setFormData({ ...formData, editSeries: checked })}
+                                    onCheckedChange={(checked) => !isReadOnly && setFormData({ ...formData, editSeries: checked })}
+                                    disabled={isReadOnly}
                                 />
                             </div>
                         )}
@@ -788,8 +812,8 @@ const NewAppointmentDialog = ({
                                 type="number"
                                 placeholder="80"
                                 value={formData.fee}
-                                onChange={(e) => setFormData({ ...formData, fee: e.target.value })}
-                                disabled={isSubmitting}
+                                onChange={(e) => !isReadOnly && setFormData({ ...formData, fee: e.target.value })}
+                                disabled={isSubmitting || isReadOnly}
                             />
                         </div>
 
@@ -798,7 +822,8 @@ const NewAppointmentDialog = ({
                             <Label htmlFor="platform">Plataforma de Videollamada (Opcional)</Label>
                             <Select
                                 value={formData.meetingPlatform}
-                                onValueChange={(value) => setFormData({ ...formData, meetingPlatform: value })}
+                                onValueChange={(value) => !isReadOnly && setFormData({ ...formData, meetingPlatform: value })}
+                                disabled={isReadOnly}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecciona la plataforma" />
@@ -823,8 +848,8 @@ const NewAppointmentDialog = ({
                                     placeholder="https://teams.microsoft.com/... o https://meet.google.com/..."
                                     className="pl-9"
                                     value={formData.meetingLink}
-                                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-                                    disabled={isSubmitting}
+                                    onChange={(e) => !isReadOnly && setFormData({ ...formData, meetingLink: e.target.value })}
+                                    disabled={isSubmitting || isReadOnly}
                                 />
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -840,16 +865,16 @@ const NewAppointmentDialog = ({
                                 placeholder="Notas adicionales sobre la cita..."
                                 rows={3}
                                 value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                disabled={isSubmitting}
+                                onChange={(e) => !isReadOnly && setFormData({ ...formData, notes: e.target.value })}
+                                disabled={isSubmitting || isReadOnly}
                             />
                         </div>
                     </div>
 
                     <div className="px-6 py-4 border-t bg-background">
                         <DialogFooter className="flex-col sm:flex-row gap-2">
-                            {/* Cancelar cita (solo en modo edición) */}
-                            {isEditing && editingAppointment?.status !== 'cancelled' && (
+                            {/* Cancelar cita (solo en modo edición y no solo lectura) */}
+                            {isEditing && editingAppointment?.status !== 'cancelled' && !isReadOnly && (
                                 confirmCancel ? (
                                     <div className="flex items-center gap-2 mr-auto">
                                         <span className="text-sm text-muted-foreground">¿Confirmar cancelación?</span>
@@ -878,14 +903,16 @@ const NewAppointmentDialog = ({
                                     </Button>
                                 )
                             )}
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                                {isEditing ? 'Cerrar' : 'Cancelar'}
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className={isReadOnly ? "w-full" : ""}>
+                                {isReadOnly ? 'Cerrar' : isEditing ? 'Cerrar' : 'Cancelar'}
                             </Button>
-                            <Button type="submit" variant="zen" disabled={isSubmitting}>
-                                {isSubmitting
-                                    ? (isEditing ? 'Guardando...' : 'Creando...')
-                                    : (isEditing ? 'Guardar cambios' : 'Crear Cita')}
-                            </Button>
+                            {!isReadOnly && (
+                                <Button type="submit" variant="zen" disabled={isSubmitting}>
+                                    {isSubmitting
+                                        ? (isEditing ? 'Guardando...' : 'Creando...')
+                                        : (isEditing ? 'Guardar cambios' : 'Crear Cita')}
+                                </Button>
+                            )}
                         </DialogFooter>
                     </div>
                 </form>

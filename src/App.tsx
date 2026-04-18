@@ -1,43 +1,54 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Dashboard from "./pages/Dashboard";
-import Patients from "./pages/Patients";
-import AgendaPage from "./pages/Agenda";
-import AIAssistant from "./pages/AIAssistant";
-import Notes from "./pages/Notes";
-import Finance from "./pages/Finance";
-import Auth from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import TestsLibrary from './pages/TestsLibrary';
-import PatientTestView from './pages/PatientTestView';
-import NotFound from "./pages/NotFound";
-import Pipeline from "./pages/Pipeline";
-import Settings from "./pages/Settings";
-import Consents from "./pages/Consents";
-import Messages from "./pages/Messages";
-import BookingPage from "./pages/BookingPage";
-import PortalLogin from "./pages/PortalLogin";
-import Portal from "./pages/Portal";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
+// Eager imports — lightweight, needed on first load
+import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
+
+// Lazy imports — each becomes its own chunk, loaded on demand
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Patients = lazy(() => import("./pages/Patients"));
+const AgendaPage = lazy(() => import("./pages/Agenda"));
+const AIAssistant = lazy(() => import("./pages/AIAssistant"));
+const Notes = lazy(() => import("./pages/Notes"));
+const Finance = lazy(() => import("./pages/Finance"));
+const TestsLibrary = lazy(() => import("./pages/TestsLibrary"));
+const PatientTestView = lazy(() => import("./pages/PatientTestView"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Consents = lazy(() => import("./pages/Consents"));
+const Messages = lazy(() => import("./pages/Messages"));
+const BookingPage = lazy(() => import("./pages/BookingPage"));
+const PortalLogin = lazy(() => import("./pages/PortalLogin"));
+const Portal = lazy(() => import("./pages/Portal"));
+
 const queryClient = new QueryClient();
+
+// Suspense fallback — minimal spinner
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="flex flex-col items-center gap-3">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      <p className="text-sm text-muted-foreground animate-pulse">Cargando...</p>
+    </div>
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -56,6 +67,7 @@ const App = () => (
         <AuthProvider>
           <Analytics />
           <SpeedInsights />
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -167,6 +179,7 @@ const App = () => (
             <Route path="/auth/v1/verify" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

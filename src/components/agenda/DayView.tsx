@@ -10,6 +10,7 @@ interface DayViewProps {
     getChipStyle?: (apt: any) => string;
     timeSlots?: number[];
     isWorkingDay?: boolean;
+    onEditAppointment?: (apt: any) => void;
 }
 
 const STATUS_ICON: Record<string, any> = {
@@ -36,7 +37,7 @@ const STATUS_LABEL: Record<string, string> = {
     cancelled: 'Cancelada',
 };
 
-const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, timeSlots: propTimeSlots, isWorkingDay }: DayViewProps) => {
+const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, timeSlots: propTimeSlots, isWorkingDay, onEditAppointment }: DayViewProps) => {
     const timeSlots = propTimeSlots || Array.from({ length: 24 }, (_, i) => i); // Fallback to 24h
     const now = new Date();
     const isCurrentDay = isToday(currentDate);
@@ -92,14 +93,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                 {hourAppointments.map(apt => (
                                     <div
                                         key={apt.id}
-                                        className={cn(
-                                            "rounded-lg border p-3 cursor-pointer transition-all hover:shadow-soft space-y-1",
-                                            chipStyle(apt),
-                                            apt.status === 'cancelled' && 'opacity-60'
-                                        )}
-                                    >
-                                    <div
-                                        key={apt.id}
+                                        onClick={() => onEditAppointment?.(apt)}
                                         className={cn(
                                             "rounded-xl border p-2.5 cursor-pointer transition-all hover:shadow-md space-y-2 relative overflow-hidden",
                                             chipStyle(apt),
@@ -180,7 +174,6 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                                 "{apt.notes}"
                                             </p>
                                         )}
-                                    </div>
                                     </div>
                                 ))}
                             </div>

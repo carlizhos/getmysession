@@ -128,6 +128,11 @@ const AgendaPage = () => {
     return false;
   };
 
+  const isAppointmentPast = (apt: any) => {
+    if (!apt?.startTime) return false;
+    return isBefore(parseISO(apt.startTime), new Date());
+  };
+
   const fetchAppointments = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -466,6 +471,10 @@ const AgendaPage = () => {
                 getStatusColor={getStatusColor}
                 timeSlots={timeSlots}
                 isWorkingDay={isWorkingDay(currentDate)}
+                onEditAppointment={(apt) => {
+                  setEditingAppointment(apt);
+                  setIsNewAppointmentOpen(true);
+                }}
               />
             )}
 
@@ -669,6 +678,10 @@ const AgendaPage = () => {
                 isWorkingDay={isWorkingDay}
                 isNonWorkingDay={isNonWorkingDay}
                 isPastDay={isPastDay}
+                onEditAppointment={(apt) => {
+                  setEditingAppointment(apt);
+                  setIsNewAppointmentOpen(true);
+                }}
               />
             )}
             </>
@@ -698,6 +711,7 @@ const AgendaPage = () => {
             setEditingAppointment(null);
           }}
           editingAppointment={editingAppointment}
+          isReadOnly={isAppointmentPast(editingAppointment)}
         />
       </div>
     </Layout>

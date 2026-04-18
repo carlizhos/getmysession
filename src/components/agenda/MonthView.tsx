@@ -14,9 +14,10 @@ interface MonthViewProps {
     isWorkingDay?: (date: Date) => boolean;
     isNonWorkingDay?: (date: Date) => boolean;
     isPastDay?: (date: Date) => boolean;
+    onEditAppointment?: (apt: any) => void;
 }
 
-const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDayClick, getStatusColor, isWorkingDay, isNonWorkingDay, isPastDay }: MonthViewProps) => {
+const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDayClick, getStatusColor, isWorkingDay, isNonWorkingDay, isPastDay, onEditAppointment }: MonthViewProps) => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -95,8 +96,12 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                                 {dayAppointments.slice(0, 3).map(apt => (
                                     <div
                                         key={apt.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditAppointment?.(apt);
+                                        }}
                                         className={cn(
-                                            "text-[9px] p-1 rounded-md border flex items-center gap-1.5 min-w-0 transition-transform hover:scale-[1.02] shadow-sm relative overflow-hidden",
+                                            "text-[9px] p-1 rounded-md border flex items-center gap-1.5 min-w-0 transition-transform hover:scale-[1.02] cursor-pointer shadow-sm relative overflow-hidden",
                                             getStatusColor(apt.status)
                                         )}
                                     >

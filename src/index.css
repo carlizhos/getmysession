@@ -4,175 +4,178 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Saudade - Zen-Tech Design System
-   A calming, professional aesthetic for mental health professionals
-   Colors: Sage green accents, soft sky blue, warm neutrals
+/* Saudade — EduMate-Inspired Clean Design System
+   Clean white surfaces, vibrant blue accents, pastel gradient background
 */
 
 @layer base {
   :root {
-    /* Core backgrounds - Inspired by #E0D7D7 (Soft Pink-Gray) */
-    --background: 0 10% 95%;
-    --foreground: 220 20% 15%;
+    /* Background — soft pastel gradient applied via body */
+    --background: 0 0% 100%;
+    --foreground: 220 25% 12%;
 
-    /* Card surfaces */
+    /* Card surfaces — pure white */
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 220 25% 12%;
 
-    /* Popover surfaces */
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
+    --popover-foreground: 220 25% 12%;
 
-    /* Primary - Slate Teal (#81A3A3) */
-    --primary: 180 16% 57%;
+    /* Primary — Muted Sage Teal from reference image (#819f9d) */
+    --primary: 178 15% 56%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Muted Rose (#A38181) */
-    --secondary: 0 17% 57%;
-    --secondary-foreground: 0 17% 20%;
+    /* Secondary */
+    --secondary: 214 20% 93%;
+    --secondary-foreground: 215 25% 27%;
 
-    /* Muted surfaces - #E0D7D7 */
-    --muted: 0 10% 86%;
-    --muted-foreground: 0 5% 45%;
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    /* Accent - Muted Purple (#9281A3) */
-    --accent: 269 16% 57%;
-    --accent-foreground: 269 20% 25%;
+    /* Accent */
+    --accent: 213 94% 96%;
+    --accent-foreground: 213 94% 35%;
 
     /* Status colors */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 88 16% 50%; /* Based on #92A381 Sage */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 180 16% 50%;
+    --info: 178 15% 56%;
     --info-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 0 10% 82%;
-    --input: 0 10% 82%;
-    --ring: 180 16% 45%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 178 15% 56%;
 
-    /* Radius */
-    --radius: 0.75rem;
+    /* Radius — 16px for glassmorphism cards */
+    --radius: 1rem;
 
-    /* Sidebar - Muted Pink-Gray background */
-    --sidebar-background: 0 10% 92%;
-    --sidebar-foreground: 0 10% 25%;
-    --sidebar-primary: 180 16% 50%;
+    /* Sidebar — clean white */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 40%;
+    --sidebar-primary: 178 15% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 10% 88%;
-    --sidebar-accent-foreground: 0 10% 20%;
-    --sidebar-border: 0 10% 85%;
-    --sidebar-ring: 180 16% 50%;
+    --sidebar-accent: 213 94% 96%;
+    --sidebar-accent-foreground: 213 94% 35%;
+    --sidebar-border: 220 13% 93%;
+    --sidebar-ring: 178 15% 56%;
 
-    /* Custom semantic tokens using the new palette */
-    --zen-sage: 88 16% 57%;       /* #92A381 */
-    --zen-sage-light: 88 15% 92%;
-    --zen-sage-dark: 88 20% 35%;
-    --zen-teal: 180 16% 57%;       /* #81A3A3 */
-    --zen-teal-light: 180 15% 92%;
-    --zen-rose: 0 17% 57%;         /* #A38181 */
-    --zen-rose-light: 0 15% 92%;
-    --zen-purple: 269 16% 57%;     /* #9281A3 */
-    --zen-purple-light: 269 15% 92%;
-    --zen-gray-pink: 0 10% 86%;    /* #E0D7D7 */
+    /* Semantic tokens */
+    --zen-sage: 142 71% 45%;
+    --zen-sage-light: 142 40% 95%;
+    --zen-sage-dark: 142 50% 30%;
+    --zen-teal: 213 94% 55%;
+    --zen-teal-light: 213 94% 96%;
+    --zen-rose: 0 72% 51%;
+    --zen-rose-light: 0 50% 96%;
+    --zen-purple: 262 83% 58%;
+    --zen-purple-light: 262 40% 96%;
+    --zen-gray-pink: 220 14% 92%;
+    --zen-lavender: 262 83% 58%;
+    --zen-lavender-light: 262 40% 96%;
 
-    /* Gradients harmonized with earth tones */
-    --gradient-zen: linear-gradient(135deg, hsl(180 16% 57%) 0%, hsl(88 16% 57%) 100%);
-    --gradient-auth: linear-gradient(to bottom right, hsl(180 16% 57%) 0%, hsl(269 16% 57%) 30%, hsl(0 17% 57%) 70%, hsl(88 16% 57%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 10% 95%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(0 10% 92%) 0%, hsl(0 10% 88%) 100%);
+    /* Gradients */
+    --gradient-zen: linear-gradient(135deg, hsl(178 15% 56%) 0%, hsl(262 40% 70%) 100%);
+    --gradient-auth: linear-gradient(135deg, #819f9d 0%, #98a2b3 40%, #b59eab 70%, #d1d5db 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 99%) 100%);
 
-    /* Shadows */
-    --shadow-soft: 0 2px 8px -2px hsl(0 10% 15% / 0.08);
-    --shadow-medium: 0 4px 16px -4px hsl(0 10% 15% / 0.12);
-    --shadow-elevated: 0 8px 32px -8px hsl(0 10% 15% / 0.16);
-    --shadow-zen: 0 4px 20px -4px hsl(180 16% 50% / 0.15);
+    /* Shadows — soft drop shadows, no harsh borders */
+    --shadow-soft: 0 2px 8px -2px rgb(0 0 0 / 0.06);
+    --shadow-medium: 0 8px 16px -4px rgb(0 0 0 / 0.08);
+    --shadow-elevated: 0 16px 40px -8px rgb(0 0 0 / 0.1), 0 6px 12px -4px rgb(0 0 0 / 0.04);
+    --shadow-zen: 0 4px 16px -3px hsl(216 100% 50% / 0.2);
 
-    /* Chart colors using the new palette */
-    --chart-1: 180 16% 50%; /* Slate Teal */
-    --chart-2: 88 16% 50%;  /* Sage */
-    --chart-3: 0 17% 50%;   /* Rose */
-    --chart-4: 269 16% 50%; /* Purple */
-    --chart-5: 45 15% 55%;  /* Muted Gold/Clay */
+    /* Chart colors */
+    --chart-1: 213 94% 55%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 0 72% 51%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 38 92% 50%;
   }
 
   .dark {
-    /* Dark mode - Deep Earth Tones */
-    --background: 0 10% 10%;
-    --foreground: 0 10% 90%;
+    --background: 222 47% 8%;
+    --foreground: 210 40% 92%;
 
-    --card: 0 10% 13%;
-    --card-foreground: 0 10% 90%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 92%;
 
-    --popover: 0 10% 13%;
-    --popover-foreground: 0 10% 90%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 92%;
 
-    /* Primary - Muted Slate Teal for dark */
-    --primary: 180 16% 45%;
-    --primary-foreground: 0 10% 95%;
+    --primary: 178 40% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Muted Rose for dark */
-    --secondary: 0 17% 25%;
-    --secondary-foreground: 0 17% 85%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 85%;
 
-    --muted: 0 10% 18%;
-    --muted-foreground: 0 5% 65%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 55%;
 
-    --accent: 269 16% 25%;
-    --accent-foreground: 269 16% 85%;
+    --accent: 213 60% 18%;
+    --accent-foreground: 213 60% 80%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 88 15% 40%;
+    --success: 142 60% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 80% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 180 16% 45%;
+    --info: 178 40% 60%;
     --info-foreground: 0 0% 100%;
 
-    --border: 0 10% 22%;
-    --input: 0 10% 22%;
-    --ring: 180 16% 45%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 178 40% 60%;
 
-    --sidebar-background: 0 10% 8%;
-    --sidebar-foreground: 0 10% 85%;
-    --sidebar-primary: 180 16% 45%;
-    --sidebar-primary-foreground: 0 10% 95%;
-    --sidebar-accent: 0 10% 18%;
-    --sidebar-accent-foreground: 0 10% 80%;
-    --sidebar-border: 0 10% 18%;
-    --sidebar-ring: 180 16% 45%;
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 75%;
+    --sidebar-primary: 178 40% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 50% 15%;
+    --sidebar-accent-foreground: 213 50% 80%;
+    --sidebar-border: 217 33% 15%;
+    --sidebar-ring: 178 40% 60%;
 
-    /* Dark mode semantic tokens */
-    --zen-sage: 88 16% 45%;
-    --zen-sage-light: 88 15% 20%;
-    --zen-sage-dark: 88 15% 75%;
-    --zen-teal: 180 16% 45%;
-    --zen-teal-light: 180 15% 20%;
+    --zen-sage: 142 60% 40%;
+    --zen-sage-light: 142 30% 18%;
+    --zen-sage-dark: 142 40% 70%;
+    --zen-teal: 213 90% 58%;
+    --zen-teal-light: 213 50% 15%;
+    --zen-rose: 0 62% 45%;
+    --zen-rose-light: 0 40% 18%;
+    --zen-purple: 262 70% 50%;
+    --zen-purple-light: 262 40% 18%;
+    --zen-lavender: 262 70% 50%;
+    --zen-lavender-light: 262 40% 18%;
 
-    --gradient-zen: linear-gradient(135deg, hsl(180 16% 40%) 0%, hsl(88 16% 40%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 10% 13%) 0%, hsl(0 10% 11%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(0 10% 8%) 0%, hsl(0 10% 6%) 100%);
+    --gradient-zen: linear-gradient(135deg, hsl(213 90% 50%) 0%, hsl(262 70% 50%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(222 47% 9%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 9%) 0%, hsl(222 47% 7%) 100%);
 
-    --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
-    --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
-    --shadow-elevated: 0 8px 32px -8px hsl(0 0% 0% / 0.5);
-    --shadow-zen: 0 4px 20px -4px hsl(180 16% 45% / 0.2);
+    --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+    --shadow-medium: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.4);
+    --shadow-zen: 0 4px 14px -3px hsl(213 90% 55% / 0.2);
 
-    --chart-1: 180 15% 45%;
-    --chart-2: 88 15% 45%;
-    --chart-3: 0 15% 45%;
-    --chart-4: 269 15% 45%;
-    --chart-5: 45 15% 45%;
+    --chart-1: 213 80% 55%;
+    --chart-2: 142 55% 45%;
+    --chart-3: 0 55% 50%;
+    --chart-4: 262 60% 55%;
+    --chart-5: 38 70% 50%;
   }
 }
 
@@ -182,8 +185,27 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    /* Muted Teal-to-Mauve Horizontal Gradient from reference image */
+    background: linear-gradient(
+      135deg,
+      #819f9d 0%,
+      #98a2b3 35%,
+      #a69db0 65%,
+      #b59eab 100%
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background: linear-gradient(
+      135deg,
+      #131a1b 0%,
+      #1e1b2e 100%
+    ) !important;
+    background-attachment: fixed !important;
   }
 
   h1,

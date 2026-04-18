@@ -287,48 +287,48 @@ const Dashboard = () => {
           {/* Columna derecha */}
           <div className="space-y-6">
             {/* Pagos pendientes */}
-            <Card variant="zen" className="animate-fade-in border-warning/20 bg-warning/5">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
+            <Card variant="glass" className="animate-fade-in border-warning/15 dark:border-warning/5 bg-warning/5 backdrop-blur-xl">
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/8">
                   <AlertCircle className="h-6 w-6 text-warning" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">Pagos Pendientes</p>
+                  <p className="font-medium text-slate-600 dark:text-slate-300">Pagos Pendientes</p>
                   <p className="text-2xl font-bold">
                     {loading ? '...' : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
                   </p>
                 </div>
-                <Button variant="outline" size="sm">Ver detalles</Button>
+                <Button variant="outline" size="sm" className="bg-white/50 backdrop-blur-sm">Ver detalles</Button>
               </CardContent>
             </Card>
 
             {/* Progreso de sesiones */}
-            <Card variant="default" className="animate-fade-in">
+            <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Sesiones del Mes</CardTitle>
+                <CardTitle className="text-base text-slate-700 dark:text-slate-200">Sesiones del Mes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <span className="text-2xl font-bold">
                     {loading ? '...' : stats?.completedSessions ?? 0}
                   </span>
-                  <Badge variant="zen">Meta: {SESSION_GOAL}</Badge>
+                  <Badge variant="zen" className="bg-primary/10 text-primary border-none">Meta: {SESSION_GOAL}</Badge>
                 </div>
                 <Progress
                   value={((stats?.completedSessions ?? 0) / SESSION_GOAL) * 100}
-                  className="h-2"
+                  className="h-2 bg-slate-100 dark:bg-slate-800"
                 />
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-3 font-medium">
                   {SESSION_GOAL - (stats?.completedSessions ?? 0)} sesiones restantes para la meta
                 </p>
               </CardContent>
             </Card>
 
             {/* Notas recientes */}
-            <Card variant="default" className="animate-fade-in">
+            <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Últimas Notas</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1">
+                <CardTitle className="text-slate-800 dark:text-slate-100">Últimas Notas</CardTitle>
+                <Button variant="ghost" size="sm" className="gap-1 text-[#0066FF] hover:bg-[#0066FF]/10">
                   Ver todas <ArrowRight className="h-4 w-4" />
                 </Button>
               </CardHeader>
@@ -337,29 +337,29 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground text-center py-4">Cargando...</p>
                 ) : recentNotes.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-center">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
                       <FileText className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <p className="text-muted-foreground text-sm">No hay notas recientes</p>
+                    <p className="text-slate-500 text-sm">No hay notas recientes</p>
                   </div>
                 ) : (
                   recentNotes.map((note, i) => (
                     <div
                       key={note.id}
-                      className="group rounded-xl border border-border/50 p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-soft"
+                      className="group rounded-xl border border-white/20 dark:border-white/5 bg-white/30 dark:bg-white/5 p-4 transition-all duration-200 hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-soft"
                       style={{ animationDelay: `${i * 100}ms` }}
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div>
-                          <h4 className="font-medium text-sm">{note.patientName}</h4>
-                          <p className="text-xs text-muted-foreground">
+                          <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100">{note.patientName}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             {format(parseISO(note.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
                           </p>
                         </div>
-                        <Badge variant="outline">{note.format}</Badge>
+                        <Badge variant="outline" className="border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-black/20">{note.format}</Badge>
                       </div>
                       {note.content && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mt-1">
                           {note.content}
                         </p>
                       )}

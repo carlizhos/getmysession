@@ -17,7 +17,7 @@ import {
   Calendar as CalendarIcon,
   CheckSquare,
   ChevronDown,
-  User,
+  Search,
   PanelLeftClose,
   PanelLeftOpen,
   BrainCircuit,
@@ -37,6 +37,7 @@ import { supabase } from '@/lib/supabase';
 import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import MessageBell from '@/components/notifications/MessageBell';
 import { useOrganization } from '@/hooks/useOrganization';
 
 const navigation = [
@@ -55,7 +56,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const INACTIVITY_SECONDS = 30;
+const INACTIVITY_SECONDS = 300;
 const COUNTDOWN_SECONDS = 30;
 const COLLAPSED_KEY = 'sidebar_collapsed';
 
@@ -163,11 +164,11 @@ const Layout = ({ children }: LayoutProps) => {
     }).then(({ error }) => { if (error) console.warn('[page_views]', error.message); });
   }, [location.pathname, user]);
 
-  const sidebarW = collapsed ? 'w-16' : 'w-64';
-  const contentPl = collapsed ? 'lg:pl-16' : 'lg:pl-64';
+  const sidebarW = collapsed ? 'w-16' : 'w-52';
+  const contentPl = collapsed ? 'lg:pl-24' : 'lg:pl-[calc(13rem+2rem)]';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -178,13 +179,15 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* ── Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed top-14 bottom-0 left-0 z-50 transform bg-sidebar transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0',
+        'fixed z-40 transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0',
+        'backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 border border-white/20 dark:border-white/5 shadow-soft rounded-[24px]',
+        'top-14 bottom-0 left-0 lg:top-[5.25rem] lg:bottom-4 lg:left-4',
         sidebarW,
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex h-full flex-col overflow-hidden">
           {/* Sidebar Header (Mobile: Close only) */}
-          <div className="flex h-12 items-center px-3 border-b border-sidebar-border/50 lg:hidden">
+          <div className="flex h-12 items-center px-3 border-b border-white/10 lg:hidden">
             <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
@@ -195,7 +198,7 @@ const Layout = ({ children }: LayoutProps) => {
             onClick={toggleCollapsed}
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             className={cn(
-                "absolute -right-3 top-[5.75rem] hidden lg:flex h-6 w-6 items-center justify-center rounded-full",
+                "absolute -right-3 top-24 hidden lg:flex h-6 w-6 items-center justify-center rounded-full",
                 "border border-border bg-background shadow-md hover:bg-muted text-muted-foreground/60 hover:text-foreground",
                 "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 group/toggle"
             )}
@@ -208,7 +211,7 @@ const Layout = ({ children }: LayoutProps) => {
           </button>
 
           {/* Navigation links */}
-          <nav className={cn('flex-1 space-y-1', collapsed ? 'px-2 py-4' : 'px-3 py-4')}>
+          <nav className={cn('flex-1 space-y-1.5', collapsed ? 'px-2 py-5' : 'px-3 py-5')}>
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -217,18 +220,18 @@ const Layout = ({ children }: LayoutProps) => {
                     to={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      'flex items-center rounded-lg transition-all duration-200 overflow-hidden',
-                      collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-3 py-2.5',
+                      'flex items-center rounded-xl transition-all duration-200 overflow-hidden',
+                      collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-4 py-2.5',
                       isActive
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-soft'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                        ? 'bg-primary text-white shadow-[0_4px_16px_-3px_rgba(129,159,157,0.35)]'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
                     )}
                   >
                     <item.icon className={cn(
                       'flex-shrink-0 transition-colors',
                       collapsed ? 'h-5 w-5' : 'h-5 w-5',
-                      isActive ? 'text-primary' : 'text-muted-foreground',
-                      item.name === 'WhatsApp' && isActive && 'text-success'
+                      isActive ? 'text-white' : 'text-muted-foreground',
+                      item.name === 'WhatsApp' && isActive && 'text-white'
                     )} />
                     {!collapsed && (
                       <span className="text-sm font-medium whitespace-nowrap flex-1">{item.name}</span>
@@ -263,23 +266,23 @@ const Layout = ({ children }: LayoutProps) => {
           </nav>
 
           {/* Settings link — bottom of sidebar */}
-          <div className={cn('border-t border-sidebar-border pt-4 pb-6 mt-auto', collapsed ? 'px-2' : 'px-3')}>
+          <div className={cn('border-t border-white/15 dark:border-white/5 pt-4 pb-6 mt-auto', collapsed ? 'px-2' : 'px-3')}>
             <div className="relative group/nav">
               <NavLink
                 to="/settings"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  'flex items-center rounded-lg transition-all duration-200 overflow-hidden',
-                  collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-3 py-2.5',
+                  'flex items-center rounded-xl transition-all duration-200 overflow-hidden',
+                  collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-4 py-2.5',
                   location.pathname === '/settings'
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-soft'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                    ? 'bg-primary text-white shadow-[0_4px_16px_-3px_rgba(129,159,157,0.35)]'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
               >
                 <div className="relative flex-shrink-0">
                   <Settings className={cn(
                     'h-5 w-5 transition-colors',
-                    location.pathname === '/settings' ? 'text-primary' : 'text-muted-foreground'
+                    location.pathname === '/settings' ? 'text-white' : 'text-muted-foreground'
                   )} />
                   {pendingCount > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-destructive text-[7px] font-bold text-white leading-none">
@@ -308,55 +311,62 @@ const Layout = ({ children }: LayoutProps) => {
       </aside>
 
       {/* ── Top Bar ──────────────────────────────────────────────── */}
-      <header className="fixed top-0 left-0 right-0 z-[60] h-14 flex items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2">
+      <header className={cn(
+        "fixed top-3 lg:top-4 left-3 lg:left-4 right-3 lg:right-4 z-40 h-14 flex items-center justify-between gap-4",
+        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-4 shadow-soft rounded-[20px]"
+      )}>
+        {/* Left: Brand */}
+        <div className="flex items-center gap-3 w-1/4">
           <AppLauncher />
           <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
+          <span className="text-xl font-bold tracking-tight text-foreground/90 hidden sm:inline-block">Saudade</span>
         </div>
 
-        <div className="flex flex-1 items-center justify-center gap-2 lg:justify-start">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <Heart className="h-3.5 w-3.5 text-primary-foreground" />
+        {/* Center: Search Bar */}
+        <div className="flex-1 flex justify-center max-w-2xl">
+          <div className="relative w-full max-w-md group">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search..."
+              className={cn(
+                "w-full h-10 pl-10 pr-4 rounded-xl border border-white/10 bg-white/10 backdrop-blur-md outline-none transition-all",
+                "focus:bg-white/20 focus:border-primary/30 focus:ring-4 focus:ring-primary/10 text-sm placeholder:text-muted-foreground/60"
+              )}
+            />
+            <div className="absolute inset-y-0 right-3 hidden sm:flex items-center">
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-muted-foreground/60 opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
           </div>
-          <span className="font-semibold text-sm tracking-tight text-foreground flex items-center gap-2">
-            Saudade
-            {organization && (
-              <>
-                <span className="text-muted-foreground/40 font-light">/</span>
-                <span className="text-primary text-[13px] font-medium truncate max-w-[150px]">{organization.name}</span>
-                <Badge variant="outline" className={cn(
-                  "ml-2 text-[10px] px-1.5 py-0 h-4 border-none flex items-center gap-1",
-                  organization.type === 'personal' 
-                    ? "bg-zen-lavender/10 text-zen-lavender" 
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                )}>
-                  {organization.type === 'personal' ? (
-                    <><User className="h-2.5 w-2.5" /> Personal</>
-                  ) : (
-                    <><Users className="h-2.5 w-2.5" /> Equipo {organization.member_count && `(${organization.member_count})`}</>
-                  )}
-                </Badge>
-              </>
-            )}
-          </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1 w-1/4 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={toggleDarkMode} title={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}>
             {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-zen-lavender" />}
           </Button>
 
+          <MessageBell count={2} />
           <NotificationBell />
-          <UserMenu pendingCount={pendingCount} avatarUrl={avatarUrl} />
+          
+          <div className="w-px h-6 bg-white/20 mx-1 lg:mx-2" />
+          
+          <UserMenu avatarUrl={avatarUrl} />
         </div>
       </header>
 
-      {/* Main content */}
-      <div className={cn('pt-14 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>
-        <main className="min-h-[calc(100vh-3.5rem)] p-4 lg:p-8">
-          {children}
+      {/* Main content — Glassmorphism card container */}
+      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>
+        <main className="min-h-screen p-3 lg:p-4 flex flex-col pt-14 lg:pt-[5.25rem]">
+          <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-6 lg:p-8">
+            {children}
+          </div>
         </main>
       </div>
 

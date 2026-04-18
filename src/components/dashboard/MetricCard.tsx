@@ -25,10 +25,10 @@ const MetricCard = ({
   className 
 }: MetricCardProps) => {
   const variantStyles = {
-    default: 'bg-muted',
-    zen: 'bg-primary/10',
-    success: 'bg-success/10',
-    warning: 'bg-warning/10',
+    default: 'bg-slate-100/50 dark:bg-slate-800/50',
+    zen: 'bg-primary/8',
+    success: 'bg-success/8',
+    warning: 'bg-warning/8',
   };
 
   const iconStyles = {
@@ -39,7 +39,7 @@ const MetricCard = ({
   };
 
   return (
-    <Card variant="default" className={cn("animate-fade-in", className)}>
+    <Card variant="glass" className={cn("animate-fade-in border-white/20 dark:border-white/5", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}

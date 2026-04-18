@@ -12,7 +12,7 @@ const cardVariants = cva(
         elevated: "shadow-elevated border-0",
         zen: "shadow-zen border-primary/10 hover:shadow-elevated",
         flat: "shadow-none",
-        glass: "backdrop-blur-md bg-card/80 border-border/50",
+        glass: "backdrop-blur-xl bg-white/40 dark:bg-slate-950/30 border border-white/30 dark:border-white/5 shadow-soft",
         interactive: "shadow-soft hover:shadow-medium hover:scale-[1.02] cursor-pointer",
       },
     },

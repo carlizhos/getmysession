@@ -56,25 +56,27 @@ const UserMenu = ({ pendingCount = 0, avatarUrl }: UserMenuProps) => {
                 aria-label="Menú de usuario"
                 aria-expanded={open}
                 className={cn(
-                    'flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-all duration-200',
-                    'hover:bg-muted',
-                    open && 'bg-muted'
+                    'flex items-center gap-2.5 rounded-lg px-2 py-1 transition-all duration-200',
+                    'hover:bg-white/10 dark:hover:bg-white/5',
+                    open && 'bg-white/10 dark:bg-white/5'
                 )}
             >
                 {/* Avatar */}
-                <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-[10px] overflow-hidden">
+                <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-xs overflow-hidden shadow-sm">
                     {avatarUrl ? (
                         <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover" />
                     ) : (
                         initials
                     )}
-                    {pendingCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-destructive text-[7px] font-bold text-white leading-none">
-                            {pendingCount}
-                        </span>
-                    )}
                 </div>
-                <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+
+                {/* Name & Email (Visible on Desktop) */}
+                <div className="hidden lg:flex flex-col items-start leading-tight">
+                    <span className="text-sm font-semibold text-foreground/90">{fullName}</span>
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">{email}</span>
+                </div>
+
+                <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground/70 transition-transform duration-200 ml-0.5', open && 'rotate-180')} />
             </button>
 
             {/* Dropdown */}

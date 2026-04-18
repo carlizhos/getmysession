@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import MiniEditor from '@/components/ui/MiniEditor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -24,10 +25,10 @@ import {
   Bot,
   Mic,
   MicOff,
+  Edit3,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
-import * as pdfjsLib from 'pdfjs-dist';
-import mammoth from 'mammoth';
+// pdfjs-dist and mammoth are loaded dynamically in processFile() to avoid bundling ~1.5MB on page load
 import DOMPurify from 'dompurify';
 import { reportFormats } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -37,7 +38,7 @@ import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// PDF.js worker is configured lazily when a PDF is first processed
 
 // Helper function to detect file type
 const getFileType = (file: File): 'image' | 'pdf' | 'text' | 'docx' => {
@@ -323,8 +324,10 @@ const AIAssistant = () => {
           extractedText = ret.data.text;
           break;
         case 'pdf':
+          setFileProcessingStep('Cargando lector de PDF...');
+          const pdfjsLib = await import('pdfjs-dist');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
           setFileProcessingStep('Extrayendo texto de PDF...');
-          await new Promise(r => setTimeout(r, 300));
           const pdfBuffer = await file.arrayBuffer();
           const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
           const textParts: string[] = [];
@@ -349,10 +352,11 @@ const AIAssistant = () => {
           extractedText = await file.text();
           break;
         case 'docx':
+          setFileProcessingStep('Cargando lector de Word...');
+          const mammothLib = await import('mammoth');
           setFileProcessingStep('Extrayendo texto de documento Word...');
-          await new Promise(r => setTimeout(r, 300));
           const docBuffer = await file.arrayBuffer();
-          const htmlResult = await mammoth.convertToHtml({ arrayBuffer: docBuffer });
+          const htmlResult = await mammothLib.default.convertToHtml({ arrayBuffer: docBuffer });
           const sanitizedHtml = DOMPurify.sanitize(htmlResult.value, { ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'table', 'tr', 'td', 'th', 'thead', 'tbody'], ALLOWED_ATTR: [] });
           const tempDiv = document.createElement('div');
           tempDiv.innerHTML = sanitizedHtml;
@@ -407,11 +411,12 @@ const AIAssistant = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay sesión activa');
       const format = selectedFormat || detectedFormat || 'SOAP';
+      const reportText = generatedReport.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
       const { error } = await supabase.from('session_notes').insert({
         user_id: user.id, patient_id: patientId, patient_name: patientName,
         date: new Date().toISOString().split('T')[0], session_number: 1, mood: {},
         bridge: { items: [], notes: bulletPoints },
-        agenda: [{ topic: format, situation: '', thoughts: generatedReport, emotions: '', interventions: '' }],
+        agenda: [{ topic: format, situation: '', thoughts: reportText, emotions: '', interventions: '' }],
         beliefs: {}, action_plan: [],
         organization_id: organization?.id,
       });
@@ -648,11 +653,15 @@ const AIAssistant = () => {
                     </div>
                     {generatedReport && (
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="icon-sm" onClick={() => { navigator.clipboard.writeText(generatedReport); toast.success('Reporte copiado al portapapeles'); }}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => {
+                          const text = generatedReport.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+                          navigator.clipboard.writeText(text); toast.success('Reporte copiado al portapapeles');
+                        }}>
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon-sm" onClick={() => {
-                          const blob = new Blob([generatedReport], { type: 'text/plain' });
+                          const text = generatedReport.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+                          const blob = new Blob([text], { type: 'text/plain' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url; a.download = `reporte_clinico_${new Date().toISOString().split('T')[0]}.txt`;
@@ -666,8 +675,15 @@ const AIAssistant = () => {
                   </CardHeader>
                   <CardContent>
                     {generatedReport ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none animate-fade-in">
-                        <div className="rounded-xl bg-background/50 p-4 whitespace-pre-wrap font-mono text-sm">{generatedReport}</div>
+                      <div className="animate-fade-in space-y-4">
+                        <div className="flex items-center gap-2 px-1 mb-2">
+                          <Edit3 className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-medium text-muted-foreground">Edita el reporte antes de guardarlo</span>
+                        </div>
+                        <MiniEditor
+                          content={generatedReport}
+                          onChange={(html) => setGeneratedReport(html)}
+                        />
                         <div className="flex gap-2 mt-4">
                           <Button variant="outline" className="flex-1" onClick={clearAll}>Limpiar</Button>
                           <Button variant="zen" className="flex-1" onClick={handleSave}>Guardar en Expediente</Button>
