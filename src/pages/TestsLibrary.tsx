@@ -13,6 +13,7 @@ import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useOrganization } from '@/hooks/useOrganization';
 
 interface PatientTest {
   id: string;
@@ -42,6 +43,7 @@ const TestsLibrary = () => {
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [patientFilter, setPatientFilter] = useState('');
   const patientSearchRef = useRef<HTMLInputElement>(null);
+  const { organization } = useOrganization();
 
   const fetchAssignedTests = async () => {
     setIsLoading(true);
@@ -93,6 +95,7 @@ const TestsLibrary = () => {
         user_id: user.id,
         patient_id: selectedPatientId,
         test_type: testToAssign,
+        organization_id: organization?.id,
       });
 
       if (error) throw error;
