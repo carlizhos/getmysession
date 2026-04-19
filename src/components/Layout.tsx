@@ -391,7 +391,7 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Main content — Glassmorphism card container */}
       <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>
-        <main className="min-h-screen p-2 sm:p-3 lg:p-4 flex flex-col pt-14 lg:pt-[5.25rem]">
+        <main className="min-h-screen p-2 sm:p-3 lg:p-4 flex flex-col pt-20 lg:pt-[5.25rem]">
           <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[18px] sm:rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-4 sm:p-6 lg:p-8">
             {children}
           </div>
