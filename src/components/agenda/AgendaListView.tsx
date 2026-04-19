@@ -20,6 +20,7 @@ import {
     Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 
 interface Appointment {
     id: string;
@@ -55,13 +56,13 @@ const STATUS_CONFIG: Record<string, {
     cardAccent: string; badgeBg: string; cardBg: string;
 }> = {
     scheduled: {
-        bg: 'bg-blue-50/60 dark:bg-blue-950/20',
-        text: 'text-blue-700 dark:text-blue-300',
-        dot: 'bg-blue-400',
-        border: 'border-blue-100 dark:border-blue-900',
-        cardAccent: 'border-l-blue-400',
-        badgeBg: 'bg-blue-100 dark:bg-blue-900/50',
-        cardBg: 'bg-blue-50/80 dark:bg-blue-900/30',
+        bg: 'bg-primary/5 dark:bg-primary/10',
+        text: 'text-primary dark:text-primary-foreground',
+        dot: 'bg-primary',
+        border: 'border-primary/10 dark:border-primary/20',
+        cardAccent: 'border-l-primary',
+        badgeBg: 'bg-primary/10 dark:bg-primary/20',
+        cardBg: 'bg-primary/5 dark:bg-primary/10',
     },
     confirmed: {
         bg: 'bg-emerald-50/60 dark:bg-emerald-950/20',
@@ -109,22 +110,6 @@ const STATUS_ICON: Record<string, any> = {
     cancelled: XCircle,
 };
 
-// Avatar color palette
-const AVATAR_THEMES = [
-    'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300',
-    'bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300',
-    'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300',
-    'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-300',
-    'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-300',
-    'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-300',
-    'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300',
-];
-
-const getAvatarTheme = (name: string) => {
-    const idx = (name?.charCodeAt(0) || 0) % AVATAR_THEMES.length;
-    return AVATAR_THEMES[idx];
-};
-
 const getDateLabel = (dateStr: string): string => {
     const date = parseISO(dateStr + 'T00:00:00');
     if (isToday(date)) return 'Hoy';
@@ -162,7 +147,7 @@ const AppointmentRow = ({
             className={cn(
                 "rounded-2xl border bg-white dark:bg-slate-900 transition-all duration-200",
                 expanded
-                    ? "border-blue-200 dark:border-blue-800 shadow-md"
+                    ? "border-primary/30 dark:border-primary/50 shadow-md"
                     : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm",
                 apt.status === 'cancelled' && 'opacity-60'
             )}
@@ -213,7 +198,7 @@ const AppointmentRow = ({
                             getAvatarTheme(apt.patientName || '')
                         )}
                     >
-                        {apt.patientName?.charAt(0).toUpperCase() ?? '?'}
+                        {getInitials(apt.patientName || '')}
                     </div>
                     <div className="hidden md:block">
                         <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -231,7 +216,7 @@ const AppointmentRow = ({
                         e.stopPropagation();
                         setExpanded(!expanded);
                     }}
-                    className="flex items-center gap-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-semibold flex-shrink-0 transition-colors ml-auto"
+                    className="flex items-center gap-1 text-primary hover:text-primary/80 dark:text-primary dark:hover:text-primary/80 text-sm font-semibold flex-shrink-0 transition-colors ml-auto"
                 >
                     {expanded ? (
                         <>
@@ -266,7 +251,7 @@ const AppointmentRow = ({
                             <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                                 {apt.modality === 'online' ? (
                                     <>
-                                        <Video className="h-3.5 w-3.5 text-blue-500" />
+                                        <Video className="h-3.5 w-3.5 text-primary" />
                                         En línea
                                     </>
                                 ) : (
@@ -309,7 +294,7 @@ const AppointmentRow = ({
                                 <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
                                     Recurrencia
                                 </span>
-                                <span className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
+                                <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
                                     <Repeat className="h-3.5 w-3.5" />
                                     Cita recurrente
                                 </span>
@@ -327,7 +312,7 @@ const AppointmentRow = ({
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 text-sm font-medium text-blue-500 hover:text-blue-600 hover:underline truncate"
+                                    className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate"
                                 >
                                     <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
                                     {apt.meetingLink}
@@ -391,7 +376,7 @@ const AppointmentRow = ({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-5 py-2 text-xs font-bold text-white bg-[#0066FF] hover:bg-[#0052CC] rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2 uppercase tracking-tight"
+                                className="px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2 uppercase tracking-tight"
                             >
                                 <Video className="h-4 w-4" />
                                 Unirse a la reunión
@@ -470,7 +455,7 @@ const AgendaListView = ({
                                     {formattedDate}
                                 </span>
                                 {isCurrentDay && (
-                                    <span className="ml-1 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="ml-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                 )}
                             </div>
 

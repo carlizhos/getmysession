@@ -70,10 +70,11 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                             key={day.toISOString()}
                             onClick={() => !isDisabled && handleDayClick(day)}
                             className={cn(
-                                "min-h-[100px] p-2 border-r border-b border-border transition-colors last:border-r-0",
+                                "min-h-[100px] p-2 border-r border-b border-border transition-colors last:border-r-0 relative pt-3",
                                 isDisabled ? "bg-red-50/30 cursor-not-allowed" : "cursor-pointer hover:bg-accent/30",
                                 !isCurrentMonthDay && !isDisabled && "bg-muted/10",
-                                isToday(day) && !isDisabled && "bg-primary/5",
+                                isToday(day) && !isDisabled && "bg-[#5da05d]/10",
+                                isToday(day) && !isDisabled && "before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-primary before:rounded-full",
                                 isSameDay(day, selectedDate) && !isDisabled && "ring-2 ring-primary ring-inset"
                             )}
                         >
@@ -109,7 +110,7 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                                         
                                         <div className="flex-shrink-0">
                                             {apt.modality === 'online' ? (
-                                                <Video className="h-2.5 w-2.5 text-blue-500" title="En línea" />
+                                                <Video className="h-2.5 w-2.5 text-slate-500" title="En línea" />
                                             ) : (
                                                 <MapPin className="h-2.5 w-2.5 text-amber-600" title="Presencial" />
                                             )}
@@ -121,7 +122,7 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
 
                                         <div className="flex items-center gap-0.5 ml-auto">
                                             {apt.isRecurring && (
-                                                <Repeat className="h-2 w-2 text-blue-600" />
+                                                <Repeat className="h-2 w-2 text-slate-600" />
                                             )}
                                             {apt.paymentStatus === 'paid' ? (
                                                 <CreditCard className="h-2.5 w-2.5 text-green-600" title="Pagada" />

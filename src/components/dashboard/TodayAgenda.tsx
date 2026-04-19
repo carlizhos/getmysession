@@ -5,6 +5,7 @@ import { Clock, User, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 
 export interface AgendaAppointment {
   id: string;
@@ -76,7 +77,7 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
                 {/* Mobile-only status color dot */}
                 <div className={cn(
                   'block sm:hidden h-3 w-3 rounded-full',
-                  appointment.status === 'scheduled' && 'bg-blue-500',
+                  appointment.status === 'scheduled' && 'bg-primary',
                   appointment.status === 'confirmed' && 'bg-success',
                   appointment.status === 'pending' && 'bg-warning',
                   appointment.status === 'cancelled' && 'bg-destructive',
@@ -87,7 +88,7 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
               {/* Desktop-only bar */}
               <div className={cn(
                 'hidden sm:block h-12 w-1 rounded-full flex-shrink-0',
-                appointment.status === 'scheduled' && 'bg-blue-500',
+                appointment.status === 'scheduled' && 'bg-primary',
                 appointment.status === 'confirmed' && 'bg-success',
                 appointment.status === 'pending' && 'bg-warning',
                 appointment.status === 'cancelled' && 'bg-destructive',
@@ -95,12 +96,19 @@ const TodayAgenda = ({ appointments }: TodayAgendaProps) => {
               )} />
 
               {/* Contenido */}
-              <div className="flex-1 min-w-0 w-full">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="font-medium truncate">{appointment.patientName}</span>
+              <div className="flex-1 min-w-0 w-full flex items-center gap-3">
+                <div className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                  getAvatarTheme(appointment.patientName)
+                )}>
+                  {getInitials(appointment.patientName)}
                 </div>
-                <p className="text-sm text-muted-foreground mt-0.5">{appointment.type}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium truncate">{appointment.patientName}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{appointment.type}</p>
+                </div>
               </div>
 
               {/* Estado y acción */}

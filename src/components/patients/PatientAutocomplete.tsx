@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 
 interface Patient {
     id: string;
@@ -194,8 +195,11 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
                                     onClick={() => handleSelect(patient)}
                                     className="w-full text-left p-3 rounded-lg hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 transition-all group flex items-start gap-3 border border-transparent"
                                 >
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                        <User className="h-5 w-5" />
+                                    <div className={cn(
+                                        "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
+                                        getAvatarTheme(patient.name)
+                                    )}>
+                                        {getInitials(patient.name)}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors truncate">

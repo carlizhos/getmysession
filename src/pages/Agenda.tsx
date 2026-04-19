@@ -275,11 +275,11 @@ const AgendaPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-success/20 border-success/40 text-success';
-      case 'scheduled': return 'bg-blue-500/20 border-blue-400/40 text-blue-600 dark:text-blue-400';
-      case 'pending': return 'bg-warning/20 border-warning/40 text-warning';
-      case 'completed': return 'bg-violet-500/20 border-violet-400/40 text-violet-600 dark:text-violet-400';
-      case 'cancelled': return 'bg-destructive/20 border-destructive/40 text-destructive line-through';
+      case 'confirmed': return 'bg-[#edf4ed] border-[#c1d6c1] text-[#2d4d2d] dark:bg-[#1a2e1a] dark:text-[#a1c6a1]';
+      case 'scheduled': return 'bg-[#f1f5f9] border-[#cbd5e1] text-[#475569] dark:bg-[#1a1e2e] dark:text-[#a1a1c6]';
+      case 'pending': return 'bg-[#fcf7ee] border-[#ede1c1] text-[#7a652d] dark:bg-[#2e2a1a] dark:text-[#c6b6a1]';
+      case 'completed': return 'bg-[#f0f0f4] border-[#d1d1e0] text-[#4d4d6b] dark:bg-[#1f1f2e] dark:text-[#a1a1c6]';
+      case 'cancelled': return 'bg-[#fdf0f0] border-[#f4c1c1] text-[#8b3d3d] dark:bg-[#2e1a1a] dark:text-[#c6a1a1] line-through';
       default: return 'bg-muted border-border';
     }
   };
@@ -319,11 +319,11 @@ const AgendaPage = () => {
   };
 
   const STATUS_DOT: Record<string, string> = {
-    scheduled: 'bg-blue-500',
-    confirmed: 'bg-green-500',
-    pending: 'bg-yellow-400',
-    completed: 'bg-violet-500',
-    cancelled: 'bg-red-500',
+    scheduled: 'bg-[#64748b]',
+    confirmed: 'bg-[#5da05d]',
+    pending: 'bg-[#d4b15d]',
+    completed: 'bg-[#7a7ab5]',
+    cancelled: 'bg-[#c66a6a]',
   };
 
 
@@ -331,14 +331,17 @@ const AgendaPage = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
-            <p className="text-muted-foreground">
-              Gestiona tus citas y disponibilidad
-            </p>
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <CalendarIcon className="h-6 w-6 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-black tracking-tight">Agenda</h1>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Gestiona tus citas y disponibilidad</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
             {/* View Mode Selector */}
             <div className="flex items-center border rounded-lg p-1 bg-muted/30">
               <Button
@@ -437,19 +440,17 @@ const AgendaPage = () => {
             </Button>
             <div className="flex items-center gap-3">
               <div className="text-center">
-                <h2 className="text-xl font-semibold capitalize">
-                  {getDateRangeDisplay()}
-                </h2>
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-xl font-semibold capitalize">
+                    {getDateRangeDisplay()}
+                  </h2>
+                  {viewMode === 'day' && isToday(currentDate) && (
+                    <Badge variant="outline" className="text-[10px] font-bold px-1.5 h-5 border-[#5da05d]/30 text-[#5da05d] bg-[#5da05d]/5">HOY</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">Zona horaria: PST (UTC-8)</p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentDate(new Date())}
-                className="text-sm"
-              >
-                Hoy
-              </Button>
+
             </div>
             <Button
               variant="ghost"
@@ -505,7 +506,7 @@ const AgendaPage = () => {
                 <div className="flex flex-col min-w-[640px]">
                   {/* Week header */}
                   <div className="grid grid-cols-8 border-b border-border sticky top-0 bg-background z-10">
-                    <div className="p-3 text-center text-sm text-muted-foreground border-r border-border">
+                    <div className="p-3 text-center text-sm text-muted-foreground border-r border-border bg-background">
                       Hora
                     </div>
                     {weekDays.map(day => {
@@ -523,9 +524,10 @@ const AgendaPage = () => {
                           }}
                           title={!working ? 'Día no laborable (configuración)' : blocked ? 'Día festivo' : past ? 'Día pasado' : undefined}
                           className={cn(
-                            "p-3 text-center transition-colors border-r border-border last:border-r-0 relative",
+                            "p-3 text-center transition-colors border-r border-border last:border-r-0 relative pt-4",
                             !past && !blocked && "cursor-pointer hover:bg-accent/50",
-                            isToday(day) && "bg-primary/5",
+                            isToday(day) && "bg-[#5da05d]/10",
+                            isToday(day) && "before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-primary before:opacity-100",
                             isSameDay(day, selectedDate) && "bg-accent",
                             (blocked || (past && !isToday(day))) && cn(
                               "opacity-60",
@@ -711,12 +713,27 @@ const AgendaPage = () => {
         </Card>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-blue-500" /><span className="text-sm text-muted-foreground">Sin confirmar</span></div>
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-green-500" /><span className="text-sm text-muted-foreground">Confirmada</span></div>
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-yellow-400" /><span className="text-sm text-muted-foreground">En espera</span></div>
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-violet-500" /><span className="text-sm text-muted-foreground">Completada</span></div>
-          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-red-500" /><span className="text-sm text-muted-foreground">Cancelada</span></div>
+        <div className="flex flex-wrap gap-4 pt-4 border-t border-border/40">
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#64748b]" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sin confirmar</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#5da05d]" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Confirmada</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#d4b15d]" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">En espera</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#7a7ab5]" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Completada</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#c66a6a]" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cancelada</span>
+          </div>
         </div>
 
         {/* New / Edit Appointment Dialog */}

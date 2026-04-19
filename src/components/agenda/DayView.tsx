@@ -22,11 +22,11 @@ const STATUS_ICON: Record<string, any> = {
 };
 
 const STATUS_DOT: Record<string, string> = {
-    scheduled: 'bg-blue-500',
-    confirmed: 'bg-green-500',
-    pending: 'bg-yellow-400',
-    completed: 'bg-violet-500',
-    cancelled: 'bg-red-500',
+    scheduled: 'bg-[#64748b]',
+    confirmed: 'bg-[#5da05d]',
+    pending: 'bg-[#d4b15d]',
+    completed: 'bg-[#7a7ab5]',
+    cancelled: 'bg-[#c66a6a]',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -107,8 +107,8 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 font-bold text-sm flex-1 min-w-0">
                                                 {apt.modality === 'online' ? (
-                                                    <div className="bg-blue-100 dark:bg-blue-900/40 p-1 rounded-md">
-                                                        <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                                    <div className="bg-slate-100 dark:bg-slate-900/40 p-1 rounded-md">
+                                                        <Video className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                                                     </div>
                                                 ) : (
                                                     <div className="bg-amber-100 dark:bg-amber-900/40 p-1 rounded-md">
@@ -140,8 +140,8 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                                     <Clock className="h-3 w-3" />
                                                     <span>{format(parseISO(apt.startTime), 'h:mm a')}</span>
                                                     {apt.isRecurring && (
-                                                        <div className="ml-1 bg-blue-500/10 p-0.5 rounded">
-                                                            <Repeat className="h-2.5 w-2.5 text-blue-600" />
+                                                        <div className="ml-1 bg-slate-500/10 p-0.5 rounded">
+                                                            <Repeat className="h-2.5 w-2.5 text-slate-600" />
                                                         </div>
                                                     )}
                                                 </div>

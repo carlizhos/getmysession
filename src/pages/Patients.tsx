@@ -50,6 +50,7 @@ import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF } from '@/lib/generateExpedientePDF';
+import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 
 interface SessionNote {
   id: string;
@@ -405,8 +406,11 @@ const Patients = () => {
                     <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-muted/30 p-4 sm:p-6 lg:p-8 flex-shrink-0">
                       <div className="flex flex-col items-center text-center mb-8">
                         <div className="relative mb-4 group">
-                          <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20 group-hover:border-primary/40 transition-all">
-                            <User className="h-12 w-12 text-primary" />
+                          <div className={cn(
+                            "h-24 w-24 rounded-full flex items-center justify-center text-4xl font-bold border-2 border-primary/20 transition-all",
+                            getAvatarTheme(selectedPatientData.name)
+                          )}>
+                            {getInitials(selectedPatientData.name)}
                           </div>
                           <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5">
                             {selectedPatientData.status}

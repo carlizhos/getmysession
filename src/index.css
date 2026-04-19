@@ -119,11 +119,11 @@
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 85%;
 
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 24 10% 12%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 213 60% 18%;
-    --accent-foreground: 213 60% 80%;
+    --accent: 178 20% 15%;
+    --accent-foreground: 178 20% 80%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;

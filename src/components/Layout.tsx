@@ -14,7 +14,6 @@ import {
   Settings,
   Kanban,
   FileSignature,
-  Calendar as CalendarIcon,
   CheckSquare,
   ChevronDown,
   Search,
@@ -71,6 +70,28 @@ const Layout = ({ children }: LayoutProps) => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Smart Header Logic: Hide on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 10) {
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        setShowHeader(false); // Scrolling down
+      } else {
+        setShowHeader(true); // Scrolling up
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -166,7 +187,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const sidebarW = collapsed ? 'w-16' : 'w-52';
   const contentPl = collapsed ? 'lg:pl-24' : 'lg:pl-[calc(13rem+2rem)]';
-
   return (
     <div className="min-h-screen bg-transparent">
       {/* Mobile backdrop */}
@@ -310,10 +330,18 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </aside>
 
+      {/* Premium Fade — Solo se activa al hacer scroll para no ensuciar el estado inicial */}
+      <div className={cn(
+        "fixed top-0 left-0 right-0 z-[35] h-12 pointer-events-none bg-gradient-to-b from-slate-50/90 via-slate-50/40 to-transparent dark:from-slate-950/90 dark:via-slate-950/40 dark:to-transparent transition-opacity duration-500",
+        lastScrollY > 10 ? "opacity-100" : "opacity-0"
+      )} />
+
       {/* ── Top Bar ──────────────────────────────────────────────── */}
       <header className={cn(
         "fixed top-2 sm:top-3 lg:top-4 left-2 sm:left-3 lg:left-4 right-2 sm:right-3 lg:right-4 z-40 h-14 flex items-center justify-between gap-2 sm:gap-4",
-        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-3 sm:px-4 shadow-soft rounded-[16px] sm:rounded-[20px]"
+        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-3 sm:px-4 shadow-soft rounded-[16px] sm:rounded-[20px]",
+        "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        showHeader ? "translate-y-0 opacity-100" : "-translate-y-24 opacity-0"
       )}>
         {/* Left: Brand */}
         <div className="flex items-center gap-2 w-max">
