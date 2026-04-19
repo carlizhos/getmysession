@@ -328,8 +328,8 @@ const Dashboard = () => {
             <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-slate-800 dark:text-slate-100">Últimas Notas</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1 text-[#0066FF] hover:bg-[#0066FF]/10">
-                  Ver todas <ArrowRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary/80 hover:bg-primary/10 transition-all duration-300 group/btn">
+                  Ver todas <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
