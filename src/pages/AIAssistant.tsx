@@ -463,14 +463,14 @@ const AIAssistant = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
               <Brain className="h-6 w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">IA Asistente</h1>
-              <p className="text-muted-foreground">Genera notas clínicas y consulta el expediente de tus pacientes</p>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-black tracking-tight">IA Asistente</h1>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Genera notas clínicas y consulta el expediente con IA</p>
             </div>
           </div>
         </div>
