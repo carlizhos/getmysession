@@ -479,10 +479,6 @@ const AIAssistant = () => {
           {/* Right: Global Patient Selector & Actions */}
           <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 mt-4 lg:mt-0">
             <div className="w-full sm:w-72 relative group">
-              <div className="absolute -top-6 left-0 flex items-center gap-1.5 px-1 py-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
-                <User className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Paciente Seleccionado</span>
-              </div>
               <PatientAutocomplete
                 ref={patientSearchRef}
                 value={selectedPatientId}
