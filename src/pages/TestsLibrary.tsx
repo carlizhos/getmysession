@@ -472,26 +472,26 @@ const TestsLibrary = () => {
           }
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[420px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-3xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-[480px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-3xl">
           <div className="relative">
             {/* Background Decorative Header */}
-            <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent w-full" />
+            <div className="h-36 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent w-full" />
             
             {/* Context Header */}
-            <div className="absolute top-8 left-0 right-0 flex flex-col items-center justify-center text-center px-6">
+            <div className="absolute top-10 left-0 right-0 flex flex-col items-center justify-center text-center px-6">
               <div className="h-16 w-16 bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500">
                 <div className="h-12 w-12 bg-success/10 rounded-xl flex items-center justify-center">
                   <CheckCircle2 className="h-7 w-7 text-success" />
                 </div>
               </div>
               <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
-              <p className="text-sm text-muted-foreground mt-1 max-w-[280px]">
+              <p className="text-sm text-muted-foreground mt-1 max-w-[320px]">
                 El test ya está disponible para <strong>{selectedPatientName}</strong>.
               </p>
             </div>
           </div>
 
-          <div className="pt-28 p-6 space-y-6">
+          <div className="pt-32 p-6 space-y-6">
             {/* Link Box */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-1">
