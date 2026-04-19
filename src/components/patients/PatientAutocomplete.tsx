@@ -55,6 +55,17 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
         fetchPatients();
     }, []);
 
+    // Sincronizar el nombre cuando el valor cambia (útil para limpiar desde fuera)
+    useEffect(() => {
+        if (!value) {
+            setSelectedPatientName('');
+            setSearchQuery('');
+        } else if (value && patients.length > 0) {
+            const p = patients.find(p => p.id === value);
+            if (p) setSelectedPatientName(p.name);
+        }
+    }, [value, patients]);
+
     // Filtrar pacientes solo si hay al menos 3 letras
     const showSuggestions = searchQuery.trim().length >= 3;
     const filteredPatients = showSuggestions 
