@@ -123,6 +123,7 @@ const TestsLibrary = () => {
     setSelectedPatientId('');
     setSelectedPatientName('');
     setPatientFilter('');
+    setActiveTab('catalog');
     setTimeout(() => {
       patientSearchRef.current?.focus();
     }, 100);
