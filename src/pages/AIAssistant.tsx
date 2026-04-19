@@ -129,8 +129,8 @@ const AIAssistant = () => {
   const [detectedFormat, setDetectedFormat] = useState<string | null>(null);
   const [processingStep, setProcessingStep] = useState<string>('');
   const [fileProcessingStep, setFileProcessingStep] = useState<string>('');
-  const [patientId, setPatientId] = useState('');
-  const [patientName, setPatientName] = useState('');
+  const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [selectedPatientName, setSelectedPatientName] = useState('');
   const [patientContext, setPatientContext] = useState<string | null>(null);
   const [isFetchingContext, setIsFetchingContext] = useState(false);
 
@@ -217,10 +217,6 @@ const AIAssistant = () => {
   };
 
   // ── Chat state ─────────────────────────────────────────────────────────────
-  const [chatPatientId, setChatPatientId] = useState('');
-  const [chatPatientName, setChatPatientName] = useState('');
-  const [chatContext, setChatContext] = useState<string | null>(null);
-  const [isFetchingChatContext, setIsFetchingChatContext] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -239,31 +235,29 @@ const AIAssistant = () => {
   }, [isCameraOpen, cameraStream]);
 
   useEffect(() => {
-    if (!patientId) { setPatientContext(null); return; }
+    if (!selectedPatientId) { 
+      setPatientContext(null); 
+      setChatMessages([]);
+      return; 
+    }
     setIsFetchingContext(true);
-    buildPatientContext(patientId)
-      .then(ctx => setPatientContext(ctx))
+    setChatMessages([]);
+    buildPatientContext(selectedPatientId)
+      .then(ctx => {
+        setPatientContext(ctx);
+        // Welcome message with patient info
+        if (activeTab === 'chat') {
+          setChatMessages([{
+            role: 'assistant',
+            content: `Hola. He cargado el expediente de **${selectedPatientName}**. Puedes preguntarme sobre su historial, pedirme sugerencias de técnicas, análisis de progreso o cualquier consulta clínica relacionada con este paciente.`,
+          }]);
+        }
+      })
       .catch(err => console.error('Error fetching patient context:', err))
       .finally(() => setIsFetchingContext(false));
-  }, [patientId]);
+  }, [selectedPatientId, selectedPatientName]);
 
-  // ── Fetch context for chat tab ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!chatPatientId) { setChatContext(null); setChatMessages([]); return; }
-    setIsFetchingChatContext(true);
-    setChatMessages([]);
-    buildPatientContext(chatPatientId)
-      .then(ctx => {
-        setChatContext(ctx);
-        // Welcome message with patient info
-        setChatMessages([{
-          role: 'assistant',
-          content: `Hola. He cargado el expediente de **${chatPatientName}**. Puedes preguntarme sobre su historial, pedirme sugerencias de técnicas, análisis de progreso o cualquier consulta clínica relacionada con este paciente.`,
-        }]);
-      })
-      .catch(err => console.error('Error fetching chat context:', err))
-      .finally(() => setIsFetchingChatContext(false));
-  }, [chatPatientId, chatPatientName]);
+
 
   // ── Camera ────────────────────────────────────────────────────────────────
   const startCamera = async () => {
@@ -400,20 +394,20 @@ const AIAssistant = () => {
 
   const clearAll = () => {
     setUploadedFile(null); setBulletPoints(''); setGeneratedReport(null);
-    setDetectedFormat(null); setSelectedFormat(''); setPatientId('');
-    setPatientName(''); setPatientContext(null);
+    setDetectedFormat(null); setSelectedFormat(''); setSelectedPatientId('');
+    setSelectedPatientName(''); setPatientContext(null);
   };
 
   const handleSave = async () => {
     if (!generatedReport) return;
-    if (!patientId) { toast.error('Selecciona un paciente antes de guardar la nota'); return; }
+    if (!selectedPatientId) { toast.error('Selecciona un paciente antes de guardar la nota'); return; }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay sesión activa');
       const format = selectedFormat || detectedFormat || 'SOAP';
       const reportText = generatedReport.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
       const { error } = await supabase.from('session_notes').insert({
-        user_id: user.id, patient_id: patientId, patient_name: patientName,
+        user_id: user.id, patient_id: selectedPatientId, patient_name: selectedPatientName,
         date: new Date().toISOString().split('T')[0], session_number: 1, mood: {},
         bridge: { items: [], notes: bulletPoints },
         agenda: [{ topic: format, situation: '', thoughts: reportText, emotions: '', interventions: '' }],
@@ -421,7 +415,7 @@ const AIAssistant = () => {
         organization_id: organization?.id,
       });
       if (error) throw error;
-      toast.success(`Nota guardada en el expediente de ${patientName}`);
+      toast.success(`Nota guardada en el expediente de ${selectedPatientName}`);
       clearAll();
     } catch (error: any) { toast.error('Error al guardar la nota: ' + error.message); }
   };
@@ -429,7 +423,7 @@ const AIAssistant = () => {
   // ── Chat send ──────────────────────────────────────────────────────────────
   const sendChatMessage = async () => {
     if (!chatInput.trim() || isChatLoading) return;
-    if (!chatPatientId) { toast.error('Selecciona un paciente primero'); return; }
+    if (!selectedPatientId) { toast.error('Selecciona un paciente primero'); return; }
 
     const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() };
     const newMessages = [...chatMessages, userMsg];
@@ -441,7 +435,7 @@ const AIAssistant = () => {
       const { data, error } = await supabase.functions.invoke('process-clinical-note', {
         body: {
           action: 'chat',
-          patient_context: chatContext,
+          patient_context: patientContext,
           messages: newMessages,
         }
       });
@@ -472,6 +466,29 @@ const AIAssistant = () => {
               <h1 className="text-2xl font-black tracking-tight">IA Asistente</h1>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Genera notas clínicas y consulta el expediente con IA</p>
             </div>
+          </div>
+
+          {/* Right: Global Patient Selector */}
+          <div className="w-full lg:w-72 mt-4 lg:mt-0 relative group">
+            <div className="absolute -top-6 left-0 flex items-center gap-1.5 px-1 py-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
+              <User className="h-3 w-3 text-primary" />
+              <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Paciente Seleccionado</span>
+            </div>
+            <PatientAutocomplete
+              value={selectedPatientId}
+              onSelect={(id, name) => { 
+                setSelectedPatientId(id); 
+                setSelectedPatientName(name); 
+              }}
+            />
+            {selectedPatientId && (
+              <button 
+                onClick={() => { setSelectedPatientId(''); setSelectedPatientName(''); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors z-10"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -569,21 +586,7 @@ const AIAssistant = () => {
                     </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Patient selector */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Paciente (opcional)</label>
-                      <PatientAutocomplete
-                        value={patientId}
-                        onSelect={(id, name) => { setPatientId(id); setPatientName(name); }}
-                      />
-                    </div>
 
-                    {isFetchingContext && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary flex-shrink-0" />
-                        Cargando expediente del paciente...
-                      </div>
-                    )}
                     {patientContext && !isFetchingContext && (
                       <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-1 animate-fade-in">
                         <div className="flex items-center gap-2">
@@ -591,7 +594,7 @@ const AIAssistant = () => {
                           <span className="text-sm font-medium text-primary">Contexto clínico cargado</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          La nota SOAP se personalizará con el historial de <strong>{patientName}</strong>.
+                          La nota SOAP se personalizará con el historial de <strong>{selectedPatientName}</strong>.
                         </p>
                       </div>
                     )}
@@ -722,44 +725,37 @@ const AIAssistant = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <PatientAutocomplete
-                      value={chatPatientId}
-                      onSelect={(id, name) => { setChatPatientId(id); setChatPatientName(name); }}
-                    />
-
-                    {isFetchingChatContext && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                    {isFetchingContext && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground animate-pulse">
                         <Loader2 className="h-4 w-4 animate-spin text-primary flex-shrink-0" />
                         Cargando expediente...
                       </div>
                     )}
 
-                    {chatContext && !isFetchingChatContext && (
+                    {selectedPatientId && !isFetchingContext && (
                       <div className="rounded-lg bg-success/5 border border-success/20 p-3 space-y-2 animate-fade-in">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
                           <span className="text-sm font-medium text-success">Expediente cargado</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Historial clínico de <strong>{chatPatientName}</strong> disponible para la IA.
+                          Historial clínico de <strong>{selectedPatientName}</strong> disponible para la IA.
                         </p>
-                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setChatPatientId(''); setChatPatientName(''); setChatContext(null); setChatMessages([]); }}>
-                          <X className="h-3 w-3 mr-1" /> Cambiar paciente
-                        </Button>
                       </div>
                     )}
 
-                    {!chatPatientId && (
+
+                    {!selectedPatientId && (
                       <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground text-center space-y-1">
                         <BookOpen className="h-6 w-6 mx-auto opacity-40 mb-2" />
-                        <p>Selecciona un paciente para comenzar la consulta</p>
+                        <p>Selecciona un paciente en la cabecera para comenzar</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Suggestions */}
-                {chatContext && (
+                {patientContext && (
                   <Card variant="default">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm">Sugerencias de preguntas</CardTitle>
@@ -789,25 +785,25 @@ const AIAssistant = () => {
                 <CardHeader className="border-b border-border/50 pb-4">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Bot className="h-5 w-5 text-primary" />
-                    {chatPatientName ? `Consulta sobre ${chatPatientName}` : 'Chat Clínico IA'}
+                    {selectedPatientName ? `Consulta sobre ${selectedPatientName}` : 'Chat Clínico IA'}
                   </CardTitle>
                   <CardDescription>
-                    {chatPatientName
+                    {selectedPatientName
                       ? 'La IA responde usando únicamente la información del expediente del paciente'
-                      : 'Selecciona un paciente para comenzar'}
+                      : 'Seleccione un paciente en la parte superior para comenzar'}
                   </CardDescription>
                 </CardHeader>
 
                 {/* Messages */}
                 <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {chatMessages.length === 0 && !chatPatientId && (
+                  {chatMessages.length === 0 && !selectedPatientId && (
                     <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                       <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                         <Brain className="h-8 w-8 text-primary opacity-60" />
                       </div>
                       <h3 className="font-medium mb-1">Sin paciente seleccionado</h3>
                       <p className="text-sm text-muted-foreground max-w-[260px]">
-                        Elige un paciente en el panel izquierdo para consultar su expediente con IA
+                        Elige un paciente en la cabecera para consultar su expediente con IA
                       </p>
                     </div>
                   )}
@@ -858,11 +854,11 @@ const AIAssistant = () => {
                 <div className="border-t border-border/50 p-4">
                   <div className="flex gap-2 items-end">
                     <Textarea
-                      placeholder={chatPatientId ? "Escribe tu consulta... (Enter para enviar, Shift+Enter para nueva línea)" : "Selecciona un paciente para comenzar"}
+                      placeholder={selectedPatientId ? "Escribe tu consulta... (Enter para enviar, Shift+Enter para nueva línea)" : "Selecciona un paciente en la parte superior para comenzar"}
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={handleChatKeyDown}
-                      disabled={!chatPatientId || isChatLoading}
+                      disabled={!selectedPatientId || isChatLoading}
                       rows={2}
                       className="resize-none flex-1"
                     />
@@ -870,7 +866,7 @@ const AIAssistant = () => {
                       variant="zen"
                       size="icon"
                       onClick={sendChatMessage}
-                      disabled={!chatInput.trim() || !chatPatientId || isChatLoading}
+                      disabled={!chatInput.trim() || !selectedPatientId || isChatLoading}
                       className="flex-shrink-0"
                     >
                       {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
