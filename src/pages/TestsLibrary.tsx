@@ -1,11 +1,11 @@
 import Layout from '@/components/Layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ClipboardList, ExternalLink, CheckCircle2, Clock, Copy, Plus, Activity, BrainCircuit } from 'lucide-react';
+import { ClipboardList, ExternalLink, CheckCircle2, Clock, Copy, Plus, Activity, BrainCircuit, User, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { psychometricTests } from '@/lib/psychometricTests';
@@ -41,6 +41,7 @@ const TestsLibrary = () => {
   // Results details state
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [patientFilter, setPatientFilter] = useState('');
+  const patientSearchRef = useRef<HTMLInputElement>(null);
 
   const fetchAssignedTests = async () => {
     setIsLoading(true);
@@ -72,9 +73,15 @@ const TestsLibrary = () => {
     }
   }, [activeTab]);
 
-  const handleAssignTest = async () => {
-    if (!selectedPatientId || !selectedTestId) {
-      toast.error('Selecciona un paciente para asignar la prueba.');
+  const handleAssignTest = async (testIdInput?: string) => {
+    const testToAssign = testIdInput || selectedTestId;
+    if (!selectedPatientId || !testToAssign) {
+      if (!selectedPatientId) {
+        toast.error('Selecciona un paciente en la cabecera primero');
+        patientSearchRef.current?.focus();
+      } else {
+        toast.error('Selecciona una prueba para asignar.');
+      }
       return;
     }
 
@@ -85,7 +92,7 @@ const TestsLibrary = () => {
       const { error } = await supabase.from('patient_tests').insert({
         user_id: user.id,
         patient_id: selectedPatientId,
-        test_type: selectedTestId,
+        test_type: testToAssign,
       });
 
       if (error) throw error;
@@ -100,6 +107,15 @@ const TestsLibrary = () => {
     }
   };
 
+  const clearSelection = () => {
+    setSelectedPatientId('');
+    setSelectedPatientName('');
+    setPatientFilter('');
+    setTimeout(() => {
+      patientSearchRef.current?.focus();
+    }, 100);
+  };
+
   const copyLink = (token: string) => {
     const link = `${window.location.origin}/t/${token}`;
     navigator.clipboard.writeText(link);
@@ -111,15 +127,47 @@ const TestsLibrary = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
               <BrainCircuit className="h-6 w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Biblioteca de Pruebas</h1>
-              <p className="text-muted-foreground">Catálogo de pruebas psicométricas estandarizadas</p>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-black tracking-tight">Biblioteca de Pruebas</h1>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Gestiona y asigna tests psicométricos de forma simple</p>
             </div>
+          </div>
+
+          {/* Right: Global Patient Selector & Actions */}
+          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 mt-4 lg:mt-0">
+            <div className="w-full sm:w-72 relative group">
+              <PatientAutocomplete
+                ref={patientSearchRef}
+                value={selectedPatientId}
+                onSelect={(id, name) => { 
+                  setSelectedPatientId(id); 
+                  setSelectedPatientName(name); 
+                }}
+              />
+              {selectedPatientId && (
+                <button 
+                  onClick={() => { setSelectedPatientId(''); setSelectedPatientName(''); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            <Button 
+              variant="zen" 
+              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all"
+              onClick={clearSelection}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nueva Selección</span>
+            </Button>
           </div>
         </div>
 
@@ -154,18 +202,16 @@ const TestsLibrary = () => {
                       Esta prueba califica automáticamente y guarda la interpretación en el expediente.
                     </p>
                   </CardContent>
-                  <CardFooter>
-                    <Button 
-                      className="w-full gap-2" 
-                      onClick={() => {
-                        setSelectedTestId(test.id);
-                        setIsAssignModalOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Asignar a Paciente
-                    </Button>
-                  </CardFooter>
+                    <CardFooter>
+                      <Button 
+                        className="w-full gap-2" 
+                        variant="zen"
+                        onClick={() => handleAssignTest(test.id)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Generar link
+                      </Button>
+                    </CardFooter>
                 </Card>
               ))}
             </div>
