@@ -26,6 +26,7 @@ import {
   Mic,
   MicOff,
   Edit3,
+  Plus,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 // pdfjs-dist and mammoth are loaded dynamically in processFile() to avoid bundling ~1.5MB on page load
@@ -140,6 +141,7 @@ const AIAssistant = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const patientSearchRef = useRef<HTMLInputElement>(null);
 
   // ── Dictation state ────────────────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false);
@@ -396,6 +398,12 @@ const AIAssistant = () => {
     setUploadedFile(null); setBulletPoints(''); setGeneratedReport(null);
     setDetectedFormat(null); setSelectedFormat(''); setSelectedPatientId('');
     setSelectedPatientName(''); setPatientContext(null);
+    setChatMessages([]);
+    
+    // Focus clinical search after small timeout to ensure DOM is ready
+    setTimeout(() => {
+      patientSearchRef.current?.focus();
+    }, 100);
   };
 
   const handleSave = async () => {
@@ -468,27 +476,39 @@ const AIAssistant = () => {
             </div>
           </div>
 
-          {/* Right: Global Patient Selector */}
-          <div className="w-full lg:w-72 mt-4 lg:mt-0 relative group">
-            <div className="absolute -top-6 left-0 flex items-center gap-1.5 px-1 py-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
-              <User className="h-3 w-3 text-primary" />
-              <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Paciente Seleccionado</span>
+          {/* Right: Global Patient Selector & Actions */}
+          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 mt-4 lg:mt-0">
+            <div className="w-full sm:w-72 relative group">
+              <div className="absolute -top-6 left-0 flex items-center gap-1.5 px-1 py-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
+                <User className="h-3 w-3 text-primary" />
+                <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Paciente Seleccionado</span>
+              </div>
+              <PatientAutocomplete
+                ref={patientSearchRef}
+                value={selectedPatientId}
+                onSelect={(id, name) => { 
+                  setSelectedPatientId(id); 
+                  setSelectedPatientName(name); 
+                }}
+              />
+              {selectedPatientId && (
+                <button 
+                  onClick={() => { setSelectedPatientId(''); setSelectedPatientName(''); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </div>
-            <PatientAutocomplete
-              value={selectedPatientId}
-              onSelect={(id, name) => { 
-                setSelectedPatientId(id); 
-                setSelectedPatientName(name); 
-              }}
-            />
-            {selectedPatientId && (
-              <button 
-                onClick={() => { setSelectedPatientId(''); setSelectedPatientName(''); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors z-10"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
+
+            <Button 
+              variant="zen" 
+              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all"
+              onClick={clearAll}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nueva Nota</span>
+            </Button>
           </div>
         </div>
 

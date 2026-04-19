@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,7 +28,7 @@ interface PatientAutocompleteProps {
     className?: string;
 }
 
-const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente...", className }: PatientAutocompleteProps) => {
+const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProps>(({ value, onSelect, placeholder = "Buscar paciente...", className }, ref) => {
     const [open, setOpen] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,6 +114,7 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
             <PopoverTrigger asChild>
                 <div className={cn("relative flex items-center group", className)}>
                     <Input
+                        ref={ref}
                         value={selectedPatientName || searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
@@ -228,6 +229,6 @@ const PatientAutocomplete = ({ value, onSelect, placeholder = "Buscar paciente..
         </Dialog>
         </>
     );
-};
+});
 
 export default PatientAutocomplete;
