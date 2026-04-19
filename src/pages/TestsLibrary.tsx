@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ClipboardList, ExternalLink, CheckCircle2, Clock, Copy, Plus, Activity, BrainCircuit, User, X, Loader2 } from 'lucide-react';
+import { ClipboardList, ExternalLink, CheckCircle2, Clock, Copy, Plus, Activity, BrainCircuit, User, X, Loader2, MessageCircle, Mail, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { psychometricTests } from '@/lib/psychometricTests';
@@ -44,6 +44,11 @@ const TestsLibrary = () => {
   const [patientFilter, setPatientFilter] = useState('');
   const patientSearchRef = useRef<HTMLInputElement>(null);
   const { organization } = useOrganization();
+
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [activeShareToken, setActiveShareToken] = useState('');
+  const [activeShareTestName, setActiveShareTestName] = useState('');
 
   const fetchAssignedTests = async () => {
     setIsLoading(true);
@@ -91,20 +96,24 @@ const TestsLibrary = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay sesión activa');
 
-      const { error } = await supabase.from('patient_tests').insert({
+      const { data, error } = await supabase.from('patient_tests').insert({
         user_id: user.id,
         patient_id: selectedPatientId,
         test_type: testToAssign,
         organization_id: organization?.id,
-      });
+      }).select('token').single();
 
       if (error) throw error;
 
-      toast.success('Prueba asignada correctamente');
+      // Prepare share modal
+      const testName = psychometricTests[testToAssign]?.name || testToAssign;
+      setActiveShareToken(data.token);
+      setActiveShareTestName(testName);
+      setShareModalOpen(true);
+      
+      toast.success('Prueba generada correctamente');
       setIsAssignModalOpen(false);
-      setSelectedPatientId('');
-      setSelectedPatientName('');
-      setActiveTab('assigned'); // Jump to the assigned tab to see the link
+      // We don't clear selection yet so the share message can use the name
     } catch (error: any) {
       toast.error('Error al asignar prueba: ' + error.message);
     }
@@ -446,6 +455,99 @@ const TestsLibrary = () => {
           
           <div className="px-6 py-4 border-t bg-slate-50 flex justify-end">
             <Button onClick={() => setViewingTest(null)}>Cerrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Share Modal (Success) ────────────────────────────────────────── */}
+      <Dialog 
+        open={shareModalOpen} 
+        onOpenChange={(open) => {
+          setShareModalOpen(open);
+          if (!open) {
+            setActiveTab('assigned');
+            setSelectedPatientId('');
+            setSelectedPatientName('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-success/10 p-6 flex flex-col items-center justify-center text-center border-b border-success/10">
+            <div className="h-16 w-16 bg-success/20 rounded-full flex items-center justify-center mb-4 animate-bounce duration-1000">
+              <CheckCircle2 className="h-8 w-8 text-success" />
+            </div>
+            <h2 className="text-xl font-bold text-success-foreground">¡Enlace Generado!</h2>
+            <p className="text-sm text-success-foreground/70 mt-1">
+              La prueba <strong>{activeShareTestName}</strong> ha sido asignada a <strong>{selectedPatientName}</strong>.
+            </p>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Link Copy Section */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Enlace de la prueba</label>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-muted/50 border border-border px-3 py-2 rounded-lg text-xs font-mono truncate flex items-center">
+                  {`${window.location.origin}/t/${activeShareToken}`}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="shrink-0 hover:bg-primary/5"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/t/${activeShareToken}`);
+                    toast.success('Enlace copiado');
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Share Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                className="gap-2 border-success/20 hover:bg-success/5 hover:text-success hover:border-success/40 py-6 flex flex-col h-auto"
+                onClick={() => {
+                  const text = encodeURIComponent(`Hola ${selectedPatientName}, te envío el enlace para realizar la prueba psicométrica *${activeShareTestName}*:\n\n${window.location.origin}/t/${activeShareToken}`);
+                  window.open(`https://wa.me/?text=${text}`, '_blank');
+                }}
+              >
+                <MessageCircle className="h-5 w-5" />
+                <span className="text-xs font-semibold">WhatsApp</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 py-6 flex flex-col h-auto"
+                onClick={() => {
+                  const subject = encodeURIComponent(`Prueba Psicométrica: ${activeShareTestName}`);
+                  const body = encodeURIComponent(`Hola ${selectedPatientName},\n\nTe envío el enlace para realizar la prueba psicométrica "${activeShareTestName}":\n\n${window.location.origin}/t/${activeShareToken}\n\nQuedo a tu disposición si tienes alguna duda.`);
+                  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                }}
+              >
+                <Mail className="h-5 w-5" />
+                <span className="text-xs font-semibold">Email</span>
+              </Button>
+            </div>
+
+            <div className="bg-muted/30 p-4 rounded-xl flex gap-3 items-start border border-border/50">
+              <Share2 className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                El paciente podrá realizar la prueba desde cualquier dispositivo. Los resultados se guardarán automáticamente en su expediente.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-muted/20 border-t flex justify-end">
+            <Button 
+              variant="zen" 
+              className="w-full sm:w-auto"
+              onClick={() => setShareModalOpen(false)}
+            >
+              Cerrar y ver historial
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
