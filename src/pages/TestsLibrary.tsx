@@ -471,32 +471,43 @@ const TestsLibrary = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200">
-          <div className="bg-success/10 p-6 flex flex-col items-center justify-center text-center border-b border-success/10">
-            <div className="h-16 w-16 bg-success/20 rounded-full flex items-center justify-center mb-4 animate-bounce duration-1000">
-              <CheckCircle2 className="h-8 w-8 text-success" />
+        <DialogContent className="max-w-[95vw] sm:max-w-[420px] p-0 overflow-hidden bg-card border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-3xl">
+          <div className="relative">
+            {/* Background Decorative Header */}
+            <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent w-full" />
+            
+            {/* Context Header */}
+            <div className="absolute top-8 left-0 right-0 flex flex-col items-center justify-center text-center px-6">
+              <div className="h-16 w-16 bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500">
+                <div className="h-12 w-12 bg-success/10 rounded-xl flex items-center justify-center">
+                  <CheckCircle2 className="h-7 w-7 text-success" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
+              <p className="text-sm text-muted-foreground mt-1 max-w-[280px]">
+                El test ya está disponible para <strong>{selectedPatientName}</strong>.
+              </p>
             </div>
-            <h2 className="text-xl font-bold text-success-foreground">¡Enlace Generado!</h2>
-            <p className="text-sm text-success-foreground/70 mt-1">
-              La prueba <strong>{activeShareTestName}</strong> ha sido asignada a <strong>{selectedPatientName}</strong>.
-            </p>
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Link Copy Section */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Enlace de la prueba</label>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-muted/50 border border-border px-3 py-2 rounded-lg text-xs font-mono truncate flex items-center">
+          <div className="pt-28 p-6 space-y-6">
+            {/* Link Box */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Enlace Público</label>
+                <span className="text-[10px] text-muted-foreground font-medium">Link único de acceso</span>
+              </div>
+              <div className="group relative flex items-center">
+                <div className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 pl-4 pr-12 py-3.5 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300 truncate">
                   {`${window.location.origin}/t/${activeShareToken}`}
                 </div>
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="shrink-0 hover:bg-primary/5"
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-1.5 h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/t/${activeShareToken}`);
-                    toast.success('Enlace copiado');
+                    toast.success('¡Copiado al portapapeles!');
                   }}
                 >
                   <Copy className="h-4 w-4" />
@@ -504,49 +515,55 @@ const TestsLibrary = () => {
               </div>
             </div>
 
-            {/* Share Grid */}
+            {/* Sharing Options */}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                className="gap-2 border-success/20 hover:bg-success/5 hover:text-success hover:border-success/40 py-6 flex flex-col h-auto"
+                className="group relative flex flex-col items-center gap-2 h-auto py-5 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-success/30 hover:bg-success/5 transition-all duration-300"
                 onClick={() => {
                   const text = encodeURIComponent(`Hola ${selectedPatientName}, te envío el enlace para realizar la prueba psicométrica *${activeShareTestName}*:\n\n${window.location.origin}/t/${activeShareToken}`);
                   window.open(`https://wa.me/?text=${text}`, '_blank');
                 }}
               >
-                <MessageCircle className="h-5 w-5" />
-                <span className="text-xs font-semibold">WhatsApp</span>
+                <div className="h-10 w-10 rounded-xl bg-success/10 flex items-center justify-center text-success group-hover:scale-110 transition-transform">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">WhatsApp</span>
               </Button>
 
               <Button
                 variant="outline"
-                className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 py-6 flex flex-col h-auto"
+                className="group relative flex flex-col items-center gap-2 h-auto py-5 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300"
                 onClick={() => {
                   const subject = encodeURIComponent(`Prueba Psicométrica: ${activeShareTestName}`);
                   const body = encodeURIComponent(`Hola ${selectedPatientName},\n\nTe envío el enlace para realizar la prueba psicométrica "${activeShareTestName}":\n\n${window.location.origin}/t/${activeShareToken}\n\nQuedo a tu disposición si tienes alguna duda.`);
                   window.location.href = `mailto:?subject=${subject}&body=${body}`;
                 }}
               >
-                <Mail className="h-5 w-5" />
-                <span className="text-xs font-semibold">Email</span>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Email</span>
               </Button>
             </div>
 
-            <div className="bg-muted/30 p-4 rounded-xl flex gap-3 items-start border border-border/50">
-              <Share2 className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                El paciente podrá realizar la prueba desde cualquier dispositivo. Los resultados se guardarán automáticamente en su expediente.
+            {/* Info Footer */}
+            <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl flex gap-3 items-start border border-slate-100 dark:border-slate-800/50">
+              <div className="h-8 w-8 rounded-lg bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0">
+                <Share2 className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                El paciente podrá realizar la prueba desde cualquier dispositivo. Los resultados se guardarán automáticamente en su expediente cuando termine.
               </p>
             </div>
-          </div>
 
-          <div className="p-4 bg-muted/20 border-t flex justify-end">
+            {/* Action Footer */}
             <Button 
               variant="zen" 
-              className="w-full sm:w-auto"
+              className="w-full py-6 rounded-2xl text-sm font-bold shadow-soft hover:scale-[1.01] active:scale-95 transition-all mt-2"
               onClick={() => setShareModalOpen(false)}
             >
-              Cerrar y ver historial
+              Entendido, ver historial
             </Button>
           </div>
         </DialogContent>
