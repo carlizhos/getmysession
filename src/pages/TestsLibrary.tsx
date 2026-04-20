@@ -492,12 +492,12 @@ const TestsLibrary = () => {
             </div>
 
             {/* ── Content Area (Scrollable) ──────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-8 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto px-6 sm:px-12 pb-10 space-y-8 scrollbar-hide">
               {/* Link Box */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Enlace Público de Acceso</label>
-                  <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block italic">Link único para el paciente</span>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Enlace Público de Acceso</label>
+                  <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block italic mr-1">Link único para el paciente</span>
                 </div>
                 <div className="group relative flex items-center">
                   <div className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 pl-5 pr-14 py-4 rounded-2xl text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-300 truncate shadow-inner">
@@ -567,7 +567,7 @@ const TestsLibrary = () => {
             </div>
 
             {/* ── Footer Button ────────────────────────────────────────── */}
-            <div className="p-8 pt-0 shrink-0">
+            <div className="px-6 sm:px-12 pb-10 shrink-0">
               <Button 
                 variant="zen" 
                 className="w-full py-7 rounded-2xl text-base font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
