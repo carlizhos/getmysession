@@ -34,9 +34,9 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    /* Accent */
-    --accent: 213 94% 96%;
-    --accent-foreground: 213 94% 35%;
+    /* Accent — Sage/Teal Tint */
+    --accent: 178 15% 95%;
+    --accent-foreground: 178 30% 20%;
 
     /* Status colors */
     --destructive: 0 72% 51%;
@@ -64,8 +64,8 @@
     --sidebar-foreground: 220 15% 40%;
     --sidebar-primary: 178 15% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 94% 96%;
-    --sidebar-accent-foreground: 213 94% 35%;
+    --sidebar-accent: 178 15% 95%;
+    --sidebar-accent-foreground: 178 30% 20%;
     --sidebar-border: 220 13% 93%;
     --sidebar-ring: 178 15% 56%;
 
@@ -73,8 +73,8 @@
     --zen-sage: 142 71% 45%;
     --zen-sage-light: 142 40% 95%;
     --zen-sage-dark: 142 50% 30%;
-    --zen-teal: 213 94% 55%;
-    --zen-teal-light: 213 94% 96%;
+    --zen-teal: 178 15% 56%;
+    --zen-teal-light: 178 15% 95%;
     --zen-rose: 0 72% 51%;
     --zen-rose-light: 0 50% 96%;
     --zen-purple: 262 83% 58%;
