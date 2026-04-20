@@ -4,20 +4,23 @@ import { cn } from '@/lib/utils';
 interface NotificationBadgeProps {
   count: number;
   className?: string;
-  delay?: number; // Time in ms before settling
+  forceSettled?: boolean; // Prop to synchronize with parent
+  delay?: number;
 }
 
-const NotificationBadge = ({ count, className, delay = 10000 }: NotificationBadgeProps) => {
-  const [isSettled, setIsSettled] = useState(false);
+const NotificationBadge = ({ count, className, forceSettled, delay = 10000 }: NotificationBadgeProps) => {
+  const [internalSettled, setInternalSettled] = useState(false);
   const [isVisible, setIsVisible] = useState(count > 0);
   const prevCount = useRef(count);
+
+  // Determine state: prefer prop, fallback to internal
+  const isSettled = forceSettled !== undefined ? forceSettled : internalSettled;
 
   useEffect(() => {
     if (count > 0) {
       setIsVisible(true);
-      // If count increased, "wake up" from settled state
       if (count !== prevCount.current) {
-        setIsSettled(false);
+        setInternalSettled(false);
       }
     } else {
       setIsVisible(false);
@@ -26,13 +29,13 @@ const NotificationBadge = ({ count, className, delay = 10000 }: NotificationBadg
   }, [count]);
 
   useEffect(() => {
-    if (isVisible && !isSettled) {
+    if (isVisible && !internalSettled && forceSettled === undefined) {
       const timer = setTimeout(() => {
-        setIsSettled(true);
+        setInternalSettled(true);
       }, delay);
       return () => clearTimeout(timer);
     }
-  }, [isVisible, isSettled, delay]);
+  }, [isVisible, internalSettled, delay, forceSettled]);
 
   if (!isVisible) return null;
 

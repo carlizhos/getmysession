@@ -5,9 +5,11 @@ import NotificationBadge from '@/components/ui/NotificationBadge';
 
 interface MessageBellProps {
   count?: number;
+  forceSettled?: boolean;
+  canShow?: boolean;
 }
 
-const MessageBell = ({ count = 2 }: MessageBellProps) => {
+const MessageBell = ({ count = 2, forceSettled, canShow }: MessageBellProps) => {
   const navigate = useNavigate();
 
   return (
@@ -22,10 +24,11 @@ const MessageBell = ({ count = 2 }: MessageBellProps) => {
         title="Mensajes de WhatsApp"
       >
         <MessageSquare className="h-4 w-4" />
-        {count > 0 && (
+        {count > 0 && canShow && (
           <NotificationBadge 
             count={count} 
             className="absolute top-1 right-[1px] bg-primary shadow-primary/40" 
+            forceSettled={forceSettled}
             delay={10000}
           />
         )}

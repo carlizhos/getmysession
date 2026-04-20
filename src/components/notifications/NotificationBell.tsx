@@ -18,7 +18,7 @@ interface ActivityLog {
   metadata?: any;
 }
 
-const NotificationBell = () => {
+const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, canShow?: boolean }) => {
   const [open, setOpen] = useState(false);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -124,10 +124,11 @@ const NotificationBell = () => {
         )}
       >
         <Bell className="h-4 w-4" />
-        {unreadCount > 0 && (
+        {unreadCount > 0 && canShow && (
           <NotificationBadge 
             count={unreadCount} 
             className="absolute top-1 right-0.5 bg-destructive shadow-destructive/40" 
+            forceSettled={forceSettled}
             delay={10000}
           />
         )}

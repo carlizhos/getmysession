@@ -73,6 +73,26 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [badgesSettled, setBadgesSettled] = useState(false);
+  const [canShowBadges, setCanShowBadges] = useState(false);
+
+  // Synchronize badges: Start timers once on mount
+  useEffect(() => {
+    // 1. Wait a moment for data fetching (NotificationBell) to be ready
+    const showTimer = setTimeout(() => {
+      setCanShowBadges(true);
+    }, 1000);
+
+    // 2. Settle all badges in unison after 10s
+    const settleTimer = setTimeout(() => {
+      setBadgesSettled(true);
+    }, 10000);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(settleTimer);
+    };
+  }, []);
 
   // Smart Header Logic: Hide on scroll down, show on scroll up
   useEffect(() => {
@@ -257,17 +277,19 @@ const Layout = ({ children }: LayoutProps) => {
                     {!collapsed && (
                       <span className="text-sm font-medium whitespace-nowrap flex-1">{item.name}</span>
                     )}
-                    {!collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
+                    {!collapsed && item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
                       <NotificationBadge 
                         count={unreadWa} 
                         className="ml-auto bg-success shadow-success/40" 
+                        forceSettled={badgesSettled}
                         delay={10000}
                       />
                     )}
-                    {collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
+                    {collapsed && item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
                       <NotificationBadge 
                         count={unreadWa} 
                         className="absolute -top-1 -right-1 bg-success shadow-success/40" 
+                        forceSettled={badgesSettled}
                         delay={10000}
                       />
                     )}
@@ -309,10 +331,11 @@ const Layout = ({ children }: LayoutProps) => {
                     'h-5 w-5 transition-colors',
                     location.pathname === '/settings' ? 'text-white' : 'text-muted-foreground'
                   )} />
-                  {pendingCount > 0 && (
+                  {pendingCount > 0 && canShowBadges && (
                     <NotificationBadge 
                       count={pendingCount} 
                       className="absolute -top-1 -right-1 bg-destructive shadow-destructive/40" 
+                      forceSettled={badgesSettled}
                       delay={10000}
                     />
                   )}
@@ -383,12 +406,8 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-0.5 sm:gap-1 w-1/4 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={toggleDarkMode} title={isDarkMode ? 'Modo Claro' : 'Modo Oscuro'} className="hidden sm:inline-flex">
-            {isDarkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4 text-zen-lavender" />}
-          </Button>
-
-          <MessageBell count={2} />
-          <NotificationBell />
+          <MessageBell count={2} forceSettled={badgesSettled} canShow={canShowBadges} />
+          <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
           
           <div className="w-px h-6 bg-white/20 mx-1 lg:mx-2" />
           
