@@ -14,23 +14,15 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/hooks/useOrganization';
+import { PatientTest } from '@/types';
 
-interface PatientTest {
-  id: string;
-  test_type: string;
-  token: string;
-  status: 'pending' | 'completed';
-  answers: Record<string, number> | null;
-  score: number | null;
-  interpretation: string | null;
-  created_at: string;
-  completed_at: string | null;
+interface PatientTestWithPatient extends PatientTest {
   patients: { name: string } | null;
 }
 
 const TestsLibrary = () => {
   const [activeTab, setActiveTab] = useState<'catalog' | 'assigned'>('catalog');
-  const [assignedTests, setAssignedTests] = useState<PatientTest[]>([]);
+  const [assignedTests, setAssignedTests] = useState<PatientTestWithPatient[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   // Assign modal state
@@ -40,7 +32,7 @@ const TestsLibrary = () => {
   const [selectedPatientName, setSelectedPatientName] = useState('');
 
   // Results details state
-  const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
+  const [viewingTest, setViewingTest] = useState<PatientTestWithPatient | null>(null);
   const [patientFilter, setPatientFilter] = useState('');
   const patientSearchRef = useRef<HTMLInputElement>(null);
   const { organization } = useOrganization();
@@ -66,8 +58,9 @@ const TestsLibrary = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAssignedTests(data as any);
-    } catch (error: any) {
+      setAssignedTests(data as PatientTestWithPatient[]);
+    } catch (err: unknown) {
+      const error = err as Error;
       toast.error('Error al cargar pruebas asignadas: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -114,7 +107,8 @@ const TestsLibrary = () => {
       toast.success('Prueba generada correctamente');
       setIsAssignModalOpen(false);
       // We don't clear selection yet so the share message can use the name
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast.error('Error al asignar prueba: ' + error.message);
     }
   };
@@ -184,7 +178,7 @@ const TestsLibrary = () => {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'catalog' | 'assigned')}>
           <TabsList>
             <TabsTrigger value="catalog" className="gap-2">
               <ClipboardList className="h-4 w-4" />
@@ -390,72 +384,92 @@ const TestsLibrary = () => {
       </Dialog>
 
       <Dialog open={!!viewingTest} onOpenChange={(open) => !open && setViewingTest(null)}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 border-b">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <ClipboardList className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <DialogTitle>{viewingTest ? psychometricTests[viewingTest.test_type]?.name : ''}</DialogTitle>
-                <DialogDescription>
-                  Respuestas de {viewingTest?.patients?.name} • Completada el {viewingTest?.completed_at ? format(new Date(viewingTest.completed_at), "d 'de' MMMM, yyyy", { locale: es }) : ''}
-                </DialogDescription>
+        <DialogContent className="max-w-[95vw] sm:max-w-[700px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
+          <div className="flex flex-col h-full max-h-[90vh]">
+            {/* ── Header Section ────────────────────────────────────────── */}
+            <div className="shrink-0 px-6 sm:px-12 py-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-primary/10">
+                  <ClipboardList className="h-7 w-7 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate">
+                    {viewingTest ? psychometricTests[viewingTest.test_type]?.name : 'Detalles de la Prueba'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">
+                    Respuestas de <strong>{viewingTest?.patients?.name}</strong> • {viewingTest?.completed_at ? format(new Date(viewingTest.completed_at), "d 'de' MMMM, yyyy", { locale: es }) : ''}
+                  </p>
+                </div>
               </div>
             </div>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {viewingTest && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/50 p-3 rounded-lg border">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Puntaje Total</p>
-                    <p className="text-2xl font-bold text-primary">{viewingTest.score}</p>
+            
+            {/* ── Content Area (Scrollable) ──────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 space-y-10 scrollbar-hide">
+              {viewingTest && (
+                <div className="space-y-10">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Puntaje Total</p>
+                      <p className="text-4xl font-black text-primary">{viewingTest.score}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Interpretación</p>
+                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{viewingTest.interpretation}</p>
+                    </div>
                   </div>
-                  <div className="bg-muted/50 p-3 rounded-lg border">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Interpretación</p>
-                    <p className="font-semibold text-foreground leading-tight">{viewingTest.interpretation}</p>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-bold text-sm border-b pb-2">Respuestas Detalladas</h4>
-                  {psychometricTests[viewingTest.test_type]?.questions.map((q, idx) => {
-                    const patientAnswerValue = viewingTest.answers?.[q.id];
-                    const testOptions = psychometricTests[viewingTest.test_type]?.options || [];
-                    
-                    return (
-                      <div key={q.id} className="space-y-2 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                        <p className="text-sm font-medium leading-normal">
-                          <span className="text-muted-foreground mr-2">{idx + 1}.</span>
-                          {q.text}
-                        </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {testOptions.map((opt) => (
-                            <div 
-                              key={opt.value}
-                              className={cn(
-                                "text-[10px] px-2 py-1.5 rounded border text-center transition-colors",
-                                patientAnswerValue === opt.value 
-                                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
-                                  : "bg-white text-muted-foreground border-slate-200"
-                              )}
-                            >
-                              {opt.label}
+                  {/* Detailed Answers */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                      <h4 className="font-black text-xs uppercase tracking-widest text-slate-400">Respuestas Detalladas</h4>
+                      <span className="text-[10px] text-muted-foreground font-medium italic">Sincronizado con expediente</span>
+                    </div>
+                    <div className="space-y-5">
+                      {psychometricTests[viewingTest.test_type]?.questions.map((q, idx) => {
+                        const patientAnswerValue = viewingTest.answers?.[q.id];
+                        const testOptions = psychometricTests[viewingTest.test_type]?.options || [];
+                        
+                        return (
+                          <div key={q.id} className="space-y-4 p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <p className="text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed">
+                              <span className="text-primary/40 mr-4 text-xs">{(idx + 1).toString().padStart(2, '0')}</span>
+                              {q.text}
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {testOptions.map((opt) => (
+                                <div 
+                                  key={opt.value}
+                                  className={cn(
+                                    "text-[10px] px-3 py-3 rounded-xl border text-center transition-all duration-200",
+                                    (viewingTest.answers as Record<string, any>)?.[q.id] === opt.value 
+                                      ? "bg-primary text-white border-primary font-black shadow-md scale-[1.02]"
+                                      : "bg-slate-50/50 dark:bg-slate-900/30 text-muted-foreground border-slate-100 dark:border-slate-800 opacity-60"
+                                  )}
+                                >
+                                  {opt.label}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="px-6 py-4 border-t bg-slate-50 flex justify-end">
-            <Button onClick={() => setViewingTest(null)}>Cerrar</Button>
+              )}
+            </div>
+            
+            {/* ── Footer Button ────────────────────────────────────────── */}
+            <div className="px-6 sm:px-12 pb-10 shrink-0">
+              <Button 
+                variant="zen" 
+                className="w-full py-8 rounded-3xl text-lg font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all"
+                onClick={() => setViewingTest(null)}
+              >
+                Cerrar resultados
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -475,20 +489,20 @@ const TestsLibrary = () => {
         <DialogContent className="max-w-[95vw] sm:max-w-[600px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
           <div className="flex flex-col h-full max-h-[90vh]">
             {/* ── Header Section (Original Style) ────────────────────────── */}
-            <div className="shrink-0 bg-success/5 dark:bg-success/10 p-8 flex flex-col items-center justify-center text-center border-b border-success/10">
+            <div className="shrink-0 bg-success/5 dark:bg-success/10 px-6 sm:px-12 py-10 flex flex-col items-center justify-center text-center border-b border-success/10">
               <div className="h-20 w-20 bg-success/10 rounded-full flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500 border border-success/20 shadow-sm">
                 <CheckCircle2 className="h-10 w-10 text-success" />
               </div>
               <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 mx-auto max-w-[450px]">
+              <p className="text-base text-slate-600 dark:text-slate-300 mt-2 mx-auto max-w-[450px]">
                 El test seleccionado ya está disponible en el expediente de <strong>{selectedPatientName}</strong> e integra los datos clínicos del paciente.
               </p>
             </div>
 
             {/* ── Content Area (Scrollable) ──────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-8 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 space-y-10 scrollbar-hide">
               {/* Link Box */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Enlace Público de Acceso</label>
                   <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block italic">Link único para el paciente</span>
@@ -515,7 +529,7 @@ const TestsLibrary = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
                   variant="outline"
-                  className="group relative flex items-center gap-4 h-auto p-5 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-success/30 hover:bg-success/5 transition-all duration-300 text-left justify-start"
+                  className="group relative flex items-center gap-4 h-auto p-6 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-success/30 hover:bg-success/5 transition-all duration-300 text-left justify-start"
                   onClick={() => {
                     const text = encodeURIComponent(`Hola ${selectedPatientName}, te envío el enlace para realizar la prueba psicométrica *${activeShareTestName}*:\n\n${window.location.origin}/t/${activeShareToken}`);
                     window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -532,7 +546,7 @@ const TestsLibrary = () => {
 
                 <Button
                   variant="outline"
-                  className="group relative flex items-center gap-4 h-auto p-5 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-left justify-start"
+                  className="group relative flex items-center gap-4 h-auto p-6 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-left justify-start"
                   onClick={() => {
                     const subject = encodeURIComponent(`Prueba Psicométrica: ${activeShareTestName}`);
                     const body = encodeURIComponent(`Hola ${selectedPatientName},\n\nTe envío el enlace para realizar la prueba psicométrica "${activeShareTestName}":\n\n${window.location.origin}/t/${activeShareToken}\n\nQuedo a tu disposición si tienes alguna duda.`);
@@ -550,7 +564,7 @@ const TestsLibrary = () => {
               </div>
 
               {/* Info Tips */}
-              <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[1.5rem] flex gap-4 items-center border border-slate-100 dark:border-slate-800/50">
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-[1.5rem] flex gap-4 items-center border border-slate-100 dark:border-slate-800/50">
                 <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0">
                   <Share2 className="h-5 w-5 text-primary" />
                 </div>
@@ -561,10 +575,10 @@ const TestsLibrary = () => {
             </div>
 
             {/* ── Footer Button ────────────────────────────────────────── */}
-            <div className="p-8 pt-0 shrink-0">
+            <div className="px-6 sm:px-12 pb-10 shrink-0">
               <Button 
                 variant="zen" 
-                className="w-full py-7 rounded-2xl text-base font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                className="w-full py-8 rounded-3xl text-lg font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all"
                 onClick={() => setShareModalOpen(false)}
               >
                 Entendido, ir al historial

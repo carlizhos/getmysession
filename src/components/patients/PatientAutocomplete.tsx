@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
+import { useOrganization } from '@/hooks/useOrganization';
 
 interface Patient {
     id: string;
@@ -26,9 +27,11 @@ interface PatientAutocompleteProps {
     onSelect: (patientId: string, patientName: string) => void;
     placeholder?: string;
     className?: string;
+    refreshTrigger?: number;
 }
 
-const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProps>(({ value, onSelect, placeholder = "Buscar paciente...", className }, ref) => {
+const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProps>(({ value, onSelect, placeholder = "Buscar paciente...", className, refreshTrigger = 0 }, ref) => {
+    const { organization } = useOrganization();
     const [open, setOpen] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -39,10 +42,13 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
     // Cargar pacientes desde Supabase
     useEffect(() => {
         const fetchPatients = async () => {
+            if (!organization?.id) return;
             try {
                 const { data, error } = await supabase
                     .from('patients')
                     .select('id, name, email')
+                    .eq('organization_id', organization.id)
+                    .is('deleted_at', null)
                     .order('name');
 
                 if (error) throw error;
@@ -53,7 +59,7 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
         };
 
         fetchPatients();
-    }, []);
+    }, [organization?.id, refreshTrigger]);
 
     // Sincronizar el nombre cuando el valor cambia (útil para limpiar desde fuera)
     useEffect(() => {

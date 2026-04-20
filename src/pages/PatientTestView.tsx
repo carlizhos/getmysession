@@ -9,11 +9,36 @@ import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle2, ShieldCheck, ArrowRight, HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface TestQuestion {
+  id: string;
+  text: string;
+}
+
+interface TestOption {
+  value: number;
+  label: string;
+}
+
+interface TestDefinition {
+  id: string;
+  name: string;
+  instructions: string;
+  questions: TestQuestion[];
+  options: TestOption[];
+}
+
+interface TestAssignment {
+  id: string;
+  test_type: string;
+  status: string;
+  patient_id: string;
+}
+
 export default function PatientTestView() {
   const { token } = useParams<{ token: string }>();
   
-  const [testAssignment, setTestAssignment] = useState<any>(null);
-  const [testDef, setTestDef] = useState<any>(null);
+  const [testAssignment, setTestAssignment] = useState<TestAssignment | null>(null);
+  const [testDef, setTestDef] = useState<TestDefinition | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -46,8 +71,9 @@ export default function PatientTestView() {
           if (!def) throw new Error('Definición de prueba no encontrada.');
           setTestDef(def);
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message);
       } finally {
         setIsLoading(false);
       }
@@ -59,10 +85,11 @@ export default function PatientTestView() {
   const handleAnswer = (questionId: string, value: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
-
+  
   const handleSubmit = async () => {
     // Validate all questions answered
-    const unanswered = testDef.questions.filter((q: any) => answers[q.id] === undefined);
+    if (!testDef) return;
+    const unanswered = testDef.questions.filter((q: TestQuestion) => answers[q.id] === undefined);
     if (unanswered.length > 0) {
       toast.error('Por favor responde todas las preguntas antes de enviar.');
       return;
@@ -92,8 +119,9 @@ export default function PatientTestView() {
 
       setIsSubmitted(true);
       toast.success('Respuestas enviadas correctamente');
-    } catch (err: any) {
-      toast.error('Error al enviar la prueba: ' + err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error('Error al enviar la prueba: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -170,7 +198,7 @@ export default function PatientTestView() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100">
-              {testDef.questions.map((question: any, index: number) => (
+              {testDef.questions.map((question: TestQuestion, index: number) => (
                 <div key={question.id} className="p-4 sm:p-6 hover:bg-slate-50 transition-colors">
                   <p className="font-medium text-slate-900 mb-4 whitespace-nowrap overflow-hidden text-ellipsis sm:whitespace-normal">
                     <span className="text-muted-foreground mr-2">{index + 1}.</span>
@@ -180,7 +208,7 @@ export default function PatientTestView() {
                     onValueChange={(val) => handleAnswer(question.id, parseInt(val))}
                     className="flex flex-col space-y-3"
                   >
-                    {testDef.options.map((opt: any) => (
+                    {testDef.options.map((opt: TestOption) => (
                       <div key={opt.value} className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-slate-200">
                         <RadioGroupItem value={opt.value.toString()} id={`${question.id}-${opt.value}`} />
                         <Label htmlFor={`${question.id}-${opt.value}`} className="flex-1 cursor-pointer font-normal text-slate-700">

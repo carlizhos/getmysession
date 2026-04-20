@@ -48,7 +48,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
 
     const getAppointmentsForHour = (hour: number) => {
         return appointments.filter(
-            apt => parseISO(apt.startTime).getHours() === hour
+            apt => parseISO(apt.start_time).getHours() === hour
         );
     };
 
@@ -115,7 +115,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                                         <MapPin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                                                     </div>
                                                 )}
-                                                <span className="truncate">{apt.patientName}</span>
+                                                <span className="truncate">{apt.patient_name}</span>
                                             </div>
 
                                             {apt.status && STATUS_LABEL[apt.status] && (
@@ -138,7 +138,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                             <div className="flex items-center gap-3">
                                                 <div className="flex items-center gap-1 text-[10px] font-semibold opacity-80">
                                                     <Clock className="h-3 w-3" />
-                                                    <span>{format(parseISO(apt.startTime), 'h:mm a')}</span>
+                                                    <span>{format(parseISO(apt.start_time), 'h:mm a')}</span>
                                                     {apt.isRecurring && (
                                                         <div className="ml-1 bg-slate-500/10 p-0.5 rounded">
                                                             <Repeat className="h-2.5 w-2.5 text-slate-600" />
@@ -152,7 +152,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
 
                                             <div className={cn(
                                                 "flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold border border-current/10",
-                                                apt.paymentStatus === 'paid' ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                                                apt.payment_status === 'paid' ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
                                             )}>
                                                 {apt.paymentStatus === 'paid' ? (
                                                     <>

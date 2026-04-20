@@ -56,12 +56,13 @@ export default function Portal() {
       if (error) throw error;
       
       // Sort: upcoming first
-      const sorted = (data || []).sort((a: any, b: any) => 
+      const sorted = (data || []).sort((a: Appointment, b: Appointment) => 
         new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
       );
       setAppointments(sorted);
-    } catch (err: any) {
-      console.error(err);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error(error);
       toast.error('Error al cargar tus citas.');
     } finally {
       setLoading(false);
@@ -87,9 +88,10 @@ export default function Portal() {
       } else {
         toast.error('No tienes permiso para cancelar esta cita.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast.error('No se pudo cancelar la cita.');
-      console.error(err);
+      console.error(error);
     } finally {
       setCancelingId(null);
     }

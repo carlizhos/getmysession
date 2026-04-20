@@ -91,12 +91,13 @@ const Messages = () => {
 
     // Fetch patient names
     const patientIds = [...new Set((data || []).map(m => m.patient_id).filter(Boolean))];
-    let patientMap: Record<string, string> = {};
+    const patientMap: Record<string, string> = {};
     if (patientIds.length > 0) {
       const { data: patients } = await supabase
         .from('patients')
         .select('id, name')
-        .in('id', patientIds);
+        .in('id', (patientIds as string[]))
+        .eq('organization_id', organization.id);
       patients?.forEach(p => { patientMap[p.id] = p.name; });
     }
 
@@ -137,8 +138,8 @@ const Messages = () => {
         schema: 'public',
         table: 'whatsapp_messages',
         filter: `organization_id=eq.${organization.id}`,
-      }, (payload) => {
-        const msg = payload.new as WaMessage;
+      }, (payload: { new: WaMessage }) => {
+        const msg = payload.new;
         setMessages(prev => [...prev, msg]);
         fetchConversations();
       })
@@ -217,8 +218,9 @@ const Messages = () => {
         .order('created_at', { ascending: true });
       setMessages(msgs || []);
       fetchConversations();
-    } catch (err: any) {
-      toast.error('Error al enviar: ' + (err.message || 'Error desconocido'));
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error('Error al enviar: ' + (error.message || 'Error desconocido'));
     } finally {
       setSending(false);
     }

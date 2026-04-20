@@ -38,7 +38,12 @@ declare global {
         google?: {
             accounts: {
                 oauth2: {
-                    initCodeClient: (config: any) => any;
+                    initCodeClient: (config: {
+                        client_id: string;
+                        scope: string;
+                        ux_mode: 'popup' | 'redirect';
+                        callback: (response: { code: string }) => Promise<void>;
+                    }) => { requestCode: () => void };
                 };
             };
         };
@@ -119,7 +124,7 @@ const Settings = () => {
     const [isUnlinking, setIsUnlinking] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
     const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
-    const [codeClient, setCodeClient] = useState<any>(null);
+    const [codeClient, setCodeClient] = useState<{ requestCode: () => void } | null>(null);
 
     const [profile, setProfile] = useState({
         prefix: 'none',
@@ -145,7 +150,10 @@ const Settings = () => {
     const [showAddCedula, setShowAddCedula] = useState(false);
     const [showAddCurso, setShowAddCurso] = useState(false);
 
-    const [horario, setHorario] = useState<any>({
+    const [horario, setHorario] = useState<{
+        dias: Record<number, { activo: boolean; inicio: string; fin: string }>;
+        dias_no_laborables: string[];
+    }>({
         dias: {
             1: { activo: true, inicio: '08:00', fin: '17:00' },
             2: { activo: true, inicio: '08:00', fin: '17:00' },
@@ -198,8 +206,7 @@ const Settings = () => {
             });
 
             // Dynamic lists — stored as JSONB in profiles
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const d = data as any;
+            const d = data as { cedulas?: Cedula[]; cursos?: Curso[] };
             if (Array.isArray(d?.cedulas)) setCedulas(d.cedulas);
             if (Array.isArray(d?.cursos)) setCursos(d.cursos);
 
@@ -208,12 +215,12 @@ const Settings = () => {
                 
                 // Migración si viene en formato antiguo (array de días y horas globales)
                 if (Array.isArray(h.dias)) {
-                    const newDias: any = {};
+                    const newDias: Record<number, { activo: boolean; inicio: string; fin: string }> = {};
                     [0, 1, 2, 3, 4, 5, 6].forEach(d => {
                         newDias[d] = {
-                            activo: h.dias.includes(d),
-                            inicio: h.inicio || '08:00',
-                            fin: h.fin || '17:00'
+                            activo: (h.dias as number[]).includes(d),
+                            inicio: (h.inicio as string) || '08:00',
+                            fin: (h.fin as string) || '17:00'
                         };
                     });
                     setHorario({
@@ -245,30 +252,7 @@ const Settings = () => {
         fetchProfile();
     }, [fetchProfile]);
 
-    // Initialize Google OAuth Code Client (for branded synchronization)
-    useEffect(() => {
-        if (!window.google || !GOOGLE_CLIENT_ID) return;
-
-        try {
-            console.log('[Settings] Initializing Google Code Client...');
-            const client = window.google.accounts.oauth2.initCodeClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/calendar.events',
-                ux_mode: 'popup',
-                callback: async (response: any) => {
-                    if (response.code) {
-                        console.log('[Settings] Google Code received, starting exchange...');
-                        await handleCodeResponse(response.code);
-                    }
-                },
-            });
-            setCodeClient(client);
-        } catch (err) {
-            console.error('Error initializing Google Code Client:', err);
-        }
-    }, [user]);
-
-    const handleCodeResponse = async (code: string) => {
+    const handleCodeResponse = useCallback(async (code: string) => {
         if (!user) return;
         setIsLinking(true);
         try {
@@ -282,13 +266,37 @@ const Settings = () => {
             setHasGoogleCalendar(true);
             toast.success('¡Google Calendar conectado profesionalmente!');
             fetchProfile(); // Refresh profile to be sure
-        } catch (err: any) {
-            console.error('Error exchanging code:', err);
-            toast.error('Error al vincular: ' + (err.message || 'Error desconocido'));
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error('Error exchanging code:', error);
+            toast.error('Error al vincular: ' + (error.message || 'Error desconocido'));
         } finally {
             setIsLinking(false);
         }
-    };
+    }, [user, fetchProfile]);
+
+    // Initialize Google OAuth Code Client (for branded synchronization)
+    useEffect(() => {
+        if (!window.google || !GOOGLE_CLIENT_ID) return;
+
+        try {
+            console.log('[Settings] Initializing Google Code Client...');
+            const client = window.google.accounts.oauth2.initCodeClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/calendar.events',
+                ux_mode: 'popup',
+                callback: async (response: { code: string }) => {
+                    if (response.code) {
+                        console.log('[Settings] Google Code received, starting exchange...');
+                        await handleCodeResponse(response.code);
+                    }
+                },
+            });
+            setCodeClient(client);
+        } catch (err) {
+            console.error('Error initializing Google Code Client:', err);
+        }
+    }, [handleCodeResponse]);
 
     // ── Saves ─────────────────────────────────────────────────────────────────
 
@@ -344,7 +352,7 @@ const Settings = () => {
         if (!user) return;
         
         // Validation: Catch any active days with invalid ranges
-        const invalidDays = Object.entries(horario.dias).filter(([_, config]: [string, any]) => {
+        const invalidDays = Object.entries(horario.dias).filter(([_, config]) => {
             return config.activo && config.fin <= config.inicio;
         });
 
@@ -390,7 +398,7 @@ const Settings = () => {
     };
 
     const toggleDia = (d: number) => {
-        setHorario((prev: any) => ({
+        setHorario((prev) => ({
             ...prev,
             dias: {
                 ...prev.dias,
@@ -426,7 +434,8 @@ const Settings = () => {
     const copiarHorarioATodos = (sourceDia: number) => {
         const { inicio, fin } = horario.dias[sourceDia];
         const newDias = { ...horario.dias };
-        Object.keys(newDias).forEach((key: any) => {
+        Object.keys(newDias).forEach((k) => {
+            const key = parseInt(k);
             if (newDias[key].activo) {
                 newDias[key] = { ...newDias[key], inicio, fin };
             }
@@ -487,8 +496,9 @@ const Settings = () => {
             setHasGoogleCalendar(false);
             setShowUnlinkConfirm(false);
             toast.success('Google Calendar se ha desconectado correctamente');
-        } catch (err: any) {
-            console.error('Error unlinking Google Calendar:', err);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error('Error unlinking Google Calendar:', error);
             toast.error('Error al desconectar Google Calendar');
         } finally {
             setIsUnlinking(false);

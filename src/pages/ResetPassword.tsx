@@ -42,7 +42,8 @@ const ResetPassword = () => {
             if (error) throw error;
             setDone(true);
             setTimeout(() => navigate('/auth'), 3000);
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as Error;
             toast.error('Error: ' + error.message);
         } finally {
             setLoading(false);

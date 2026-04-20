@@ -28,7 +28,7 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
 
     const getAppointmentsForDay = (date: Date) => {
         return appointments.filter(apt =>
-            isSameDay(parseISO(apt.startTime), date)
+            isSameDay(parseISO(apt.start_time), date)
         );
     };
 
@@ -117,14 +117,14 @@ const MonthView = ({ currentDate, appointments, selectedDate, onSelectDate, onDa
                                         </div>
 
                                         <span className="truncate flex-1 font-bold leading-none">
-                                            {apt.patientName.split(' ')[0]}
+                                            {apt.patient_name.split(' ')[0]}
                                         </span>
 
                                         <div className="flex items-center gap-0.5 ml-auto">
                                             {apt.isRecurring && (
                                                 <Repeat className="h-2 w-2 text-slate-600" />
                                             )}
-                                            {apt.paymentStatus === 'paid' ? (
+                                            {apt.payment_status === 'paid' ? (
                                                 <CreditCard className="h-2.5 w-2.5 text-green-600" title="Pagada" />
                                             ) : (
                                                 <CircleDollarSign className="h-2.5 w-2.5 text-muted-foreground opacity-40" title="Pendiente" />

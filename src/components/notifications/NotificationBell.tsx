@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityType } from '@/lib/activityLogger';
+import NotificationBadge from '@/components/ui/NotificationBadge';
 
 interface ActivityLog {
   id: string;
@@ -117,16 +118,18 @@ const NotificationBell = () => {
       <button
         onClick={() => setOpen(prev => !prev)}
         className={cn(
-          "relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-          "hover:bg-muted text-muted-foreground hover:text-foreground",
-          open && "bg-muted text-foreground"
+          "relative flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
+          "hover:bg-white/10 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground",
+          open && "bg-white/10 dark:bg-white/5 text-foreground"
         )}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white shadow-sm">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <NotificationBadge 
+            count={unreadCount} 
+            className="absolute top-1 right-0.5 bg-destructive shadow-destructive/40" 
+            delay={10000}
+          />
         )}
       </button>
 

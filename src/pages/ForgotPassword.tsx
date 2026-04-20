@@ -20,7 +20,8 @@ const ForgotPassword = () => {
             });
             if (error) throw error;
             setSent(true);
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as Error;
             toast.error('Error: ' + error.message);
         } finally {
             setLoading(false);

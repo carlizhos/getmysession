@@ -37,6 +37,7 @@ import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageBell from '@/components/notifications/MessageBell';
+import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
 
 const navigation = [
@@ -257,14 +258,18 @@ const Layout = ({ children }: LayoutProps) => {
                       <span className="text-sm font-medium whitespace-nowrap flex-1">{item.name}</span>
                     )}
                     {!collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-success text-[10px] font-bold text-white px-1">
-                        {unreadWa > 99 ? '99+' : unreadWa}
-                      </span>
+                      <NotificationBadge 
+                        count={unreadWa} 
+                        className="ml-auto bg-success shadow-success/40" 
+                        delay={10000}
+                      />
                     )}
                     {collapsed && item.name === 'WhatsApp' && unreadWa > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-success text-[8px] font-bold text-white">
-                        {unreadWa > 9 ? '9+' : unreadWa}
-                      </span>
+                      <NotificationBadge 
+                        count={unreadWa} 
+                        className="absolute -top-1 -right-1 bg-success shadow-success/40" 
+                        delay={10000}
+                      />
                     )}
                   </NavLink>
 
@@ -305,9 +310,11 @@ const Layout = ({ children }: LayoutProps) => {
                     location.pathname === '/settings' ? 'text-white' : 'text-muted-foreground'
                   )} />
                   {pendingCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-destructive text-[7px] font-bold text-white leading-none">
-                      {pendingCount}
-                    </span>
+                    <NotificationBadge 
+                      count={pendingCount} 
+                      className="absolute -top-1 -right-1 bg-destructive shadow-destructive/40" 
+                      delay={10000}
+                    />
                   )}
                 </div>
                 {!collapsed && (

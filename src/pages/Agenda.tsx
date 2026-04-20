@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
+import { toast } from 'sonner';
 import { format as fmtDate } from 'date-fns';
 import {
   DropdownMenu,
@@ -60,8 +61,21 @@ import AgendaListView from '@/components/agenda/AgendaListView';
 import { LayoutList, CalendarDays } from 'lucide-react';
 import DayView from '@/components/agenda/DayView';
 import MonthView from '@/components/agenda/MonthView';
+import { Appointment } from '@/types';
 
 type ViewMode = 'day' | 'week' | 'month';
+
+interface DayConfig {
+  activo: boolean;
+  inicio: string;
+  fin: string;
+}
+
+interface ScheduleConfig {
+  dias: Record<number, DayConfig>;
+  dias_no_laborables: string[];
+  fin?: string;
+}
 
 const AgendaPage = () => {
   const { user } = useAuth();
@@ -71,32 +85,41 @@ const AgendaPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [viewType, setViewType] = useState<'calendar' | 'list'>('calendar');
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [editingAppointment, setEditingAppointment] = useState<any | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [nonWorkingDays, setNonWorkingDays] = useState<string[]>([]); // YYYY-MM-DD
   const [horarioFin, setHorarioFin] = useState('17:00'); // HH:mm
 
   // Load schedule from profile
-  const [horario, setHorario] = useState<any>(null);
+  const [horario, setHorario] = useState<ScheduleConfig | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('profiles')
-      .select('horario_atencion')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
+    const fetchProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('horario_atencion')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
         if (data?.horario_atencion) {
-          setHorario(data.horario_atencion);
-          if (data.horario_atencion.dias_no_laborables) {
-            setNonWorkingDays(data.horario_atencion.dias_no_laborables);
+          const config = data.horario_atencion as unknown as ScheduleConfig;
+          setHorario(config);
+          if (config.dias_no_laborables) {
+            setNonWorkingDays(config.dias_no_laborables);
           }
-          if (data.horario_atencion.fin) {
-            setHorarioFin(data.horario_atencion.fin);
+          if (config.fin) {
+            setHorarioFin(config.fin);
           }
         }
-      });
+      } catch (err: unknown) {
+        console.error('Error fetching profile/schedule:', err);
+      }
+    };
+    fetchProfile();
   }, [user]);
 
   const getDayConfig = (date: Date) => {
@@ -128,43 +151,25 @@ const AgendaPage = () => {
     return false;
   };
 
-  const isAppointmentPast = (apt: any) => {
-    if (!apt?.startTime) return false;
-    return isBefore(parseISO(apt.startTime), new Date());
+  const isAppointmentPast = (apt: Appointment) => {
+    if (!apt?.start_time) return false;
+    return isBefore(parseISO(apt.start_time), new Date());
   };
 
   const fetchAppointments = useCallback(async () => {
     try {
+      if (!organization?.id) return;
       const { data, error } = await supabase
         .from('appointments')
         .select('*')
         .eq('organization_id', organization?.id)
         .order('start_time', { ascending: true });
       if (error) throw error;
-      // Mapear campos de BD al formato que usa la agenda
-      const mapped = (data || []).map((apt: any) => ({
-        id: apt.id,
-        patientId: apt.patient_id,
-        patientName: apt.patient_name,
-        startTime: apt.start_time,
-        endTime: apt.end_time,
-        status: apt.status,
-        type: apt.type,
-        fee: apt.fee,
-        paymentStatus: apt.payment_status,
-        notes: apt.notes,
-        color: apt.color,
-        meetingLink: apt.meeting_link,
-        meetingPlatform: apt.meeting_platform,
-        modality: apt.modality,
-        isRecurring: apt.is_recurring,
-        recurrenceId: apt.recurrence_id,
-      }));
-      setAppointments(mapped);
-    } catch (error) {
-      console.error('Error al cargar citas:', error);
-    } finally {
-      // no-op
+      setAppointments(data as Appointment[] || []);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Error fetching appointments:', error);
+      toast.error('Error al cargar agenda: ' + error.message);
     }
   }, [organization?.id]);
 
@@ -186,7 +191,7 @@ const AgendaPage = () => {
     }
   };
 
-  const handleRescheduleAppointment = (apt: any) => {
+  const handleRescheduleAppointment = (apt: Appointment) => {
     setEditingAppointment(apt);
     setIsNewAppointmentOpen(true);
   };
@@ -214,7 +219,7 @@ const AgendaPage = () => {
     let maxEnd = 0;
     let hasActive = false;
     
-    Object.values(horario.dias).forEach((d: any) => {
+    Object.values(horario.dias).forEach((d: DayConfig) => {
       if (d.activo) {
         hasActive = true;
         minStart = Math.min(minStart, parseInt(d.inicio.split(':')[0]));
@@ -269,7 +274,7 @@ const AgendaPage = () => {
 
   const getAppointmentsForDay = (date: Date) => {
     return appointments.filter(apt =>
-      isSameDay(parseISO(apt.startTime), date)
+      isSameDay(parseISO(apt.start_time), date)
     );
   };
 
@@ -297,7 +302,7 @@ const AgendaPage = () => {
     teal: 'bg-teal-100 border-teal-400 text-teal-800 dark:bg-teal-900/30 dark:text-teal-200',
   };
 
-  const getChipStyle = (apt: any) =>
+  const getChipStyle = (apt: Appointment) =>
     apt.color && COLOR_CHIP[apt.color]
       ? COLOR_CHIP[apt.color]
       : getStatusColor(apt.status);
@@ -470,7 +475,7 @@ const AgendaPage = () => {
                   const monthStartDate = startOfMonth(currentDate);
                   const monthEndDate = endOfMonth(currentDate);
                   return appointments.filter(apt => {
-                    const d = parseISO(apt.startTime);
+                    const d = parseISO(apt.start_time);
                     if (viewMode === 'day') return isSameDay(d, currentDate);
                     if (viewMode === 'week') return d >= weekStartDate && d <= weekEndDate;
                     return d >= monthStartDate && d <= monthEndDate;
@@ -567,7 +572,7 @@ const AgendaPage = () => {
                             </div>
                             {weekDays.map(day => {
                               const dayAppointments = getAppointmentsForDay(day).filter(
-                                apt => parseISO(apt.startTime).getHours() === hour
+                                apt => parseISO(apt.start_time).getHours() === hour
                               );
                               const isTodayColumn = isToday(day);
                               const showTimeIndicator = isTodayColumn && isCurrentHour && timeIndicatorPosition !== null;
@@ -628,13 +633,13 @@ const AgendaPage = () => {
                                         ) : (
                                           <MapPin className="h-2.5 w-2.5 flex-shrink-0 text-amber-600 dark:text-amber-400" title="Presencial" />
                                         )}
-                                        <span className="truncate flex-1">{apt.patientName.split(' ')[0]}</span>
+                                        <span className="truncate flex-1">{apt.patient_name.split(' ')[0]}</span>
                                       </div>
 
                                       {/* Row 2: Time & Recurrence */}
                                       <div className="flex items-center gap-1 text-[9px] font-semibold opacity-80">
                                         <Clock className="h-2.5 w-2.5" />
-                                        <span>{format(parseISO(apt.startTime), 'HH:mm')}</span>
+                                        <span>{format(parseISO(apt.start_time), 'HH:mm')}</span>
                                         {apt.isRecurring && (
                                           <Repeat className="h-2 w-2 text-blue-600" title="Recurrente" />
                                         )}
@@ -657,9 +662,9 @@ const AgendaPage = () => {
                                         )}
                                         <div className={cn(
                                           "flex items-center gap-0.5 text-[7px] px-1 py-0.5 rounded-sm uppercase tracking-tighter font-black border border-current/10",
-                                          apt.paymentStatus === 'paid' ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                                          apt.payment_status === 'paid' ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
                                         )}>
-                                          {apt.paymentStatus === 'paid' ? (
+                                          {apt.payment_status === 'paid' ? (
                                             <>
                                               <CreditCard className="h-1.5 w-1.5" />
                                               <span>PAG</span>

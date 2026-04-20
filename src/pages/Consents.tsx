@@ -76,8 +76,9 @@ const Consents = () => {
 
             if (error) throw error;
             setConsents((data as ConsentRecord[]) || []);
-        } catch (err: any) {
-            toast.error('Error al cargar consentimientos: ' + err.message);
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error('Error al cargar consentimientos: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -131,7 +132,9 @@ const Consents = () => {
         doc.text('Firma del paciente / tutor', margin, y + 5);
 
         if (consent.signature_data_url) {
-            try { doc.addImage(consent.signature_data_url, 'PNG', margin, y - 38, 80, 35); } catch (_) { }
+            try { doc.addImage(consent.signature_data_url, 'PNG', margin, y - 38, 80, 35); } catch (e) {
+                console.error('Error adding signature to PDF:', e);
+            }
         }
 
         const totalPages = doc.getNumberOfPages();
@@ -204,7 +207,7 @@ const Consents = () => {
                     {([
                         { id: 'firmados', label: 'Firmados', icon: FileSignature },
                         { id: 'plantillas', label: 'Plantillas', icon: LayoutTemplate },
-                    ] as { id: ActiveTab; label: string; icon: any }[]).map(tab => (
+                    ] as { id: ActiveTab; label: string; icon: typeof FileSignature }[]).map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import MetricCard from '@/components/dashboard/MetricCard';
 import TodayAgenda from '@/components/dashboard/TodayAgenda';
@@ -76,16 +76,8 @@ const Dashboard = () => {
   const [chartData, setChartData] = useState<RevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (organization?.id) {
-      fetchAll();
-      if (user?.id) {
-        checkReactivations(user.id, organization.id);
-      }
-    }
-  }, [user?.id, organization?.id]);
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
+    if (!organization?.id) return;
     setLoading(true);
     const now = new Date();
     const monthStart = startOfMonth(now).toISOString();
@@ -99,47 +91,19 @@ const Dashboard = () => {
     const [
       { count: patientsCount },
       { count: newPatientsCount },
-      { data: todayData },
       { data: monthAppts },
       { data: prevMonthAppts },
+      { data: todayData },
       { data: notes },
-      { data: chartRaw },
+      { data: chartRaw }
     ] = await Promise.all([
-      // Total pacientes activos (no eliminados)
-      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null),
-      // Pacientes nuevos este mes (no eliminados)
-      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null),
-      // Citas de hoy
-      supabase.from('appointments')
-        .select('id, patient_name, start_time, end_time, status, type, patients(phone)')
-        .eq('organization_id', organization.id)
-        .gte('start_time', todayStart)
-        .lte('start_time', todayEnd)
-        .order('start_time'),
-      // Citas del mes actual (para ingresos y sesiones)
-      supabase.from('appointments')
-        .select('fee, payment_status, status')
-        .eq('organization_id', organization.id)
-        .gte('start_time', monthStart)
-        .lte('start_time', monthEnd),
-      // Citas del mes anterior (para comparar ingresos)
-      supabase.from('appointments')
-        .select('fee, payment_status')
-        .eq('organization_id', organization.id)
-        .gte('start_time', prevMonthStart)
-        .lte('start_time', prevMonthEnd),
-      // Notas clínicas recientes
-      supabase.from('session_notes')
-        .select('id, patient_name, session_number, agenda, created_at')
-        .eq('organization_id', organization.id)
-        .order('created_at', { ascending: false })
-        .limit(3),
-      // Datos de los últimos 6 meses para el gráfico
-      supabase.from('appointments')
-        .select('start_time, fee, payment_status, status')
-        .eq('organization_id', organization.id)
-        .gte('start_time', new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString())
-        .lte('start_time', monthEnd),
+      supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null),
+      supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null),
+      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', monthStart).lte('start_time', monthEnd),
+      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd),
+      supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type, patients(phone)').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd),
+      supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
+      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 5, 1)).toISOString()).lte('start_time', monthEnd),
     ]);
 
     // ── Stats ────────────────────────────────────────────────────────────────
@@ -174,24 +138,30 @@ const Dashboard = () => {
     });
 
     // ── Agenda del día ────────────────────────────────────────────────────────
-    setTodayAppts((todayData ?? []).map(a => ({
-      id: a.id,
-      patientName: a.patient_name ?? 'Paciente',
-      startTime: a.start_time,
-      endTime: a.end_time,
-      status: a.status as DashboardAppointment['status'],
-      type: a.type ?? 'Consulta',
-      phone: (a.patients as any)?.phone || null
-    })));
+    setTodayAppts((todayData ?? []).map(a => {
+        const patientData = a.patients as unknown as { phone: string } | null;
+        return {
+            id: a.id,
+            patientName: a.patient_name ?? 'Paciente',
+            startTime: a.start_time,
+            endTime: a.end_time,
+            status: a.status as DashboardAppointment['status'],
+            type: a.type ?? 'Consulta',
+            phone: patientData?.phone || null
+        };
+    }));
 
     // ── Notas recientes ───────────────────────────────────────────────────────
-    setRecentNotes((notes ?? []).map(n => ({
-      id: n.id,
-      patientName: n.patient_name ?? 'Paciente',
-      format: `Sesión #${n.session_number ?? 1}`,
-      content: (n.agenda as any[])?.map((a: any) => a.topic).filter(Boolean).join(' · ') || '',
-      createdAt: n.created_at,
-    })));
+    setRecentNotes((notes ?? []).map(n => {
+        const agenda = n.agenda as unknown as { topic: string }[] | null;
+        return {
+            id: n.id,
+            patientName: n.patient_name ?? 'Paciente',
+            format: `Sesión #${n.session_number ?? 1}`,
+            content: agenda?.map(a => a.topic).filter(Boolean).join(' · ') || '',
+            createdAt: n.created_at,
+        };
+    }));
 
     // ── Gráfico: últimos 6 meses ──────────────────────────────────────────────
     const monthMap: Record<string, { ingresos: number; sesiones: number }> = {};
@@ -209,7 +179,16 @@ const Dashboard = () => {
     setChartData(Object.entries(monthMap).map(([name, v]) => ({ name, ...v })));
 
     setLoading(false);
-  };
+  }, [organization?.id]);
+
+  useEffect(() => {
+    if (organization?.id) {
+      fetchAll();
+      if (user?.id) {
+        checkReactivations(user.id, organization.id);
+      }
+    }
+  }, [user?.id, organization?.id, fetchAll]);
 
   const getGreeting = () => {
     const h = new Date().getHours();

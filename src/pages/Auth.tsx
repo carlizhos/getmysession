@@ -63,8 +63,9 @@ const Auth = () => {
             if (error) throw error;
             toast.success('¡Bienvenido de vuelta!');
             navigate('/');
-        } catch (err: any) {
-            toast.error('Error al iniciar sesión: ' + err.message);
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error('Error al iniciar sesión: ' + error.message);
         } finally {
             setGoogleLoading(false);
         }
@@ -140,7 +141,8 @@ const Auth = () => {
                     toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
                 }
             }
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as Error;
             toast.error('Error: ' + error.message);
         } finally {
             setLoading(false);
@@ -280,8 +282,9 @@ const Auth = () => {
                                             options: { redirectTo: `${window.location.origin}/` },
                                         });
                                         if (error) throw error;
-                                    } catch (err: any) {
-                                        toast.error('Error: ' + err.message);
+                                    } catch (err: unknown) {
+                                        const error = err as Error;
+                                        toast.error('Error: ' + error.message);
                                         setGoogleLoading(false);
                                     }
                                 }}

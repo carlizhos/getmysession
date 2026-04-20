@@ -16,9 +16,11 @@ import { logActivity } from '@/lib/activityLogger';
 interface SpecialistProfile {
   id: string;
   full_name: string;
-  avatar_url: string | null;
   prefix: string | null;
-  horario_atencion: any;
+  horario_atencion: {
+    dias: Record<number, { activo: boolean; inicio: string; fin: string }>;
+    dias_no_laborables: string[];
+  } | null;
   slug: string;
   current_organization_id: string;
 }
@@ -105,7 +107,7 @@ const BookingPage = () => {
         
         if (rpcError) console.error("Error fetching busy slots via RPC:", rpcError);
 
-        const busySlots = (apts || []).map(a => format(parseISO(a.start_time), 'HH:mm'));
+        const busySlots = (apts || []).map((a: { start_time: string }) => format(parseISO(a.start_time), 'HH:mm'));
 
         // Query Edge Function for Google Calendar free/busy
         const gcalBusyRanges: { start: Date, end: Date }[] = [];
@@ -298,9 +300,10 @@ const BookingPage = () => {
       });
 
       setStep(3);
-    } catch (err: any) {
-      toast.error(err?.message || 'Hubo un error al reservar. Intenta de nuevo.');
-      console.error(err);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error?.message || 'Hubo un error al reservar. Intenta de nuevo.');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }

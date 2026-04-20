@@ -29,7 +29,6 @@ import {
   Plus,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
-// pdfjs-dist and mammoth are loaded dynamically in processFile() to avoid bundling ~1.5MB on page load
 import DOMPurify from 'dompurify';
 import { reportFormats } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -37,11 +36,8 @@ import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
+import { Patient, SessionNote } from '@/types';
 
-// Configure PDF.js worker
-// PDF.js worker is configured lazily when a PDF is first processed
-
-// Helper function to detect file type
 const getFileType = (file: File): 'image' | 'pdf' | 'text' | 'docx' => {
   const ext = file.name.split('.').pop()?.toLowerCase();
   if (file.type.startsWith('image/')) return 'image';
@@ -56,18 +52,21 @@ interface ChatMessage {
   content: string;
 }
 
-// ── Helper: build patient context string from Supabase ────────────────────────
-async function buildPatientContext(patientId: string): Promise<string> {
+async function buildPatientContext(patientId: string, organizationId?: string): Promise<string> {
+  if (!organizationId) return '';
+
   const [{ data: patient }, { data: notes }] = await Promise.all([
     supabase
       .from('patients')
       .select('name, date_of_birth, birth_date, sex, occupation, notes, status, tags, curp')
       .eq('id', patientId)
+      .eq('organization_id', organizationId)
       .single(),
     supabase
       .from('session_notes')
       .select('date, session_number, bridge, agenda, cie10_code, cie10_description, diagnostico_principal')
       .eq('patient_id', patientId)
+      .eq('organization_id', organizationId)
       .is('deleted_at', null)
       .order('date', { ascending: false })
       .limit(5),
@@ -94,15 +93,16 @@ async function buildPatientContext(patientId: string): Promise<string> {
 
   if (notes && notes.length > 0) {
     ctx += `\n=== ÚLTIMAS ${notes.length} NOTA(S) CLÍNICA(S) ===\n`;
-    notes.forEach((n, i) => {
+    notes.forEach((n: SessionNote, i: number) => {
       ctx += `\n--- Sesión ${n.session_number || i + 1} (${n.date}) ---\n`;
       if (n.cie10_code) ctx += `Diagnóstico CIE-10: ${n.cie10_code} - ${n.cie10_description || ''}\n`;
       if (n.diagnostico_principal) ctx += `Diagnóstico principal: ${n.diagnostico_principal}\n`;
-      const bridge = n.bridge as any;
+      const bridge = n.bridge;
       if (bridge?.notes) ctx += `Notas puente: ${bridge.notes}\n`;
-      const agenda = n.agenda as any[];
+      const agenda = n.agenda;
       if (agenda?.length) {
-        agenda.forEach((a: any) => {
+        agenda.forEach((a) => {
+          if (a.topic) ctx += `Tema: ${a.topic}\n`;
           if (a.interventions) ctx += `Intervenciones: ${a.interventions}\n`;
           if (a.thoughts) ctx += `Observaciones: ${a.thoughts}\n`;
         });
@@ -117,10 +117,7 @@ async function buildPatientContext(patientId: string): Promise<string> {
 
 const AIAssistant = () => {
   const { organization } = useOrganization();
-  // ── Shared tab state ───────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'notas' | 'chat'>('notas');
-
-  // ── Note generation state ──────────────────────────────────────────────────
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -134,7 +131,8 @@ const AIAssistant = () => {
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [patientContext, setPatientContext] = useState<string | null>(null);
   const [isFetchingContext, setIsFetchingContext] = useState(false);
-
+  const [cie10Code, setCie10Code] = useState('');
+  const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
@@ -143,10 +141,13 @@ const AIAssistant = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const patientSearchRef = useRef<HTMLInputElement>(null);
 
-  // ── Dictation state ────────────────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
+  interface IWindow extends Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
 
   const toggleDictation = () => {
     if (isListening) {
@@ -155,7 +156,6 @@ const AIAssistant = () => {
       return;
     }
     
-    // Lazy initialize to avoid SSR issues or premature blocking
     if (!recognitionRef.current) {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         toast.error("Tu navegador no soporta el dictado por voz. Usa Chrome o Edge.", {
@@ -164,18 +164,19 @@ const AIAssistant = () => {
         return;
       }
       
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      const { SpeechRecognition, webkitSpeechRecognition } = window as unknown as IWindow;
+      const SpeechVar = SpeechRecognition || webkitSpeechRecognition;
+      const recognition = new SpeechVar();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'es-MX'; // Soporte en español
+      recognition.lang = 'es-MX';
 
       recognition.onstart = () => {
         setIsListening(true);
         toast.success("Micrófono activado. Puedes empezar a hablar.", { icon: <Mic className="h-4 w-4" /> });
       };
 
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event: { error: string }) => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
         if (event.error !== 'no-speech') {
@@ -188,7 +189,7 @@ const AIAssistant = () => {
         setInterimTranscript('');
       };
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: { results: SpeechRecognitionResultList }) => {
         let interim = '';
         let final = '';
         
@@ -212,24 +213,20 @@ const AIAssistant = () => {
     try {
       recognitionRef.current.start();
     } catch (err) {
-      // In case it was already started but states got out of sync
       recognitionRef.current.stop();
       setTimeout(() => recognitionRef.current.start(), 100);
     }
   };
 
-  // ── Chat state ─────────────────────────────────────────────────────────────
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // ── Scroll chat to bottom ──────────────────────────────────────────────────
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // ── Fetch context for note generation tab ─────────────────────────────────
   useEffect(() => {
     if (isCameraOpen && videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream;
@@ -244,10 +241,9 @@ const AIAssistant = () => {
     }
     setIsFetchingContext(true);
     setChatMessages([]);
-    buildPatientContext(selectedPatientId)
+    buildPatientContext(selectedPatientId, organization?.id)
       .then(ctx => {
         setPatientContext(ctx);
-        // Welcome message with patient info
         if (activeTab === 'chat') {
           setChatMessages([{
             role: 'assistant',
@@ -257,11 +253,8 @@ const AIAssistant = () => {
       })
       .catch(err => console.error('Error fetching patient context:', err))
       .finally(() => setIsFetchingContext(false));
-  }, [selectedPatientId, selectedPatientName]);
+  }, [selectedPatientId, selectedPatientName, organization?.id, activeTab]);
 
-
-
-  // ── Camera ────────────────────────────────────────────────────────────────
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -302,7 +295,7 @@ const AIAssistant = () => {
     if (files.length > 0) handleFile(files[0]);
   }, []);
 
-  const handleFile = (file: File) => { setUploadedFile(file); processFile(file); };
+  const handleFile = useCallback((file: File) => { setUploadedFile(file); processFile(file); }, []);
 
   const processFile = async (file: File) => {
     setIsProcessing(true); setBulletPoints('');
@@ -311,43 +304,42 @@ const AIAssistant = () => {
     try {
       let extractedText = '';
       switch (fileType) {
-        case 'image':
-          setFileProcessingStep('Extrayendo texto con OCR...');
-          await new Promise(r => setTimeout(r, 300));
+        case 'image': {
+          setFileProcessingStep('Preparando motor de visión...');
           const worker = await createWorker('spa');
-          const ret = await worker.recognize(file);
+          setFileProcessingStep('Digitalizando texto de la imagen...');
+          const { data: { text } } = await worker.recognize(file);
+          extractedText = text;
           await worker.terminate();
-          extractedText = ret.data.text;
           break;
-        case 'pdf':
+        }
+        case 'pdf': {
           setFileProcessingStep('Cargando lector de PDF...');
-          const pdfjsLib = await import('pdfjs-dist');
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-          setFileProcessingStep('Extrayendo texto de PDF...');
-          const pdfBuffer = await file.arrayBuffer();
-          const pdfDoc = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
-          const textParts: string[] = [];
-          for (let i = 1; i <= pdfDoc.numPages; i++) {
-            const page = await pdfDoc.getPage(i);
+          const pdfjs = await import('pdfjs-dist');
+          pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+          setFileProcessingStep('Analizando páginas del PDF...');
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            let lastY = -1, lines: string[] = [], line = '';
-            content.items.forEach((item: any) => {
-              const y = item.transform[5];
-              if (lastY !== -1 && Math.abs(y - lastY) > 5) { if (line.trim()) lines.push(line.trim()); line = item.str; }
-              else { line += (line ? ' ' : '') + item.str; }
-              lastY = y;
+            (content.items as Array<{ str?: string }>).forEach((item) => {
+              if (item.str) {
+                fullText += item.str + ' ';
+              }
             });
-            if (line.trim()) lines.push(line.trim());
-            textParts.push(lines.join('\n'));
           }
-          extractedText = textParts.join('\n\n');
+          extractedText = fullText;
           break;
-        case 'text':
+        }
+        case 'text': {
           setFileProcessingStep('Leyendo archivo de texto...');
           await new Promise(r => setTimeout(r, 300));
           extractedText = await file.text();
           break;
-        case 'docx':
+        }
+        case 'docx': {
           setFileProcessingStep('Cargando lector de Word...');
           const mammothLib = await import('mammoth');
           setFileProcessingStep('Extrayendo texto de documento Word...');
@@ -360,13 +352,15 @@ const AIAssistant = () => {
           tempDiv.querySelectorAll('br').forEach(br => { br.replaceWith('\n'); });
           extractedText = tempDiv.textContent || tempDiv.innerText || '';
           break;
+        }
       }
       if (!extractedText.trim()) { toast.warning("No se detectó texto en el archivo."); return; }
       setBulletPoints(extractedText);
       toast.success("Texto extraído correctamente", { icon: <CheckCircle2 className="h-4 w-4" /> });
       setDetectedFormat('tcc-clasica'); setSelectedFormat('tcc-clasica');
       setFileProcessingStep('');
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast.error("Error al procesar archivo: " + error.message);
       setFileProcessingStep('');
     } finally {
@@ -374,25 +368,46 @@ const AIAssistant = () => {
     }
   };
 
-  const generateReport = async () => {
-    if (!bulletPoints.trim()) { toast.error("Por favor ingresa puntos de la sesión o sube una nota."); return; }
-    setIsProcessing(true); setGeneratedReport(null); setProcessingStep('Iniciando procesamiento con IA...');
+  const generateReport = useCallback(async () => {
+    if (!bulletPoints.trim()) {
+      toast.error("Por favor ingresa puntos de la sesión o sube una nota.");
+      return;
+    }
+    if (!organization?.id) {
+      toast.error("Contexto de organización no disponible");
+      return;
+    }
+
+    setIsProcessing(true);
+    setGeneratedReport(null);
+    setProcessingStep('Analizando sesión con IA...');
+    
     try {
-      setProcessingStep('Analizando puntos de sesión...');
-      await new Promise(r => setTimeout(r, 500));
-      setProcessingStep('Generando formato SOAP profesional...');
       const { data, error } = await supabase.functions.invoke('process-clinical-note', {
-        body: { text: bulletPoints, action: 'generate_soap', patient_context: patientContext || undefined }
+        body: { 
+          text: bulletPoints, 
+          action: 'generate_soap',
+          patient_context: patientContext 
+        }
       });
-      if (error) throw new Error(error.message || 'Error al generar reporte');
-      setProcessingStep('Finalizando reporte...');
-      await new Promise(r => setTimeout(r, 300));
-      setGeneratedReport(data.report); setProcessingStep('');
-      toast.success("Reporte SOAP generado con IA", { icon: <Sparkles className="h-4 w-4" /> });
+
+      if (error) throw error;
+
+      setGeneratedReport(data.report);
+      if (data.cie10) setCie10Code(data.cie10);
+      if (data.diagnostico) setDiagnosticoPrincipal(data.diagnostico);
+
+      toast.success("Reporte SOAP generado con IA", { 
+        icon: <Sparkles className="h-4 w-4 text-primary" /> 
+      });
     } catch (error: any) {
-      toast.error("Error al generar reporte: " + error.message); setProcessingStep('');
-    } finally { setIsProcessing(false); }
-  };
+      console.error('Report Generation Error:', error);
+      toast.error("Error al generar reporte: " + (error.message || 'Error desconocido'));
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+    }
+  }, [bulletPoints, organization?.id, patientContext]);
 
   const clearAll = () => {
     setUploadedFile(null); setBulletPoints(''); setGeneratedReport(null);
@@ -406,32 +421,62 @@ const AIAssistant = () => {
     }, 100);
   };
 
-  const handleSave = async () => {
-    if (!generatedReport) return;
-    if (!selectedPatientId) { toast.error('Selecciona un paciente antes de guardar la nota'); return; }
+  const handleSave = useCallback(async () => {
+    if (!generatedReport || !selectedPatientId || !organization?.id) return;
+    
+    setIsProcessing(true);
+    setProcessingStep("Guardando en expediente...");
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay sesión activa');
-      const format = selectedFormat || detectedFormat || 'SOAP';
-      const reportText = generatedReport.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
-      const { error } = await supabase.from('session_notes').insert({
-        user_id: user.id, patient_id: selectedPatientId, patient_name: selectedPatientName,
-        date: new Date().toISOString().split('T')[0], session_number: 1, mood: {},
-        bridge: { items: [], notes: bulletPoints },
-        agenda: [{ topic: format, situation: '', thoughts: reportText, emotions: '', interventions: '' }],
-        beliefs: {}, action_plan: [],
-        organization_id: organization?.id,
+
+      // 1. Obtener el último número de sesión para este paciente en esta organización
+      const { data: lastNotes, error: fetchError } = await supabase
+        .from('session_notes')
+        .select('session_number')
+        .eq('patient_id', selectedPatientId)
+        .eq('organization_id', organization.id)
+        .order('session_number', { ascending: false })
+        .limit(1);
+
+      if (fetchError) throw fetchError;
+      
+      const nextSession = (lastNotes?.[0]?.session_number || 0) + 1;
+
+      const { error: noteError } = await supabase.from('session_notes').insert({
+        user_id: user.id, 
+        patient_id: selectedPatientId,
+        organization_id: organization.id,
+        date: new Date().toISOString().split('T')[0],
+        session_number: nextSession,
+        transcript_summary: generatedReport,
+        cie10_code: cie10Code,
+        diagnostico_principal: diagnosticoPrincipal,
+        bridge: { notes: bulletPoints },
+        agenda: [{ topic: 'Consulta IA', thoughts: generatedReport }]
       });
-      if (error) throw error;
+
+      if (noteError) throw noteError;
+
       toast.success(`Nota guardada en el expediente de ${selectedPatientName}`);
       clearAll();
-    } catch (error: any) { toast.error('Error al guardar la nota: ' + error.message); }
-  };
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast.error("Error al guardar: " + error.message);
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+    }
+  }, [generatedReport, selectedPatientId, organization?.id, selectedPatientName, bulletPoints, cie10Code, diagnosticoPrincipal, clearAll]);
 
   // ── Chat send ──────────────────────────────────────────────────────────────
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || isChatLoading) return;
-    if (!selectedPatientId) { toast.error('Selecciona un paciente primero'); return; }
+  const sendChatMessage = useCallback(async () => {
+    if (!chatInput.trim() || isChatLoading || !organization?.id) return;
+    if (!selectedPatientId) {
+      toast.error('Selecciona un paciente para habilitar la consulta clínica');
+      return;
+    }
 
     const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() };
     const newMessages = [...chatMessages, userMsg];
@@ -445,40 +490,57 @@ const AIAssistant = () => {
           action: 'chat',
           patient_context: patientContext,
           messages: newMessages,
+          organization_id: organization.id
         }
       });
-      if (error) throw new Error(error.message);
+
+      if (error) throw error;
+      
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch (err: any) {
-      toast.error('Error al consultar IA: ' + err.message);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Hubo un error al procesar tu consulta. Intenta de nuevo.' }]);
+    } catch (error: any) {
+      console.error('Chat Error:', error);
+      toast.error('Error al consultar IA: ' + (error.message || 'Error desconocido'));
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⚠️ Hubo un error al procesar tu consulta. Por favor, intenta de nuevo.' 
+      }]);
     } finally {
       setIsChatLoading(false);
     }
-  };
+  }, [chatInput, isChatLoading, organization?.id, selectedPatientId, chatMessages, patientContext]);
 
   const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
   };
 
+  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  }, [handleFile]);
+
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
-          <div className="flex items-center gap-4 w-full lg:w-auto">
-            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Brain className="h-6 w-6 text-primary" />
+        <div className="relative overflow-hidden flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] animate-in slide-in-from-top duration-700">
+          {/* subtle background glow */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
+          
+          <div className="flex items-center gap-5 w-full lg:w-auto relative z-10">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+              <Brain className="h-7 w-7 text-white" />
             </div>
-            <div className="space-y-0.5">
-              <h1 className="text-2xl font-black tracking-tight">IA Asistente</h1>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Genera notas clínicas y consulta el expediente con IA</p>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground/90">IA Asistente</h1>
+              <p className="text-sm text-muted-foreground/80 font-medium tracking-wide">Potencia tu práctica clínica con inteligencia artificial de vanguardia</p>
             </div>
           </div>
 
           {/* Right: Global Patient Selector & Actions */}
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 mt-4 lg:mt-0">
-            <div className="w-full sm:w-72 relative group">
+          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-4 mt-4 lg:mt-0 relative z-10">
+            <div className="w-full sm:w-80 relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary/0 rounded-xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
               <PatientAutocomplete
                 ref={patientSearchRef}
                 value={selectedPatientId}
@@ -486,11 +548,12 @@ const AIAssistant = () => {
                   setSelectedPatientId(id); 
                   setSelectedPatientName(name); 
                 }}
+                className="relative bg-background/50 backdrop-blur-sm border-white/20"
               />
               {selectedPatientId && (
                 <button 
                   onClick={() => { setSelectedPatientId(''); setSelectedPatientName(''); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors z-10"
+                  className="absolute right-3 top-1-2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full bg-muted/50 hover:bg-destructive hover:text-white text-muted-foreground transition-all z-10"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -499,17 +562,18 @@ const AIAssistant = () => {
 
             <Button 
               variant="zen" 
-              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all"
+              size="lg"
+              className="w-full sm:w-auto gap-2 shadow-lg shadow-primary/10 hover:scale-[1.03] transition-all bg-primary text-white"
               onClick={clearAll}
             >
               <Plus className="h-4 w-4" />
-              <span>Nueva Nota</span>
+              <span>Nueva Sesión</span>
             </Button>
           </div>
         </div>
 
         {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notas' | 'chat')}>
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="notas" className="flex-1 sm:flex-none gap-2">
               <FileText className="h-4 w-4" />
@@ -575,8 +639,7 @@ const AIAssistant = () => {
                           </div>
                         </>
                       )}
-                      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt,.doc,.docx" className="hidden"
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt,.doc,.docx" className="hidden" onChange={onFileChange} />
                     </div>
                   </CardContent>
                 </Card>

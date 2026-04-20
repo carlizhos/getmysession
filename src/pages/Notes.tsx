@@ -27,21 +27,9 @@ import StructuredNoteForm from '@/components/notes/StructuredNoteForm';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
+import { cn } from '@/lib/utils';
+import { SessionNote } from '@/types';
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
-interface SessionNote {
-  id: string;
-  patient_id: string | null;
-  patient_name: string;
-  date: string;
-  session_number: number;
-  mood: { rating: number; notes: string };
-  bridge: { items: { text: string; completed: boolean }[]; notes: string };
-  agenda: { id: string; topic: string; situation: string; thoughts: string; emotions: string; interventions: string }[];
-  beliefs: { core: string; alternative: string };
-  action_plan: string[];
-  created_at: string;
-}
 
 // ── Componente ────────────────────────────────────────────────────────────────
 const Notes = () => {
@@ -89,7 +77,20 @@ const Notes = () => {
   }, [selectedPatient]); // Fetch when patient changes
 
   // ── Guardar nota ───────────────────────────────────────────────────────────
-  const handleSaveNote = async (noteData: any) => {
+  const handleSaveNote = async (noteData: {
+    patientId?: string;
+    patientName?: string;
+    date: string;
+    sessionNumber: string;
+    mood: any;
+    bridge: any;
+    agenda: any[];
+    beliefs: any;
+    actionPlan: string[];
+    cie10Code?: string;
+    cie10Description?: string;
+    diagnosticoPrincipal?: string;
+  }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No hay sesión activa');
 
@@ -271,33 +272,74 @@ const Notes = () => {
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-1 mb-4">
                 Historial de Sesiones
               </h3>
-              <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-320px)] pr-2 scrollbar-zen">
-                {notes.map((note, index) => (
-                  <Card
-                    key={note.id}
-                    className={`cursor-pointer transition-all duration-300 border-2 ${
-                      selectedNote === note.id 
-                      ? 'border-primary bg-primary/5 shadow-md scale-[1.02] ring-1 ring-primary/20' 
-                      : 'border-transparent bg-muted/30 hover:bg-muted/50 hover:border-primary/20'
-                    }`}
-                    onClick={() => setSelectedNote(note.id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-black text-primary/40">#{note.session_number}</span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {format(parseISO(note.date), "d MMM yyyy", { locale: es })}
-                          </span>
+              <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-320px)] pr-2 scrollbar-zen pb-4">
+                {notes.map((note, index) => {
+                  const isActive = selectedNote === note.id;
+                  return (
+                    <div
+                      key={note.id}
+                      onClick={() => setSelectedNote(note.id)}
+                      className={cn(
+                        "group relative cursor-pointer overflow-hidden transition-all duration-500 rounded-2xl border-2",
+                        isActive
+                          ? "bg-primary border-primary shadow-md shadow-primary/20"
+                          : "bg-primary/5 border-transparent hover:border-primary/30 hover:bg-primary/[0.12] hover:-translate-y-0.5"
+                      )}
+                    >
+                      <div className="p-4 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                              isActive ? "bg-white text-primary" : "bg-primary/20 text-primary"
+                            )}>
+                              S #{note.session_number}
+                            </span>
+                            <div className={cn(
+                              "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider",
+                              isActive ? "text-white/80" : "text-muted-foreground"
+                            )}>
+                              <Calendar className="h-3 w-3 opacity-60" />
+                              {format(parseISO(note.date), "d MMM yyyy", { locale: es })}
+                            </div>
+                          </div>
+                          {isActive && <ChevronRight className="h-4 w-4 text-white animate-pulse" />}
                         </div>
-                        {selectedNote === note.id && <ChevronRight className="h-4 w-4 text-primary" />}
+                        
+                        <div className="space-y-0.5">
+                          <p className={cn(
+                            "text-sm font-bold truncate transition-colors",
+                            isActive ? "text-white" : "text-foreground"
+                          )}>
+                            {note.agenda?.[0]?.topic || 'Consulta General'}
+                          </p>
+                          {note.mood?.rating != null && (
+                            <div className="flex items-center gap-1.5">
+                              <div className={cn(
+                                "h-1 flex-1 rounded-full overflow-hidden max-w-[40px]",
+                                isActive ? "bg-white/20" : "bg-primary/20"
+                              )}>
+                                <div 
+                                  className={cn(
+                                    "h-full",
+                                    isActive ? "bg-white" : "bg-primary"
+                                  )} 
+                                  style={{ width: `${note.mood.rating}%` }}
+                                />
+                              </div>
+                              <span className={cn(
+                                "text-[10px] font-medium",
+                                isActive ? "text-white/60" : "text-muted-foreground/60"
+                              )}>
+                                {note.mood.rating}% ánimo
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm font-bold truncate">
-                        {note.agenda?.[0]?.topic || 'Consulta General'}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -380,10 +422,10 @@ const Notes = () => {
 
                     {/* Quick Metadata */}
                     <div className="flex flex-wrap gap-4 mt-6">
-                      {(selectedNoteData as any).cie10_code && (
+                      {selectedNoteData.cie10_code && (
                         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-primary/10 px-4 py-2 rounded-2xl shadow-sm">
-                          <span className="text-[10px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{(selectedNoteData as any).cie10_code}</span>
-                          <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]">{(selectedNoteData as any).cie10_description}</span>
+                          <span className="text-[10px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{selectedNoteData.cie10_code}</span>
+                          <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]">{selectedNoteData.cie10_description}</span>
                         </div>
                       )}
                       {selectedNoteData.mood?.rating != null && (

@@ -22,19 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 
-interface Appointment {
-    id: string;
-    patientName: string;
-    startTime: string;
-    endTime: string;
-    status: string;
-    paymentStatus: string;
-    notes?: string;
-    modality?: string;
-    isRecurring?: boolean;
-    type?: string;
-    meetingLink?: string;
-}
+import { Appointment } from '@/types';
 
 interface AgendaListViewProps {
     appointments: Appointment[];
@@ -139,8 +127,8 @@ const AppointmentRow = ({
     const [expanded, setExpanded] = useState(false);
     const cfg = STATUS_CONFIG[apt.status] || STATUS_CONFIG.scheduled;
     const StatusIcon = STATUS_ICON[apt.status] || Clock;
-    const startFmt = format(parseISO(apt.startTime), 'hh:mm a');
-    const endFmt = format(parseISO(apt.endTime), 'hh:mm a');
+    const startFmt = format(parseISO(apt.start_time), 'hh:mm a');
+    const endFmt = format(parseISO(apt.end_time), 'hh:mm a');
 
     return (
         <div
@@ -183,7 +171,7 @@ const AppointmentRow = ({
                         Paciente
                     </span>
                     <span className="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                        {apt.patientName}
+                        {apt.patient_name}
                     </span>
                 </div>
 
@@ -195,10 +183,10 @@ const AppointmentRow = ({
                     <div
                         className={cn(
                             "h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold select-none flex-shrink-0",
-                            getAvatarTheme(apt.patientName || '')
+                            getAvatarTheme(apt.patient_name || '')
                         )}
                     >
-                        {getInitials(apt.patientName || '')}
+                        {getInitials(apt.patient_name || '')}
                     </div>
                     <div className="hidden md:block">
                         <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -235,7 +223,7 @@ const AppointmentRow = ({
             {/* ── Mobile patient name (visible only on sm) ──── */}
             <div className="sm:hidden px-5 -mt-2 pb-2">
                 <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                    {apt.patientName}
+                    {apt.patient_name}
                 </span>
             </div>
 
@@ -270,11 +258,11 @@ const AppointmentRow = ({
                             </span>
                             <span className={cn(
                                 "flex items-center gap-1.5 text-sm font-medium",
-                                apt.paymentStatus === 'paid'
+                                apt.payment_status === 'paid'
                                     ? "text-emerald-600 dark:text-emerald-400"
                                     : "text-slate-500 dark:text-slate-400"
                             )}>
-                                {apt.paymentStatus === 'paid' ? (
+                                {apt.payment_status === 'paid' ? (
                                     <>
                                         <CreditCard className="h-3.5 w-3.5" />
                                         Pagado
@@ -302,23 +290,24 @@ const AppointmentRow = ({
                         )}
 
                         {/* Meeting link */}
-                        {apt.meetingLink && (
-                            <div className="sm:col-span-2 md:col-span-3">
-                                <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-                                    Link
-                                </span>
-                                <a
-                                    href={apt.meetingLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate"
-                                >
-                                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                                    {apt.meetingLink}
-                                </a>
-                            </div>
-                        )}
+                    {/* Meeting link */}
+                    {apt.meeting_link && (
+                        <div className="sm:col-span-2 md:col-span-3">
+                            <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                                Link
+                            </span>
+                            <a
+                                href={apt.meeting_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                                {apt.meeting_link}
+                            </a>
+                        </div>
+                    )}
                     </div>
 
                     {/* Notes */}
@@ -397,7 +386,7 @@ const AgendaListView = ({
     onRescheduleAppointment
 }: AgendaListViewProps) => {
     const grouped = appointments.reduce((acc: Record<string, Appointment[]>, apt) => {
-        const dateKey = apt.startTime.slice(0, 10);
+        const dateKey = apt.start_time.slice(0, 10);
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(apt);
         return acc;
@@ -433,7 +422,7 @@ const AgendaListView = ({
                     const dayLabel = getDateLabel(dateStr);
                     const formattedDate = getFormattedDate(dateStr);
                     const dayApts = grouped[dateStr].sort((a, b) =>
-                        a.startTime.localeCompare(b.startTime)
+                        a.start_time.localeCompare(b.start_time)
                     );
 
                     return (

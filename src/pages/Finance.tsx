@@ -161,9 +161,10 @@ const Finance = () => {
 
       toast.success('Factura generada exitosamente');
       fetchData(); // Refresh to show the new invoice
-    } catch (err: any) {
-      console.error('Error facturando:', err);
-      toast.error(err.message || 'Ocurrió un error al procesar el timbrado.');
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Error facturando:', error);
+      toast.error(error.message || 'Ocurrió un error al procesar el timbrado.');
     } finally {
       setGeneratingInvoiceId(null);
     }
@@ -181,8 +182,9 @@ const Finance = () => {
       if (data?.success === false) throw new Error(data.error);
 
       toast.success('Factura enviada por correo al paciente');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al enviar el correo');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Error al enviar el correo');
     }
   };
 
@@ -207,8 +209,9 @@ const Finance = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-    } catch (err: any) {
-      toast.error(err.message || 'Error al descargar el archivo');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Error al descargar el archivo');
     }
   };
 
@@ -239,7 +242,9 @@ const Finance = () => {
         const parsed = JSON.parse(stored) as SectionId[];
         if (SECTION_IDS.every(id => parsed.includes(id))) return parsed;
       }
-    } catch { }
+    } catch (e) {
+      console.error('Error loading section order:', e);
+    }
     return [...SECTION_IDS];
   });
 
@@ -415,8 +420,9 @@ const Finance = () => {
         }
 
         fetchData();
-      } catch (err: any) {
-        toast.error('Error al verificar el pago: ' + err.message);
+      } catch (err: unknown) {
+        const error = err as Error;
+        toast.error('Error al verificar el pago: ' + error.message);
       }
     };
 

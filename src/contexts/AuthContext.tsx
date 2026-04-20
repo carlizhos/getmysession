@@ -11,7 +11,7 @@ export interface Organization {
     current_period_end: string | null;
     cancel_at_period_end: boolean;
     stripe_customer_id: string | null;
-    settings: any;
+    settings: Record<string, unknown>;
     type: 'personal' | 'team';
     role?: 'owner' | 'admin' | 'therapist' | 'receptionist';
     member_count?: number;
@@ -50,8 +50,9 @@ async function logSessionEvent(
             user_agent: navigator.userAgent.slice(0, 300),
             session_duration_seconds: durationSeconds ?? null,
         });
-    } catch (err) {
-        console.warn('[session_logs] Error al registrar evento:', err);
+    } catch (err: unknown) {
+        const error = err as Error;
+        console.warn('[session_logs] Error al registrar evento:', error);
     }
 }
 
@@ -83,10 +84,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .eq('user_id', userId);
 
             if (memberships) {
-                const orgs = memberships.map(m => ({
-                    ...(m.organizations as any),
-                    role: m.role
-                })) as Organization[];
+                const orgs = memberships.map(m => {
+                    const org = m.organizations as unknown as Organization;
+                    return {
+                        ...org,
+                        role: m.role as Organization['role']
+                    };
+                });
                 
                 setAvailableOrganizations(orgs);
 
@@ -114,8 +118,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setAvailableOrganizations([]);
                 setOrganization(null);
             }
-        } catch (err) {
-            console.error('Error fetching organization:', err);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error('Error fetching organization:', error);
             setOrganization(null);
             setAvailableOrganizations([]);
         }
@@ -171,8 +176,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (error) throw error;
             await fetchOrganization(user.id);
             window.location.reload(); // Hard reload to clear other states if needed
-        } catch (err: any) {
-            console.error('Error switching organization:', err);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error('Error switching organization:', error);
         }
     };
 

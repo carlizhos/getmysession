@@ -46,9 +46,10 @@ const AssignTestDialog = ({ open, onOpenChange, patientId, patientName, onAssign
             setGeneratedLink(link);
             toast.success('Prueba asignada correctamente');
             if (onAssigned) onAssigned();
-        } catch (error: any) {
-            console.error('Error al asignar prueba:', error);
-            toast.error('Error: ' + error.message);
+        } catch (error: unknown) {
+            const err = error as Error;
+            console.error('Error al asignar prueba:', err);
+            toast.error('Error: ' + err.message);
         } finally {
             setIsAssigning(false);
         }

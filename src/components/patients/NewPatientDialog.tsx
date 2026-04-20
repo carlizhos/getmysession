@@ -18,24 +18,32 @@ import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
 import { logActivity } from '@/lib/activityLogger';
 
+interface Patient {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    date_of_birth: string;
+    dateOfBirth?: string;
+    notes: string;
+    tags: string[];
+    curp?: string;
+    sex?: string;
+    occupation?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    rfc?: string;
+    tax_name?: string;
+    tax_zip_code?: string;
+    tax_regime?: string;
+    cfdi_use?: string;
+}
+
 interface NewPatientDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onPatientAdded?: () => void;
-    editingPatient?: {
-        id: string;
-        name: string;
-        email: string;
-        phone: string;
-        date_of_birth: string;
-        notes: string;
-        tags: string[];
-        curp?: string;
-        sex?: string;
-        occupation?: string;
-        emergency_contact_name?: string;
-        emergency_contact_phone?: string;
-    } | null;
+    editingPatient?: Patient | null;
 }
 
 // Validación básica del formato CURP
@@ -86,11 +94,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 emergencyContactName: editingPatient.emergency_contact_name || '',
                 emergencyContactPhone: editingPatient.emergency_contact_phone || '',
                 notes: editingPatient.notes || '',
-                rfc: (editingPatient as any).rfc || '',
-                taxName: (editingPatient as any).tax_name || '',
-                taxZipCode: (editingPatient as any).tax_zip_code || '',
-                taxRegime: (editingPatient as any).tax_regime || '',
-                cfdiUse: (editingPatient as any).cfdi_use || '',
+                rfc: editingPatient.rfc || '',
+                taxName: editingPatient.tax_name || '',
+                taxZipCode: editingPatient.tax_zip_code || '',
+                taxRegime: editingPatient.tax_regime || '',
+                cfdiUse: editingPatient.cfdi_use || '',
             });
             setTags(editingPatient.tags || []);
         } else {
@@ -159,7 +167,8 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 const { error } = await supabase
                     .from('patients')
                     .update(payload)
-                    .eq('id', editingPatient.id);
+                    .eq('id', editingPatient.id)
+                    .eq('organization_id', organization?.id);
                 if (error) throw error;
                 toast.success('Paciente actualizado');
             } else {
@@ -181,9 +190,10 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
 
             if (onPatientAdded) onPatientAdded();
             onOpenChange(false);
-        } catch (error: any) {
-            console.error('Error al guardar paciente:', error);
-            toast.error('Error: ' + error.message);
+        } catch (error: unknown) {
+            const err = error as Error;
+            console.error('Error al guardar paciente:', err);
+            toast.error('Error: ' + err.message);
         } finally {
             setIsSubmitting(false);
         }

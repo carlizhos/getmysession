@@ -51,14 +51,12 @@ import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF } from '@/lib/generateExpedientePDF';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
+import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
 
-interface SessionNote {
-  id: string;
-  date: string;
-  session_number: number;
-  agenda: any[];
-  mood: any;
-  created_at: string;
+// Enriched patient type with appointment metadata
+interface EnrichedPatient extends Patient {
+    _next_appointment?: string | null;
+    _last_appointment?: string | null;
 }
 
 const Patients = () => {
@@ -66,12 +64,13 @@ const Patients = () => {
   const { organization } = useOrganization();
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
+  const [searchRefreshTrigger, setSearchRefreshTrigger] = useState(0);
 
   const selectPatient = (id: string) => {
     setSelectedPatient(id);
     setConfirmDeletePatient(false);
   };
-  const [patients, setPatients] = useState<any[]>([]);
+  const [patients, setPatients] = useState<EnrichedPatient[]>([]);
 
   // Hover tooltip
   const [hoveredPatient, setHoveredPatient] = useState<string | null>(null);
@@ -80,6 +79,7 @@ const Patients = () => {
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchTooltipSummary = useCallback(async (patientId: string) => {
+    if (!organization?.id) return;
     if (tooltipSummaries[patientId] !== undefined) return;
     const { data } = await supabase
       .from('session_notes')
@@ -91,13 +91,14 @@ const Patients = () => {
       .single();
     let summary = 'Sin notas clínicas registradas.';
     if (data) {
-      const topics = data.agenda?.map((a: any) => a.topic).filter(Boolean).join(', ');
-      const plan = data.action_plan?.trim();
-      if (plan) summary = plan.length > 90 ? plan.slice(0, 90) + '…' : plan;
+      const agenda = data.agenda as Array<{ topic?: string }>;
+      const topics = agenda?.map((a) => a.topic).filter(Boolean).sort().join(', ');
+      const plan = data.action_plan as string;
+      if (plan?.trim()) summary = plan.length > 90 ? plan.slice(0, 90) + '…' : plan;
       else if (topics) summary = `Temas: ${topics}`;
     }
     setTooltipSummaries(prev => ({ ...prev, [patientId]: summary }));
-  }, [tooltipSummaries]);
+  }, [tooltipSummaries, organization?.id]);
 
   const handleMouseEnter = (patientId: string, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -116,10 +117,11 @@ const Patients = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // 360 View States
-  const [patientTests, setPatientTests] = useState<any[]>([]);
-  const [patientPayments, setPatientPayments] = useState<any[]>([]);
+  const [patientTests, setPatientTests] = useState<PatientTest[]>([]);
+  const [patientPayments, setPatientPayments] = useState<{ paid_at: string; amount: number }[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
-  const [viewingTest, setViewingTest] = useState<any | null>(null);
+
+  const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
 
 
@@ -128,7 +130,7 @@ const Patients = () => {
   const [notesLoading, setNotesLoading] = useState(false);
 
   // Editar / Eliminar / Exportar
-  const [editingPatient, setEditingPatient] = useState<any | null>(null);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [confirmDeletePatient, setConfirmDeletePatient] = useState(false);
   const [isDeletingPatient, setIsDeletingPatient] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
@@ -136,6 +138,7 @@ const Patients = () => {
   // Cargar pacientes desde Supabase
   const fetchPatients = useCallback(async () => {
     try {
+      if (!organization?.id) return;
       setIsLoading(true);
       const now = new Date().toISOString();
 
@@ -145,6 +148,7 @@ const Patients = () => {
         .eq('organization_id', organization?.id)
         .is('deleted_at', null)
         .order('name');
+      
       if (pErr) throw pErr;
 
       // Traer citas
@@ -159,7 +163,7 @@ const Patients = () => {
       const nextByPatient: Record<string, string> = {};
       const lastByPatient: Record<string, string> = {};
 
-      apts.forEach((apt: any) => {
+      apts.forEach((apt: Appointment) => {
         if (!apt.patient_id) return;
         if (apt.start_time >= now) {
           if (!nextByPatient[apt.patient_id]) nextByPatient[apt.patient_id] = apt.start_time;
@@ -168,14 +172,15 @@ const Patients = () => {
         }
       });
 
-      const enriched = (patientsData || []).map((p: any) => ({
+      const enriched: EnrichedPatient[] = (patientsData || []).map((p: Patient) => ({
         ...p,
         _next_appointment: nextByPatient[p.id] || null,
         _last_appointment: lastByPatient[p.id] || null,
       }));
 
       setPatients(enriched);
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = err as Error;
       console.error('Error al cargar pacientes:', error);
       setPatients(mockPatients);
     } finally {
@@ -188,6 +193,7 @@ const Patients = () => {
   }, [fetchPatients]);
 
   const fetchPatientDetails = useCallback(async (patientId: string) => {
+    if (!organization?.id) return;
     setDataLoading(true);
     setNotesLoading(true);
     try {
@@ -196,6 +202,8 @@ const Patients = () => {
         .from('session_notes')
         .select('id, date, session_number, agenda, mood, created_at')
         .eq('patient_id', patientId)
+        .eq('organization_id', organization?.id)
+        .is('deleted_at', null)
         .order('date', { ascending: false });
       if (notesErr) throw notesErr;
       setPatientNotes((notesData as SessionNote[]) || []);
@@ -205,9 +213,10 @@ const Patients = () => {
         .from('patient_tests')
         .select('id, test_type, status, score, interpretation, created_at, completed_at, answers')
         .eq('patient_id', patientId)
+        .eq('organization_id', organization?.id)
         .order('created_at', { ascending: false });
       if (testsErr) throw testsErr;
-      setPatientTests(testsData || []);
+      setPatientTests(testsData as PatientTest[] || []);
 
       // 3. Fetch Payments
       const { data: paymentsData, error: paymentsErr } = await supabase
@@ -216,21 +225,24 @@ const Patients = () => {
             id, amount, method, status, paid_at, created_at,
             appointments!inner (
                 patient_id,
-                start_time
+                start_time,
+                organization_id
             )
         `)
         .eq('appointments.patient_id', patientId)
+        .eq('appointments.organization_id', organization?.id)
         .order('created_at', { ascending: false });
       if (paymentsErr) throw paymentsErr;
       setPatientPayments(paymentsData || []);
 
-    } catch (err: any) {
-      toast.error('Error al cargar expediente: ' + err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error('Error al cargar expediente: ' + error.message);
     } finally {
       setDataLoading(false);
       setNotesLoading(false);
     }
-  }, []);
+  }, [organization?.id]);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -265,99 +277,28 @@ const Patients = () => {
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Function to send WhatsApp via Edge Function (Integrated)
-  const handleIntegratedSend = async (phone: string, body: string, templateId: string) => {
-    if (!organization?.id) return;
-    
-    const promise = supabase.functions.invoke('twilio-whatsapp', {
-      body: {
-        action: 'send',
-        phone,
-        body,
-        organization_id: organization.id,
-        patient_id: selectedPatientData?.id,
-        template_id: templateId
-      }
-    });
-
-    toast.promise(promise, {
-      loading: 'Enviando WhatsApp...',
-      success: 'Mensaje enviado y registrado',
-      error: 'Error al enviar mensaje'
-    });
-  };
-
-
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
 
-  const getSessionLabel = (patient: any): { label: string; prefix: string; isFuture: boolean } => {
-    const nextRaw = patient._next_appointment || patient.next_session || patient.nextSession;
-    const lastRaw = patient._last_appointment || patient.last_session || patient.lastSession;
-
-    if (nextRaw) {
-      return { label: format(parseISO(nextRaw), "d MMM, HH:mm", { locale: es }), prefix: 'Próxima', isFuture: true };
-    }
-    if (lastRaw) {
-      return { label: format(parseISO(lastRaw), "d MMM yyyy", { locale: es }), prefix: 'Última sesión', isFuture: false };
-    }
-    return { label: 'Sin citas registradas', prefix: '', isFuture: false };
-  };
-
-  const handleEditPatient = () => {
-    if (!selectedPatientData) return;
-    setEditingPatient(selectedPatientData);
-    setIsNewPatientOpen(true);
-  };
-
   const handleDeletePatient = async () => {
-    if (!selectedPatient) return;
+    if (!selectedPatient || !organization?.id) return;
     setIsDeletingPatient(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { error: updErr } = await supabase
         .from('patients')
         .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id })
-        .eq('id', selectedPatient);
-      if (error) throw error;
-      toast.success('Expediente archivado (retenido 5 años según NOM-024)');
+        .eq('id', selectedPatient)
+        .eq('organization_id', organization?.id);
+      if (updErr) throw updErr;
+      toast.success('Expediente eliminado con éxito');
       setSelectedPatient(null);
-      setConfirmDeletePatient(false);
-      await fetchPatients();
-    } catch (err: any) {
-      toast.error('Error al archivar: ' + err.message);
+      fetchPatients();
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error('Error al eliminar: ' + error.message);
     } finally {
       setIsDeletingPatient(false);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!selectedPatientData) return;
-    setIsExportingPDF(true);
-    try {
-      const { data: notesData } = await supabase
-        .from('session_notes')
-        .select('id, date, session_number, mood, bridge, agenda, beliefs, action_plan, cie10_code, cie10_description, diagnostico_principal')
-        .eq('patient_id', selectedPatientData.id)
-        .is('deleted_at', null)
-        .order('session_number', { ascending: true });
-
-      const { data: consentsData } = await supabase
-        .from('consent_forms')
-        .select('id, form_type, signed_at, is_valid')
-        .eq('patient_id', selectedPatientData.id)
-        .is('deleted_at', null)
-        .order('signed_at', { ascending: true });
-
-      generateExpedientePDF(
-        selectedPatientData,
-        notesData || [],
-        consentsData || [],
-      );
-      toast.success('Expediente exportado como PDF');
-    } catch (err: any) {
-      toast.error('Error al exportar: ' + err.message);
-    } finally {
-      setIsExportingPDF(false);
+      setConfirmDeletePatient(false);
     }
   };
 
@@ -384,6 +325,7 @@ const Patients = () => {
                   setSelectedPatient(id);
                 }}
                 placeholder="Selecciona un paciente..."
+                refreshTrigger={searchRefreshTrigger}
               />
             </div>
 
@@ -412,8 +354,12 @@ const Patients = () => {
                           )}>
                             {getInitials(selectedPatientData.name)}
                           </div>
-                          <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5">
-                            {selectedPatientData.status}
+                          <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5 whitespace-nowrap shadow-sm">
+                            {selectedPatientData.status === 'activo' ? 'Activo' : 
+                             selectedPatientData.status === 'primer_contacto' ? 'Primer Contacto' : 
+                             selectedPatientData.status === 'seguimiento' ? 'Seguimiento' : 
+                             selectedPatientData.status === 'alta' ? 'Alta Clínica' : 
+                             selectedPatientData.status?.replace(/_/g, ' ')}
                           </Badge>
                         </div>
                         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{selectedPatientData.name}</h2>
@@ -539,7 +485,6 @@ const Patients = () => {
 
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-zen">
                           <TabsContent value="info" className="m-0 space-y-6 animate-in fade-in duration-500">
-                            {/* General section content remains the same but benefits from extra width */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <section className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2 border-b pb-2">
@@ -601,18 +546,18 @@ const Patients = () => {
                                   </div>
                                 ) : (
                                   timelineItems.map((item, idx) => {
-                                    const iconMap: any = {
+                                    const iconMap: Record<string, JSX.Element> = {
                                       note: <FileText className="h-4 w-4 text-primary" />,
                                       test: <Brain className="h-4 w-4 text-accent" />,
                                       payment: <ShoppingCart className="h-4 w-4 text-secondary" />
                                     };
-                                    const bgMap: any = {
+                                    const bgMap: Record<string, string> = {
                                       note: 'bg-primary/15',
                                       test: 'bg-accent/15',
                                       payment: 'bg-secondary/15'
                                     };
 
-                                    const score = (item as any).score;
+                                    const score = (item as { score?: number }).score;
                                     return (
                                       <div key={idx} className="relative flex items-center gap-6 group">
                                         <div className={cn("flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center z-10 shadow-sm transition-transform duration-300 group-hover:scale-110", bgMap[item.type])}>
@@ -1004,6 +949,7 @@ const Patients = () => {
         }}
         onPatientAdded={() => {
           fetchPatients();
+          setSearchRefreshTrigger(prev => prev + 1);
           setEditingPatient(null);
         }}
         editingPatient={editingPatient}
@@ -1052,9 +998,9 @@ const Patients = () => {
                   <Brain className="h-4 w-4 text-primary" /> Respuestas Registradas
                 </h4>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {psychometricTests[viewingTest.test_type]?.questions.map((q: any) => {
-                    const patientAnswerValue = viewingTest.answers?.[q.id];
-                    const selectedOption = q.options.find((opt: any) => opt.value === patientAnswerValue);
+                  {viewingTest && psychometricTests[viewingTest.test_type]?.questions.map((q) => {
+                    const patientAnswerValue = viewingTest.answers?.[q.id] as number | undefined;
+                    const selectedOption = psychometricTests[viewingTest.test_type].options.find(opt => opt.value === patientAnswerValue);
                     
                     return (
                       <div key={q.id} className="p-3 rounded-xl border bg-card/50 shadow-sm space-y-2">

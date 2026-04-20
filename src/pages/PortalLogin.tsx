@@ -53,9 +53,10 @@ export default function PortalLogin() {
 
       toast.success('¡Bienvenido al portal!');
       navigate('/portal');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al iniciar sesión.');
-      console.error(err);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Error al iniciar sesión.');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import NotificationBadge from '@/components/ui/NotificationBadge';
 
 interface MessageBellProps {
   count?: number;
@@ -22,9 +23,11 @@ const MessageBell = ({ count = 2 }: MessageBellProps) => {
       >
         <MessageSquare className="h-4 w-4" />
         {count > 0 && (
-          <span className="absolute top-1 right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white shadow-sm animate-pulse-zen">
-            {count}
-          </span>
+          <NotificationBadge 
+            count={count} 
+            className="absolute top-1 right-[1px] bg-primary shadow-primary/40" 
+            delay={10000}
+          />
         )}
       </button>
 
