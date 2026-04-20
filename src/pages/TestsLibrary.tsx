@@ -474,21 +474,17 @@ const TestsLibrary = () => {
       >
         <DialogContent className="max-w-[95vw] sm:max-w-[600px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
           <div className="flex flex-col h-full max-h-[90vh]">
-            {/* ── Header Section ────────────────────────────────────────── */}
-            <div className="relative shrink-0">
-              <div className="h-28 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent flex items-center justify-center pt-4">
-                <div className="h-20 w-20 bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center animate-in fade-in zoom-in duration-500">
-                  <div className="h-14 w-14 bg-success/10 rounded-xl flex items-center justify-center">
-                    <CheckCircle2 className="h-8 w-8 text-success" />
-                  </div>
+            {/* ── Header Section (Original Style) ────────────────────────── */}
+            <div className="shrink-0 bg-success/5 dark:bg-success/10 p-8 flex flex-col items-center justify-center text-center border-b border-success/10">
+              <div className="h-20 w-20 bg-success/20 rounded-full flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500">
+                <div className="h-14 w-14 bg-success/30 rounded-xl flex items-center justify-center shadow-sm">
+                  <CheckCircle2 className="h-8 w-8 text-success" />
                 </div>
               </div>
-              <div className="text-center px-6 pb-6 pt-2">
-                <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
-                <p className="text-sm text-muted-foreground mt-1.5 mx-auto max-w-[400px]">
-                  El test seleccionado ya está disponible en el expediente de <strong>{selectedPatientName}</strong>.
-                </p>
-              </div>
+              <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 mx-auto max-w-[450px]">
+                El test seleccionado ya está disponible en el expediente de <strong>{selectedPatientName}</strong> e integra los datos clínicos del paciente.
+              </p>
             </div>
 
             {/* ── Content Area (Scrollable) ──────────────────────────────── */}
