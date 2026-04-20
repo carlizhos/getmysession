@@ -476,10 +476,8 @@ const TestsLibrary = () => {
           <div className="flex flex-col h-full max-h-[90vh]">
             {/* ── Header Section (Original Style) ────────────────────────── */}
             <div className="shrink-0 bg-success/5 dark:bg-success/10 p-8 flex flex-col items-center justify-center text-center border-b border-success/10">
-              <div className="h-20 w-20 bg-success/20 rounded-full flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500">
-                <div className="h-14 w-14 bg-success/30 rounded-xl flex items-center justify-center shadow-sm">
-                  <CheckCircle2 className="h-8 w-8 text-success" />
-                </div>
+              <div className="h-20 w-20 bg-success/10 rounded-full flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500 border border-success/20 shadow-sm">
+                <CheckCircle2 className="h-10 w-10 text-success" />
               </div>
               <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
               <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 mx-auto max-w-[450px]">
