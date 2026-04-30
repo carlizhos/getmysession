@@ -39,6 +39,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageBell from '@/components/notifications/MessageBell';
 import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
+import HelpWidget from '@/components/HelpWidget';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -430,6 +431,9 @@ const Layout = ({ children }: LayoutProps) => {
         onContinue={handleContinueSession}
         onLogout={() => { setShowInactivityModal(false); signOut('logout'); }}
       />
+
+      {/* Floating Help Widget — available on every page */}
+      <HelpWidget />
     </div>
   );
 };

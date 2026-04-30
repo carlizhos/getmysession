@@ -13,9 +13,9 @@ const DISMISSED_KEY = 'saudade_onboarding_v2_dismissed';
 
 interface StepStatus {
     profileComplete: boolean;
+    signatureComplete: boolean;
     scheduleComplete: boolean;
-    securityComplete: boolean;
-    consentExists: boolean;
+    templatesComplete: boolean;
 }
 
 const OnboardingModal = () => {
@@ -31,35 +31,31 @@ const OnboardingModal = () => {
     const fetchStatus = useCallback(async () => {
         if (!user) return;
 
-        const [{ data: profile }, { count: consentCount }] = await Promise.all([
-            supabase
-                .from('profiles')
-                .select('full_name, cedulas, horario_atencion, notification_settings')
-                .eq('id', user.id)
-                .single(),
-            supabase
-                .from('consent_forms')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('is_valid', true),
-        ]);
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, cedulas, horario_atencion, signature_data, consent_templates')
+            .eq('id', user.id)
+            .single();
 
         // Profile is "complete" when the user has a name and at least one cédula
         const cedulas = Array.isArray(profile?.cedulas) ? profile.cedulas : [];
         const profileComplete =
             !!profile?.full_name?.trim() && cedulas.length > 0 && !!cedulas[0]?.numero?.trim();
 
+        // Signature is "complete" if signature_data (base64) exists
+        const signatureComplete = !!profile?.signature_data;
+
         // Schedule is "complete" if horario_atencion object exists
         const scheduleComplete = !!profile?.horario_atencion;
 
-        // Security/Notifications is "complete" if notification_settings object exists
-        const securityComplete = !!profile?.notification_settings;
+        // Templates are "complete" if consent_templates object exists and has content
+        const templatesComplete = !!profile?.consent_templates && Object.keys(profile.consent_templates).length > 0;
 
         setStatus({
             profileComplete,
+            signatureComplete,
             scheduleComplete,
-            securityComplete,
-            consentExists: (consentCount ?? 0) > 0,
+            templatesComplete,
         });
     }, [user]);
 
@@ -67,15 +63,15 @@ const OnboardingModal = () => {
 
     if (!status) return null;
 
-    const allDone = status.profileComplete && status.scheduleComplete && status.securityComplete && status.consentExists;
+    const allDone = status.profileComplete && status.signatureComplete && status.scheduleComplete && status.templatesComplete;
 
     if (allDone || dismissed || isRuntimeDismissed) return null;
 
     const completedCount = [
         status.profileComplete,
+        status.signatureComplete,
         status.scheduleComplete,
-        status.securityComplete,
-        status.consentExists
+        status.templatesComplete
     ].filter(Boolean).length;
     
     const progressPct = Math.round((completedCount / 4) * 100);
@@ -83,39 +79,39 @@ const OnboardingModal = () => {
     const steps = [
         {
             id: 'profile',
-            label: 'Completa tu perfil profesional',
-            description: 'Nombre, prefijo y cédula profesional (requeridos por NOM-024).',
+            label: 'Perfil Profesional y Cédulas',
+            description: 'Nombre y cédulas requeridos por la NOM-024.',
             icon: Settings2,
-            cta: 'Ir a Configuración',
-            href: '/settings', // Assuming default tab is profile
+            cta: 'Configurar',
+            href: '/settings',
             done: status.profileComplete,
         },
         {
+            id: 'signature',
+            label: 'Tu Firma Digital',
+            description: 'Necesaria para validar tus notas clínicas y consentimientos.',
+            icon: FileSignature,
+            cta: 'Dibujar Firma',
+            href: '/settings', // In settings, same tab usually
+            done: status.signatureComplete,
+        },
+        {
             id: 'schedule',
-            label: 'Configura tus horarios y comisiones',
-            description: 'Define tus días laborales, horarios de atención y esquemas de comisiones.',
+            label: 'Horarios de Atención',
+            description: 'Define tus días y horas laborales para la agenda.',
             icon: Settings2,
-            cta: 'Ir a Horarios',
+            cta: 'Definir',
             href: '/settings',
             done: status.scheduleComplete,
         },
         {
-            id: 'security',
-            label: 'Seguridad y notificaciones',
-            description: 'Ajusta tus preferencias de alertas y recordatorios.',
-            icon: Settings2,
-            cta: 'Ir a Notificaciones',
-            href: '/settings',
-            done: status.securityComplete,
-        },
-        {
-            id: 'consent',
-            label: 'Crea tu formato de consentimiento',
-            description: 'El paciente firmará antes de iniciar el tratamiento.',
+            id: 'templates',
+            label: 'Plantillas de Consentimiento',
+            description: 'Personaliza los textos legales de tus documentos.',
             icon: FileSignature,
-            cta: 'Ir a Consentimientos',
+            cta: 'Editar',
             href: '/consents',
-            done: status.consentExists,
+            done: status.templatesComplete,
         },
     ];
 
