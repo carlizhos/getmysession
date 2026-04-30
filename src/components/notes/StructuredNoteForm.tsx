@@ -373,8 +373,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
 
             {/* Action Plan Section */}
             <div className="bg-pink-50/50 p-6 rounded-2xl border border-pink-100 space-y-4">
-                <h3 className="font-medium text-pink-900 flex items-center gap-2">
-                    <Badge variant="outline" className="bg-pink-100 text-pink-700 border-pink-200">Plan de Acción</Badge>
+                <h3 className="font-medium text-pink-900 flex items-center gap-2 px-1">
                     Tareas y Recomendaciones
                 </h3>
 

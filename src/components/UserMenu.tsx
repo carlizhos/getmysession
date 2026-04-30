@@ -84,8 +84,8 @@ const UserMenu = ({ pendingCount = 0, avatarUrl }: UserMenuProps) => {
                 className={cn(
                     'absolute right-0 top-[calc(100%+8px)] z-50 w-[220px] origin-top-right',
                     'rounded-2xl border border-border/60 py-1.5',
-                    'bg-background/80 backdrop-blur-xl shadow-2xl',
-                    'dark:bg-background/70 dark:border-white/[0.07]',
+                    'bg-white/95 backdrop-blur-xl shadow-2xl',
+                    'dark:bg-slate-950/95 dark:border-white/[0.07]',
                     'transition-all duration-200',
                     open
                         ? 'opacity-100 scale-100 pointer-events-auto'

@@ -20,6 +20,7 @@ interface Patient {
     id: string;
     name: string;
     email: string;
+    phone?: string;
 }
 
 interface PatientAutocompleteProps {
@@ -46,7 +47,7 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
             try {
                 const { data, error } = await supabase
                     .from('patients')
-                    .select('id, name, email')
+                    .select('id, name, email, phone')
                     .eq('organization_id', organization.id)
                     .is('deleted_at', null)
                     .order('name');
@@ -77,7 +78,8 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
     const filteredPatients = showSuggestions 
         ? patients.filter(patient =>
             (patient.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            (patient.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+            (patient.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (patient.phone?.toLowerCase() || '').includes(searchQuery.toLowerCase())
           )
         : [];
 
@@ -97,7 +99,8 @@ const PatientAutocomplete = forwardRef<HTMLInputElement, PatientAutocompleteProp
 
             const results = patients.filter(patient =>
                 (patient.name?.toLowerCase() || '').includes(query.toLowerCase()) ||
-                (patient.email?.toLowerCase() || '').includes(query.toLowerCase())
+                (patient.email?.toLowerCase() || '').includes(query.toLowerCase()) ||
+                (patient.phone?.toLowerCase() || '').includes(query.toLowerCase())
             );
 
             if (results.length === 1) {

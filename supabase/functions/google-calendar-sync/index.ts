@@ -17,20 +17,28 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { slug, event, createMeet } = await req.json();
+    const { slug, userId, event, createMeet } = await req.json();
     
-    if (!slug || !event) {
-      throw new Error('Missing parameters: slug and event are required');
+    if (!event) {
+      throw new Error('Missing parameter: event is required');
     }
 
-    const { data: profile, error: profileError } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('profiles')
-      .select('google_refresh_token, id')
-      .eq('slug', slug)
-      .single();
+      .select('google_refresh_token, id');
+    
+    if (slug) {
+      query = query.eq('slug', slug);
+    } else if (userId) {
+      query = query.eq('id', userId);
+    } else {
+      throw new Error('Missing identification: slug or userId required');
+    }
+
+    const { data: profile, error: profileError } = await query.single();
 
     if (profileError || !profile) {
-      throw new Error('Profile not found for slug: ' + slug);
+      throw new Error('Profile not found for identifier provided');
     }
 
     if (!profile.google_refresh_token) {

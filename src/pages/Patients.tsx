@@ -23,7 +23,13 @@ import {
   DollarSign,
   LineChart as LucideLineChart,
   Send,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft,
+  X,
+  Paperclip,
+  Upload,
+  File,
+  Image
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -34,6 +40,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import {
     LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -46,6 +59,14 @@ import { format, parseISO, differenceInYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -62,78 +83,45 @@ interface EnrichedPatient extends Patient {
 const Patients = () => {
   const navigate = useNavigate();
   const { organization } = useOrganization();
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
-  const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
-  const [searchRefreshTrigger, setSearchRefreshTrigger] = useState(0);
 
+  // ── States ──────────────────────────────────────────────────────────────
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [patients, setPatients] = useState<EnrichedPatient[]>([]);
+  const [patientNotes, setPatientNotes] = useState<SessionNote[]>([]);
+  const [patientTests, setPatientTests] = useState<PatientTest[]>([]);
+  const [patientPayments, setPatientPayments] = useState<any[]>([]);
+  const [patientConsents, setPatientConsents] = useState<any[]>([]);
+  const [patientDocuments, setPatientDocuments] = useState<any[]>([]);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [notesLoading, setNotesLoading] = useState(false);
+  
+  const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [confirmDeletePatient, setConfirmDeletePatient] = useState(false);
+  const [isDeletingPatient, setIsDeletingPatient] = useState(false);
+  
+  const [viewMode, setViewMode] = useState<'mosaic' | 'list'>(() => (localStorage.getItem('patientsViewMode') as 'mosaic' | 'list') || 'mosaic');
+  const [searchFilter, setSearchFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'newest' | 'oldest'>(() => (localStorage.getItem('patientsSortBy') as any) || 'name_asc');
+  const [searchRefreshTrigger, setSearchRefreshTrigger] = useState(0);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  
+  const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
+  const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
+
+  // Document upload states
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
   const selectPatient = (id: string) => {
     setSelectedPatient(id);
     setConfirmDeletePatient(false);
   };
-  const [patients, setPatients] = useState<EnrichedPatient[]>([]);
-
-  // Hover tooltip
-  const [hoveredPatient, setHoveredPatient] = useState<string | null>(null);
-  const [tooltipSummaries, setTooltipSummaries] = useState<Record<string, string>>({});
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchTooltipSummary = useCallback(async (patientId: string) => {
-    if (!organization?.id) return;
-    if (tooltipSummaries[patientId] !== undefined) return;
-    const { data } = await supabase
-      .from('session_notes')
-      .select('agenda, action_plan, bridge, date')
-      .eq('organization_id', organization?.id)
-      .eq('patient_id', patientId)
-      .order('date', { ascending: false })
-      .limit(1)
-      .single();
-    let summary = 'Sin notas clínicas registradas.';
-    if (data) {
-      const agenda = data.agenda as Array<{ topic?: string }>;
-      const topics = agenda?.map((a) => a.topic).filter(Boolean).sort().join(', ');
-      const plan = data.action_plan as string;
-      if (plan?.trim()) summary = plan.length > 90 ? plan.slice(0, 90) + '…' : plan;
-      else if (topics) summary = `Temas: ${topics}`;
-    }
-    setTooltipSummaries(prev => ({ ...prev, [patientId]: summary }));
-  }, [tooltipSummaries, organization?.id]);
-
-  const handleMouseEnter = (patientId: string, e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    hoverTimer.current = setTimeout(() => {
-      fetchTooltipSummary(patientId);
-      setHoveredPatient(patientId);
-      setTooltipPos({ x: rect.left + 60, y: rect.top - 8 });
-    }, 1000);
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-    setHoveredPatient(null);
-    setTooltipPos(null);
-  };
-  const [isLoading, setIsLoading] = useState(true);
-
-  // 360 View States
-  const [patientTests, setPatientTests] = useState<PatientTest[]>([]);
-  const [patientPayments, setPatientPayments] = useState<{ paid_at: string; amount: number }[]>([]);
-  const [dataLoading, setDataLoading] = useState(false);
-
-  const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
-  const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
-
-
-  // Notas del paciente seleccionado
-  const [patientNotes, setPatientNotes] = useState<SessionNote[]>([]);
-  const [notesLoading, setNotesLoading] = useState(false);
-
-  // Editar / Eliminar / Exportar
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [confirmDeletePatient, setConfirmDeletePatient] = useState(false);
-  const [isDeletingPatient, setIsDeletingPatient] = useState(false);
-  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Cargar pacientes desde Supabase
   const fetchPatients = useCallback(async () => {
@@ -235,6 +223,28 @@ const Patients = () => {
       if (paymentsErr) throw paymentsErr;
       setPatientPayments(paymentsData || []);
 
+      // 4. Fetch Consents
+      const { data: consentsData, error: consentsErr } = await supabase
+        .from('consent_forms')
+        .select('*')
+        .eq('patient_id', patientId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      if (consentsErr) throw consentsErr;
+      setPatientConsents(consentsData || []);
+
+      // 5. Fetch Documents
+      const { data: docsData, error: docsErr } = await supabase
+        .from('patient_documents')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('organization_id', organization?.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      if (docsErr) throw docsErr;
+      setPatientDocuments(docsData || []);
+
+
     } catch (err: unknown) {
       const error = err as Error;
       toast.error('Error al cargar expediente: ' + error.message);
@@ -251,8 +261,42 @@ const Patients = () => {
       setPatientNotes([]);
       setPatientTests([]);
       setPatientPayments([]);
+      setPatientConsents([]);
+      setPatientDocuments([]);
     }
   }, [selectedPatient, fetchPatientDetails]);
+
+  const handleExportPDF = async () => {
+    if (!selectedPatientData) return;
+    setIsExportingPDF(true);
+    try {
+      // Fetch professional profile for signature
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay sesión activa");
+
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('full_name, prefix, cedulas, signature_data')
+        .eq('id', user.id)
+        .single();
+      
+      if (profErr) throw profErr;
+
+      generateExpedientePDF(
+        selectedPatientData,
+        patientNotes,
+        patientConsents,
+        prof
+      );
+      toast.success('Expediente generado con éxito');
+    } catch (err: any) {
+      console.error('Error exporting PDF:', err);
+      toast.error('Error al generar PDF: ' + err.message);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
 
   // Timeline consolidation
   const timelineItems = [
@@ -278,6 +322,95 @@ const Patients = () => {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
+
+  const filteredPatientsList = patients
+    .filter(p => {
+      if (!searchFilter) return true;
+      const search = searchFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const name = (p.name || '').toLowerCase();
+      const email = (p.email || '').toLowerCase();
+      const phone = (p.phone || '').replace(/[^0-9]/g, '');
+      
+      // If search has letters, check name/email. If only numbers, check phone too.
+      const hasLetters = /[a-z]/i.test(searchFilter);
+      
+      if (hasLetters) {
+        return name.includes(searchFilter.toLowerCase()) || email.includes(searchFilter.toLowerCase());
+      }
+      
+      // If it's mainly numbers or symbols, match normalized phone or name
+      return phone.includes(search) || name.includes(searchFilter.toLowerCase());
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+      if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '');
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return 0;
+    });
+
+  const handleFileUpload = async (files: File[]) => {
+    if (!selectedPatient || !organization?.id) return;
+    setIsUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No hay sesión activa');
+
+      let uploadedCount = 0;
+      for (const file of files) {
+        // Validate size (50MB)
+        if (file.size > 52428800) {
+          toast.error(`"${file.name}" excede el límite de 50MB.`);
+          continue;
+        }
+
+        const ext = file.name.split('.').pop() || 'bin';
+        const safeName = file.name
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove accents
+          .replace(/[^a-zA-Z0-9._-]/g, '_');                // replace spaces & special chars
+        const storagePath = `${organization.id}/${selectedPatient}/${Date.now()}_${safeName}`;
+
+        // Upload to Storage
+        const { error: uploadErr } = await supabase.storage
+          .from('patient-documents')
+          .upload(storagePath, file);
+
+        if (uploadErr) {
+          toast.error(`Error al subir "${file.name}": ${uploadErr.message}`);
+          continue;
+        }
+
+        // Create metadata record
+        const { error: insertErr } = await supabase
+          .from('patient_documents')
+          .insert({
+            patient_id: selectedPatient,
+            organization_id: organization.id,
+            file_name: file.name,
+            file_type: file.type || `application/${ext}`,
+            file_size: file.size,
+            storage_path: storagePath,
+            uploaded_by: user.id,
+          });
+
+        if (insertErr) {
+          toast.error(`Error al registrar "${file.name}": ${insertErr.message}`);
+          continue;
+        }
+        uploadedCount++;
+      }
+
+      if (uploadedCount > 0) {
+        toast.success(`${uploadedCount} ${uploadedCount === 1 ? 'archivo subido' : 'archivos subidos'} con éxito.`);
+        // Refresh documents list
+        fetchPatientDetails(selectedPatient);
+      }
+    } catch (err: any) {
+      toast.error('Error al subir archivos: ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleDeletePatient = async () => {
     if (!selectedPatient || !organization?.id) return;
@@ -313,8 +446,24 @@ const Patients = () => {
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div className="space-y-0.5">
-                <h1 className="text-2xl font-black tracking-tight">Pacientes</h1>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Expediente Clínico 360°</p>
+                <div className="flex items-center gap-2">
+                  {selectedPatient && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 -ml-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                      onClick={() => setSelectedPatient(null)}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <h1 className="text-2xl font-black tracking-tight">
+                    {selectedPatient ? 'Expediente' : 'Pacientes'}
+                  </h1>
+                </div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">
+                  {selectedPatient ? 'Vista 360° del Paciente' : 'Expediente Clínico 360°'}
+                </p>
               </div>
             </div>
 
@@ -408,6 +557,20 @@ const Patients = () => {
 
                       <div className="grid grid-cols-1 gap-2 mt-8">
                         <Button 
+                          variant="zen" 
+                          size="sm" 
+                          className="w-full h-11 shadow-lg shadow-primary/10 mb-2 gap-2"
+                          onClick={handleExportPDF}
+                          disabled={isExportingPDF}
+                        >
+                          {isExportingPDF ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          Exportar Expediente
+                        </Button>
+                        <Button 
                           variant="outline" 
                           size="sm" 
                           className="w-full h-10 border-primary/20 hover:bg-primary/5"
@@ -473,6 +636,12 @@ const Patients = () => {
                               className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
                             >
                               Economía
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="documents"
+                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
+                            >
+                              <Paperclip className="h-3.5 w-3.5 mr-1.5" /> Documentos
                             </TabsTrigger>
                             <TabsTrigger
                               value="whatsapp"
@@ -788,6 +957,161 @@ const Patients = () => {
                             </div>
                           </TabsContent>
 
+                          <TabsContent value="documents" className="m-0 animate-in fade-in duration-500">
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-xl font-bold flex items-center gap-2">
+                                    <Paperclip className="h-5 w-5 text-primary" /> Documentos Adjuntos
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground mt-1">Sube y gestiona archivos del expediente clínico.</p>
+                                </div>
+                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                                  {patientDocuments.length} {patientDocuments.length === 1 ? 'archivo' : 'archivos'}
+                                </Badge>
+                              </div>
+
+                              {/* Drag & Drop Upload Zone */}
+                              <div
+                                className={cn(
+                                  "relative border-2 border-dashed rounded-2xl p-10 transition-all duration-300 text-center cursor-pointer group",
+                                  isDragging 
+                                    ? "border-primary bg-primary/10 scale-[1.02]" 
+                                    : "border-border/60 bg-muted/10 hover:border-primary/40 hover:bg-primary/5"
+                                )}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)}
+                                onDrop={async (e) => {
+                                  e.preventDefault();
+                                  setIsDragging(false);
+                                  const files = Array.from(e.dataTransfer.files);
+                                  if (files.length === 0) return;
+                                  await handleFileUpload(files);
+                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  multiple
+                                  className="hidden"
+                                  accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"
+                                  onChange={async (e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    if (files.length > 0) await handleFileUpload(files);
+                                    e.target.value = '';
+                                  }}
+                                />
+                                <div className={cn(
+                                  "h-16 w-16 rounded-2xl mx-auto flex items-center justify-center mb-4 transition-all duration-300",
+                                  isDragging ? "bg-primary/20 scale-110" : "bg-primary/5 group-hover:bg-primary/10 group-hover:scale-105"
+                                )}>
+                                  {isUploading ? (
+                                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                                  ) : (
+                                    <Upload className={cn("h-8 w-8 transition-colors", isDragging ? "text-primary" : "text-primary/40 group-hover:text-primary/70")} />
+                                  )}
+                                </div>
+                                <p className="font-bold text-foreground/80">
+                                  {isUploading ? 'Subiendo archivos...' : isDragging ? 'Suelta los archivos aquí' : 'Arrastra archivos aquí o haz clic para seleccionar'}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  PDF, Imágenes, Word, Excel · Máximo 50MB por archivo
+                                </p>
+                              </div>
+
+                              {/* Documents Grid */}
+                              {dataLoading ? (
+                                <div className="flex justify-center p-12">
+                                  <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                                </div>
+                              ) : patientDocuments.length === 0 ? (
+                                <div className="text-center p-12 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
+                                  <Paperclip className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-4" />
+                                  <p className="text-muted-foreground font-medium">No hay documentos adjuntos.</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Sube el primer archivo para comenzar el expediente digital.</p>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                  {patientDocuments.map((doc) => {
+                                    const isImage = /\.(jpg|jpeg|png|webp|heic)$/i.test(doc.file_name);
+                                    const isPdf = /\.pdf$/i.test(doc.file_name);
+                                    const fileSize = doc.file_size < 1024 * 1024 
+                                      ? `${(doc.file_size / 1024).toFixed(1)} KB` 
+                                      : `${(doc.file_size / (1024 * 1024)).toFixed(1)} MB`;
+
+                                    return (
+                                      <Card key={doc.id} className="group p-4 border-border/40 hover:border-primary/30 transition-all hover:shadow-medium overflow-hidden">
+                                        <div className="flex items-start gap-4">
+                                          <div className={cn(
+                                            "h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110",
+                                            isImage ? "bg-accent/10" : isPdf ? "bg-destructive/10" : "bg-primary/10"
+                                          )}>
+                                            {isImage ? (
+                                              <Image className={cn("h-5 w-5", "text-accent")} />
+                                            ) : isPdf ? (
+                                              <FileText className="h-5 w-5 text-destructive" />
+                                            ) : (
+                                              <File className="h-5 w-5 text-primary" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-sm truncate group-hover:text-primary transition-colors" title={doc.file_name}>
+                                              {doc.file_name}
+                                            </h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <span className="text-[10px] text-muted-foreground font-medium">{fileSize}</span>
+                                              <span className="text-muted-foreground/30">·</span>
+                                              <span className="text-[10px] text-muted-foreground">{format(parseISO(doc.created_at), 'd MMM, yyyy', { locale: es })}</span>
+                                            </div>
+                                            {doc.category && doc.category !== 'general' && (
+                                              <Badge variant="outline" className="mt-2 text-[8px] uppercase tracking-widest">
+                                                {doc.category}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/40">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 h-8 text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                                            onClick={async () => {
+                                              const { data } = await supabase.storage
+                                                .from('patient-documents')
+                                                .createSignedUrl(doc.storage_path, 300);
+                                              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                                              else toast.error('No se pudo generar el enlace de descarga.');
+                                            }}
+                                          >
+                                            <Download className="h-3 w-3 mr-1.5" /> Descargar
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                                            onClick={async () => {
+                                              if (!window.confirm(`¿Eliminar "${doc.file_name}"?`)) return;
+                                              const { error: delStorageErr } = await supabase.storage
+                                                .from('patient-documents')
+                                                .remove([doc.storage_path]);
+                                              if (delStorageErr) { toast.error('Error al eliminar archivo.'); return; }
+                                              await supabase.from('patient_documents').update({ deleted_at: new Date().toISOString() }).eq('id', doc.id);
+                                              setPatientDocuments(prev => prev.filter(d => d.id !== doc.id));
+                                              toast.success('Documento eliminado.');
+                                            }}
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      </Card>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </TabsContent>
+
                           <TabsContent value="whatsapp" className="m-0 animate-in fade-in duration-500">
                             <div className="space-y-6">
                               <div className="flex items-center justify-between">
@@ -918,22 +1242,252 @@ const Patients = () => {
                 </Card>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-320px)] bg-muted/20 rounded-3xl border-2 border-dashed border-border/60 animate-in fade-in zoom-in duration-700">
-                <div className="relative mb-8">
-                  <div className="h-32 w-32 rounded-full bg-primary/5 flex items-center justify-center relative z-10">
-                    <Brain className="h-16 w-16 text-primary opacity-20" />
+              <div className="space-y-6 animate-in fade-in duration-700">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold tracking-tight">Directorio de Pacientes</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Gestiona y visualiza todos tus expedientes activos.</p>
                   </div>
-                  <div className="absolute inset-0 bg-primary/5 rounded-full blur-2xl animate-pulse"></div>
+                  
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Nombre, correo o teléfono..."
+                        value={searchFilter}
+                        onChange={(e) => setSearchFilter(e.target.value)}
+                        className="pl-9 h-10 bg-muted/30 border-border/50 focus:bg-background transition-all rounded-xl"
+                      />
+                      {searchFilter && (
+                        <button 
+                          onClick={() => setSearchFilter('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border/50 shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={cn(
+                          "h-8 text-[10px] font-bold uppercase tracking-widest transition-all",
+                          viewMode === 'mosaic' ? "bg-white shadow-sm text-primary" : "opacity-50"
+                        )}
+                        onClick={() => {
+                          setViewMode('mosaic');
+                          localStorage.setItem('patientsViewMode', 'mosaic');
+                        }}
+                      >
+                        Mosaico
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={cn(
+                          "h-8 text-[10px] font-bold uppercase tracking-widest transition-all",
+                          viewMode === 'list' ? "bg-white shadow-sm text-primary" : "opacity-50"
+                        )}
+                        onClick={() => {
+                          setViewMode('list');
+                          localStorage.setItem('patientsViewMode', 'list');
+                        }}
+                      >
+                        Lista
+                      </Button>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Select 
+                        value={sortBy}
+                        onValueChange={(value) => {
+                          setSortBy(value as any);
+                          localStorage.setItem('patientsSortBy', value);
+                        }}
+                      >
+                        <SelectTrigger className="h-10 bg-muted/50 border-border/50 text-[10px] font-bold uppercase tracking-widest rounded-xl px-4 hover:bg-background transition-all min-w-[140px]">
+                          <SelectValue placeholder="Ordenar por" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/50 shadow-xl">
+                          <SelectItem value="name_asc" className="text-[10px] font-bold uppercase tracking-widest">A - Z</SelectItem>
+                          <SelectItem value="name_desc" className="text-[10px] font-bold uppercase tracking-widest">Z - A</SelectItem>
+                          <SelectItem value="newest" className="text-[10px] font-bold uppercase tracking-widest">Recientes</SelectItem>
+                          <SelectItem value="oldest" className="text-[10px] font-bold uppercase tracking-widest">Antiguos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-black text-foreground/40 tracking-tight">Expediente Clínico 360°</h2>
-                <p className="text-muted-foreground mt-2 max-w-sm text-center leading-relaxed font-medium">
-                  Busca y selecciona un paciente en la barra superior para acceder a su historial completo, evolución y finanzas.
-                </p>
-                <div className="mt-8 flex gap-4">
-                   <div className="flex items-center gap-2 text-xs font-bold text-primary/40 uppercase tracking-widest">
-                     <Search className="h-3.5 w-3.5" /> Escribe al menos 3 letras
-                   </div>
-                </div>
+
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed border-border/60">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20 mb-4" />
+                    <p className="text-muted-foreground font-medium">Cargando directorio...</p>
+                  </div>
+                ) : filteredPatientsList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed border-border/60">
+                    <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
+                      <Users className="h-10 w-10 text-primary opacity-20" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground/60">
+                      {searchFilter ? 'No se encontraron resultados' : 'No hay pacientes registrados'}
+                    </h3>
+                    <p className="text-muted-foreground mt-1 max-w-xs text-center text-sm">
+                      {searchFilter 
+                        ? `No hay pacientes que coincidan con "${searchFilter}".`
+                        : 'Comienza agregando a tu primer paciente para ver su expediente aquí.'}
+                    </p>
+                    {!searchFilter && (
+                      <Button variant="zen" className="mt-6" onClick={() => setIsNewPatientOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" /> Agregar Paciente
+                      </Button>
+                    )}
+                  </div>
+                ) : viewMode === 'mosaic' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredPatientsList.map((patient) => (
+                      <Card 
+                        key={patient.id} 
+                        className="group relative overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer"
+                        onClick={() => selectPatient(patient.id)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className={cn(
+                              "h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3",
+                              getAvatarTheme(patient.name)
+                            )}>
+                              {getInitials(patient.name)}
+                            </div>
+                            <Badge variant="outline" className="text-[9px] uppercase tracking-tighter opacity-60">
+                              {patient.status?.replace(/_/g, ' ') || 'Activo'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors truncate">
+                              {patient.name}
+                            </h3>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              <span className="text-[10px] font-medium uppercase tracking-wide">
+                                {patient.last_session 
+                                  ? `Última: ${format(new Date(patient.last_session), 'd MMM, yyyy', { locale: es })}`
+                                  : 'Sin sesiones registradas'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 flex items-center justify-between pt-4 border-t border-border/40">
+                            <div className="flex -space-x-2">
+                                {/* Next Appointment Indicator */}
+                                {patient._next_appointment ? (
+                                    <div className="h-6 w-6 rounded-full bg-success/10 border-2 border-white flex items-center justify-center" title="Próxima cita programada">
+                                        <Clock className="h-3 w-3 text-success" />
+                                    </div>
+                                ) : (
+                                    <div className="h-6 w-6 rounded-full bg-muted/20 border-2 border-white flex items-center justify-center" title="Sin citas pendientes">
+                                        <Clock className="h-3 w-3 text-muted-foreground opacity-40" />
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-1.5 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                                <span className="text-[9px] font-black uppercase tracking-widest">Ver Expediente</span>
+                                <ExternalLink className="h-3 w-3" />
+                            </div>
+                          </div>
+                        </CardContent>
+                        
+                        {/* Subtle background pattern */}
+                        <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-primary/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-soft animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow>
+                          <TableHead className="w-[80px] text-[10px] font-bold uppercase tracking-widest">Avatar</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest">Nombre del Paciente</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest">Contacto</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest">Estado</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest">Última Sesión</TableHead>
+                          <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest px-8">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPatientsList.map((patient) => (
+                          <TableRow 
+                            key={patient.id} 
+                            className="group cursor-pointer hover:bg-primary/5 transition-colors"
+                            onClick={() => selectPatient(patient.id)}
+                          >
+                            <TableCell>
+                              <div className={cn(
+                                "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-bold",
+                                getAvatarTheme(patient.name)
+                              )}>
+                                {getInitials(patient.name)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm tracking-tight">{patient.name}</span>
+                                <span className="text-[10px] text-muted-foreground opacity-60 font-mono">ID: {patient.id.slice(0,8)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <Mail className="h-3 w-3 text-primary opacity-60" />
+                                  <span className="truncate max-w-[150px]">{patient.email || '—'}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  <Phone className="h-3 w-3 text-primary opacity-60" />
+                                  <span>{patient.phone || '—'}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[9px] uppercase tracking-tighter bg-white">
+                                {patient.status?.replace(/_/g, ' ') || 'Activo'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2 text-xs font-medium">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  {patient.last_session 
+                                    ? format(new Date(patient.last_session), 'd MMM, yyyy', { locale: es })
+                                    : <span className="text-muted-foreground opacity-40">Sin registros</span>}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px]">
+                                  <Clock className={cn("h-2.5 w-2.5", patient._next_appointment ? "text-success" : "text-muted-foreground opacity-40")} />
+                                  {patient._next_appointment 
+                                    ? <span className="text-success font-bold uppercase">Cita: {format(parseISO(patient._next_appointment), 'd MMM', { locale: es })}</span>
+                                    : <span className="text-muted-foreground opacity-40">Sin cita</span>}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right px-8">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white"
+                              >
+                                Ver Expediente
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1023,30 +1577,6 @@ const Patients = () => {
         </DialogContent>
       </Dialog>
 
-      {/* AI Tooltip — portal renders above all overflow:hidden containers */}
-      {
-        hoveredPatient && tooltipPos && createPortal(
-          <div
-            className="pointer-events-none fixed z-[1000] w-64 animate-fade-in"
-            style={{ left: tooltipPos.x, top: tooltipPos.y, transform: 'translateY(-100%)' }}
-          >
-            <div className="rounded-xl border border-border bg-background shadow-2xl p-3 space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">IA · Última nota</span>
-                <div className="h-px flex-1 bg-primary/20" />
-              </div>
-              <p className="text-xs text-foreground/80 leading-relaxed">
-                {tooltipSummaries[hoveredPatient] !== undefined
-                  ? tooltipSummaries[hoveredPatient]
-                  : <span className="animate-pulse text-muted-foreground">Cargando…</span>
-                }
-              </p>
-            </div>
-            <div className="ml-5 h-2 w-2 rotate-45 border-b border-r border-border bg-background -mt-[5px]" />
-          </div>,
-          document.body
-        )
-      }
     </>
   );
 };

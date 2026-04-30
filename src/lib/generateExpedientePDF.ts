@@ -39,6 +39,13 @@ export interface ConsentData {
     is_valid: boolean;
 }
 
+export interface ProfessionalData {
+    full_name?: string;
+    prefix?: string;
+    cedulas?: { numero: string; tipo: string; institucion?: string }[];
+    signature_data?: string | null;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const FORM_TYPE_LABELS: Record<string, string> = {
     general: 'Consentimiento Informado General',
@@ -75,6 +82,7 @@ export function generateExpedientePDF(
     patient: PatientData,
     notes: SessionNoteData[],
     consents: ConsentData[],
+    professional?: ProfessionalData,
 ): void {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -340,7 +348,7 @@ export function generateExpedientePDF(
             if (y > pageH - margin) y = addPage();
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(80, 80, 100);
-            doc.text('Plan de acción / Tareas:', margin + 3, y);
+            doc.text('Tareas y Seguimiento:', margin + 3, y);
             y += 5;
             for (const task of note.action_plan) {
                 if (!task.task) continue;
@@ -395,9 +403,251 @@ export function generateExpedientePDF(
         }
     }
 
+    // ═══════════════════════════════════════════════════════
+    // FIRMA PROFESIONAL
+    // ═══════════════════════════════════════════════════════
+    if (professional) {
+        y += 10;
+        if (y > pageH - 80) y = addPage();
+
+        // Línea decorativa superior
+        doc.setDrawColor(95, 70, 155);
+        doc.setLineWidth(0.5);
+        doc.line(margin + 30, y, pageW - margin - 30, y);
+        y += 8;
+
+        // Firma imagen
+        if (professional.signature_data) {
+            try {
+                const sigW = 50;
+                const sigH = 20;
+                const sigX = (pageW - sigW) / 2;
+                doc.addImage(professional.signature_data, 'PNG', sigX, y, sigW, sigH);
+                y += sigH + 4;
+            } catch (e) {
+                console.error('Error adding signature to PDF:', e);
+                y += 4;
+            }
+        }
+
+        // Línea de firma
+        doc.setDrawColor(60, 40, 120);
+        doc.setLineWidth(0.3);
+        doc.line(pageW / 2 - 35, y, pageW / 2 + 35, y);
+        y += 5;
+
+        // Nombre con prefijo
+        const displayName = [professional.prefix, professional.full_name].filter(Boolean).join(' ');
+        if (displayName) {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 30, 60);
+            doc.text(displayName, pageW / 2, y, { align: 'center' });
+            y += 5;
+        }
+
+        // Cédulas
+        if (professional.cedulas && professional.cedulas.length > 0) {
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(80, 80, 100);
+            for (const ced of professional.cedulas) {
+                const cedText = `Céd. Prof. ${ced.numero} · ${ced.tipo?.charAt(0).toUpperCase()}${ced.tipo?.slice(1) || ''}`;
+                doc.text(cedText, pageW / 2, y, { align: 'center' });
+                y += 4.5;
+            }
+        }
+    }
+
     // ── Pie de todas las páginas ──
     renderFooters(doc.getNumberOfPages());
 
     // ── Guardar ──
     doc.save(`expediente_${patient.name.replace(/\s+/g, '_')}_${folio}.pdf`);
 }
+
+/**
+ * Genera un PDF profesional para una nota de sesión individual.
+ */
+export function generateSessionNotePDF(
+    patient: { name: string; id: string },
+    note: SessionNoteData,
+    professional?: ProfessionalData
+): void {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentW = pageW - margin * 2;
+    const folio = patient.id.substring(0, 8).toUpperCase();
+    const generatedAt = format(new Date(), "d 'de' MMMM yyyy, HH:mm", { locale: es });
+
+    // Cabecera
+    const renderHeader = () => {
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 160);
+        doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+        doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+        doc.setDrawColor(220, 220, 230);
+        doc.line(margin, 13, pageW - margin, 13);
+    };
+
+    const addPage = (): number => {
+        doc.addPage();
+        renderHeader();
+        return margin + 18;
+    };
+
+    renderHeader();
+
+    // Título
+    doc.setFillColor(95, 70, 155);
+    doc.roundedRect(margin, 18, contentW, 20, 3, 3, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`NOTA DE SESIÓN #${note.session_number}`, pageW / 2, 28, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha de sesión: ${format(parseISO(note.date), "d 'de' MMMM yyyy", { locale: es })}`, pageW / 2, 34, { align: 'center' });
+
+    let y = 50;
+
+    // Datos generales
+    doc.setFontSize(10);
+    doc.setTextColor(30, 30, 60);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORMACIÓN GENERAL', margin, y);
+    doc.line(margin, y + 1.5, margin + 45, y + 1.5);
+    y += 8;
+
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Paciente:', margin, y);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.text(patient.name, margin + 25, y);
+    y += 6;
+
+    if (note.cie10_code) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 100);
+        doc.text('Diagnóstico:', margin, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 30, 30);
+        doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 25, y);
+        y += 6;
+    }
+
+    y += 4;
+
+    // Contenido de la nota
+    const sections = [
+        { label: 'Estado de ánimo / Afecto', content: note.mood?.notes, rating: note.mood?.rating },
+        { label: 'Revisión de temas / Tarea', content: note.bridge?.homework_review || note.bridge?.notes },
+        { label: 'Agenda / Desarrollo de la sesión', isAgenda: true },
+        { label: 'Notas de diagnóstico / Plan de tratamiento', content: note.diagnostico_principal },
+    ];
+
+    for (const section of sections) {
+        if (y > pageH - 30) y = addPage();
+
+        if (section.isAgenda) {
+            if (note.agenda && note.agenda.length > 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(30, 30, 60);
+                doc.text(section.label, margin, y);
+                y += 5;
+                for (const item of note.agenda) {
+                    if (y > pageH - 20) y = addPage();
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(50, 50, 50);
+                    y = addWrappedText(doc, `• ${item.topic}`, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
+                    if (item.notes) {
+                        doc.setFont('helvetica', 'normal');
+                        y = addWrappedText(doc, `  ${item.notes}`, margin + 7, y, contentW - 7, 5, pageH, margin, addPage);
+                    }
+                }
+                y += 4;
+            }
+            continue;
+        }
+
+        if (section.content || section.rating != null) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 30, 60);
+            doc.text(section.label, margin, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(50, 50, 50);
+            if (section.rating != null) {
+                doc.text(`Puntuación: ${section.rating}/100`, margin + 4, y);
+                y += 5;
+            }
+            if (section.content) {
+                y = addWrappedText(doc, section.content, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
+            }
+            y += 4;
+        }
+    }
+
+    // Plan de acción
+    if (note.action_plan && note.action_plan.length > 0) {
+        if (y > pageH - 30) y = addPage();
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 60);
+        doc.text('Tareas y Seguimiento', margin, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal');
+        for (const task of note.action_plan) {
+            if (y > pageH - 20) y = addPage();
+            const checkbox = task.completed ? '[✓]' : '[ ]';
+            y = addWrappedText(doc, `${checkbox} ${task.task}`, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
+        }
+    }
+
+    // Firma Profesional
+    if (professional) {
+        y += 15;
+        if (y > pageH - 60) y = addPage();
+
+        if (professional.signature_data) {
+            try {
+                doc.addImage(professional.signature_data, 'PNG', (pageW - 40) / 2, y, 40, 15);
+                y += 16;
+            } catch (e) { y += 2; }
+        }
+
+        doc.setDrawColor(60, 40, 120);
+        doc.line(pageW / 2 - 30, y, pageW / 2 + 30, y);
+        y += 5;
+
+        const displayName = [professional.prefix, professional.full_name].filter(Boolean).join(' ');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(displayName, pageW / 2, y, { align: 'center' });
+        y += 4;
+
+        if (professional.cedulas && professional.cedulas.length > 0) {
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 100, 110);
+            for (const ced of professional.cedulas) {
+                doc.text(`Céd. Prof. ${ced.numero} (${ced.tipo})`, pageW / 2, y, { align: 'center' });
+                y += 4;
+            }
+        }
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(180);
+        doc.text(`Documento de validez clínica. Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`, pageW / 2, pageH - 8, { align: 'center' });
+    }
+
+    doc.save(`nota_sesion_${note.session_number}_${patient.name.replace(/\s+/g, '_')}.pdf`);
+}
+

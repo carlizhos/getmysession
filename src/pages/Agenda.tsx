@@ -753,7 +753,21 @@ const AgendaPage = () => {
             fetchAppointments();
             setEditingAppointment(null);
           }}
-          editingAppointment={editingAppointment}
+          editingAppointment={editingAppointment ? {
+            id: editingAppointment.id,
+            patientId: editingAppointment.patient_id || undefined,
+            patientName: editingAppointment.patient_name,
+            startTime: editingAppointment.start_time,
+            endTime: editingAppointment.end_time,
+            type: editingAppointment.type,
+            fee: editingAppointment.fee,
+            meetingLink: editingAppointment.meeting_link || editingAppointment.meet_link,
+            meetingPlatform: editingAppointment.meeting_platform,
+            notes: editingAppointment.notes,
+            status: editingAppointment.status,
+            color: editingAppointment.color,
+            modality: editingAppointment.modality,
+          } : null}
           isReadOnly={isAppointmentPast(editingAppointment)}
         />
       </div>

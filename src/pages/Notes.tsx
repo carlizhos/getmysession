@@ -18,7 +18,8 @@ import {
   Save,
   X,
   ChevronRight,
-  Activity
+  Activity,
+  Download
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -29,6 +30,8 @@ import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/lib/utils';
 import { SessionNote } from '@/types';
+import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
+
 
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -44,6 +47,10 @@ const Notes = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingText, setEditingText] = useState('');
+  const [isExportingNote, setIsExportingNote] = useState(false);
+  const [professionalProfile, setProfessionalProfile] = useState<any>(null);
+
+
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchNotes = useCallback(async () => {
@@ -72,9 +79,48 @@ const Notes = () => {
     setLoading(false);
   }, [selectedPatient, selectedNote]);
 
+  const handleDownloadNote = async (note: SessionNote) => {
+    setIsExportingNote(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay sesión activa");
+
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('full_name, prefix, cedulas, signature_data')
+        .eq('id', user.id)
+        .single();
+
+      generateSessionNotePDF(
+        { name: selectedPatientName, id: selectedPatient! },
+        note as any,
+        prof || undefined
+      );
+      toast.success('Reporte generado con éxito');
+    } catch (err: any) {
+      console.error('Error generating PDF:', err);
+      toast.error('Error al generar PDF: ' + err.message);
+    } finally {
+      setIsExportingNote(false);
+    }
+  };
+
   useEffect(() => { 
     fetchNotes(); 
+    fetchProfessionalProfile();
   }, [selectedPatient]); // Fetch when patient changes
+
+  const fetchProfessionalProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, prefix, cedulas, signature_data')
+      .eq('id', user.id)
+      .single();
+    if (data) setProfessionalProfile(data);
+  };
+
 
   // ── Guardar nota ───────────────────────────────────────────────────────────
   const handleSaveNote = async (noteData: {
@@ -376,6 +422,21 @@ const Notes = () => {
                             >
                               <Pencil className="h-4 w-4" /> Editar
                             </Button>
+                            <Button
+                              variant="zen"
+                              size="sm"
+                              className="h-10 px-4 rounded-xl gap-2 font-bold shadow-sm"
+                              onClick={() => handleDownloadNote(selectedNoteData)}
+                              disabled={isExportingNote}
+                            >
+                              {isExportingNote ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              Descargar Reporte
+                            </Button>
+
                             {confirmDelete ? (
                               <div className="flex items-center gap-2 bg-destructive/5 border border-destructive/20 p-1.5 rounded-xl animate-in fade-in zoom-in-95">
                                 <Button
@@ -457,36 +518,46 @@ const Notes = () => {
                       )}
                     </div>
 
-                    {/* Split View for Agenda & Action Plan */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Temas Tratados</h4>
-                        <div className="space-y-3">
-                          {selectedNoteData.agenda?.map((item, i) => (
-                            <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-2">
-                              <span className="text-sm font-bold text-primary">{item.topic || `Tema ${i + 1}`}</span>
-                              {item.situation && (
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                  <span className="font-black opacity-40 mr-1">SIT:</span> {item.situation}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                    {/* Visual Signature Block */}
+                    {!isEditing && professionalProfile && (
+                      <div className="pt-12 mt-12 border-t border-border/60 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                        {professionalProfile.signature_data && (
+                          <img 
+                            src={professionalProfile.signature_data} 
+                            alt="Firma" 
+                            className="h-16 w-auto mb-2 grayscale hover:grayscale-0 transition-all duration-500 opacity-80"
+                          />
+                        )}
+                        <div className="h-px w-48 bg-slate-200 mb-4" />
+                        <p className="text-sm font-bold text-slate-800">
+                          {[professionalProfile.prefix, professionalProfile.full_name].filter(Boolean).join(' ')}
+                        </p>
+                        {professionalProfile.cedulas?.map((ced: any, i: number) => (
+                          <p key={i} className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mt-1">
+                            Céd. Prof. {ced.numero}
+                          </p>
+                        ))}
+                        <p className="text-[9px] font-black text-primary/40 uppercase tracking-[0.3em] mt-6">
+                          Psicólogo Responsable
+                        </p>
                       </div>
+                    )}
 
-                      <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Plan de Acción</h4>
-                        <ul className="space-y-3">
-                          {selectedNoteData.action_plan?.map((item, i) => (
-                            <li key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/5">
-                              <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                                <span className="text-[10px] font-black text-primary">{i + 1}</span>
-                              </div>
-                              <span className="text-sm font-medium text-slate-700 leading-relaxed">{item}</span>
-                            </li>
-                          ))}
-                        </ul>
+
+                    {/* Agenda Section */}
+                    <div className="space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Temas Tratados</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedNoteData.agenda?.map((item, i) => (
+                          <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-2">
+                            <span className="text-sm font-bold text-primary">{item.topic || `Tema ${i + 1}`}</span>
+                            {item.situation && (
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                <span className="font-black opacity-40 mr-1">SIT:</span> {item.situation}
+                              </p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </CardContent>

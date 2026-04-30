@@ -87,7 +87,18 @@ const Consents = () => {
     useEffect(() => { fetchConsents(); }, [fetchConsents]);
 
     // ── Regenerar PDF ────────────────────────────────────────────────────────
-    const handleDownloadPDF = (consent: ConsentRecord) => {
+    const handleDownloadPDF = async (consent: ConsentRecord) => {
+        // Fetch professional data for signature block
+        let professional: { full_name?: string; prefix?: string; cedulas?: any[]; signature_data?: string | null } | null = null;
+        if (user) {
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('full_name, prefix, cedulas, signature_data')
+                .eq('id', user.id)
+                .single();
+            if (prof) professional = prof;
+        }
+
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
         const margin = 20;
         const pageW = doc.internal.pageSize.getWidth();
@@ -146,6 +157,47 @@ const Consents = () => {
                 `Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`,
                 pageW / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' },
             );
+        }
+
+        // ── Professional signature block ──
+        if (professional) {
+            y += 15;
+            if (y > 220) { doc.addPage(); y = 20; }
+
+            // Professional signature image
+            if (professional.signature_data) {
+                try {
+                    doc.addImage(professional.signature_data, 'PNG', pageW / 2 - 25, y, 50, 20);
+                    y += 22;
+                } catch (e) { y += 2; }
+            }
+
+            doc.setDrawColor(60, 40, 120);
+            doc.line(pageW / 2 - 40, y, pageW / 2 + 40, y);
+            y += 5;
+
+            const displayName = [professional.prefix, professional.full_name].filter(Boolean).join(' ');
+            if (displayName) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(30, 30, 60);
+                doc.text(displayName, pageW / 2, y, { align: 'center' });
+                y += 5;
+            }
+
+            if (professional.cedulas && professional.cedulas.length > 0) {
+                doc.setFontSize(8.5);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(80, 80, 100);
+                for (const ced of professional.cedulas) {
+                    doc.text(`Céd. Prof. ${ced.numero}`, pageW / 2, y, { align: 'center' });
+                    y += 4.5;
+                }
+            }
+
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 120);
+            doc.text('Psicólogo responsable', pageW / 2, y + 2, { align: 'center' });
         }
 
         doc.save(`consentimiento_${consent.patient_name.replace(/\s+/g, '_')}_${consent.id.substring(0, 8)}.pdf`);

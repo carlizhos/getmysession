@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/components/Layout';
 import MFASetup from '@/components/auth/MFASetup';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
     Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy, CalendarPlus,
-    Building2, CreditCard, Unlink, AlertTriangle
+    Building2, CreditCard, Unlink, AlertTriangle, PenTool, Eraser, RotateCcw
 } from 'lucide-react';
 import {
     AlertDialog,
@@ -137,7 +137,14 @@ const Settings = () => {
         stripe_fee_percent: 5.14,
         slug: '',
         is_public: false,
+        signature_data: null as string | null,
     });
+
+    // Signature canvas refs
+    const sigCanvasRef = useRef<HTMLCanvasElement>(null);
+    const [isSigDrawing, setIsSigDrawing] = useState(false);
+    const [hasSigContent, setHasSigContent] = useState(false);
+    const sigLastPos = useRef<{ x: number; y: number } | null>(null);
 
     const [cedulas, setCedulas] = useState<Cedula[]>([]);
     const [cursos, setCursos] = useState<Curso[]>([]);
@@ -182,7 +189,7 @@ const Settings = () => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token')
+                .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token, signature_data')
                 .eq('id', user.id)
                 .single();
 
@@ -203,6 +210,7 @@ const Settings = () => {
                 stripe_fee_percent: data?.stripe_fee_percent ?? 5.14,
                 slug: data?.slug || '',
                 is_public: data?.is_public || false,
+                signature_data: data?.signature_data || null,
             });
 
             // Dynamic lists — stored as JSONB in profiles
@@ -317,6 +325,7 @@ const Settings = () => {
                 telefono_profesional: profile.telefono_profesional || null,
                 slug: profile.slug || null,
                 is_public: profile.is_public,
+                signature_data: profile.signature_data,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'id' });
             if (error) throw error;
@@ -808,6 +817,161 @@ const Settings = () => {
                                                         <div className="flex gap-2 justify-end">
                                                             <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddCurso(false)}>Cancelar</Button>
                                                             <Button type="button" variant="zen" size="sm" onClick={addCurso}>Agregar</Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* ── Firma Profesional ── */}
+                                            <div className="space-y-4 pt-4 border-t border-border/50">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                            <PenTool className="h-3.5 w-3.5 text-primary" />
+                                                            Firma Profesional
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">Se incluirá automáticamente en todos los reportes y expedientes generados.</p>
+                                                    </div>
+                                                </div>
+
+                                                {profile.signature_data ? (
+                                                    <div className="space-y-3">
+                                                        <div className="relative rounded-2xl border-2 border-primary/20 bg-white p-4 group">
+                                                            <img src={profile.signature_data} alt="Firma profesional" className="max-h-[120px] mx-auto" />
+                                                            <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="gap-1.5 bg-white/90 hover:bg-white"
+                                                                    onClick={() => setProfile({ ...profile, signature_data: null })}
+                                                                >
+                                                                    <RotateCcw className="h-3.5 w-3.5" /> Cambiar firma
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-center text-success font-medium uppercase tracking-widest flex items-center justify-center gap-1">
+                                                            <CheckCircle2 className="h-3 w-3" /> Firma registrada
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        <div className={`relative rounded-2xl border-2 border-dashed transition-colors border-primary/30 bg-white hover:border-primary/60 cursor-crosshair`}>
+                                                            <canvas
+                                                                ref={sigCanvasRef}
+                                                                width={800}
+                                                                height={300}
+                                                                style={{ width: '100%', height: '150px', borderRadius: '14px', display: 'block' }}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas) return;
+                                                                    setIsSigDrawing(true);
+                                                                    const rect = canvas.getBoundingClientRect();
+                                                                    const scaleX = canvas.width / rect.width;
+                                                                    const scaleY = canvas.height / rect.height;
+                                                                    sigLastPos.current = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+                                                                }}
+                                                                onMouseMove={(e) => {
+                                                                    if (!isSigDrawing) return;
+                                                                    e.preventDefault();
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas) return;
+                                                                    const ctx = canvas.getContext('2d');
+                                                                    if (!ctx || !sigLastPos.current) return;
+                                                                    const rect = canvas.getBoundingClientRect();
+                                                                    const scaleX = canvas.width / rect.width;
+                                                                    const scaleY = canvas.height / rect.height;
+                                                                    const pos = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+                                                                    ctx.beginPath();
+                                                                    ctx.moveTo(sigLastPos.current.x, sigLastPos.current.y);
+                                                                    ctx.lineTo(pos.x, pos.y);
+                                                                    ctx.strokeStyle = '#1a1a2e';
+                                                                    ctx.lineWidth = 2.5;
+                                                                    ctx.lineCap = 'round';
+                                                                    ctx.lineJoin = 'round';
+                                                                    ctx.stroke();
+                                                                    sigLastPos.current = pos;
+                                                                    setHasSigContent(true);
+                                                                }}
+                                                                onMouseUp={() => { setIsSigDrawing(false); sigLastPos.current = null; }}
+                                                                onMouseLeave={() => { setIsSigDrawing(false); sigLastPos.current = null; }}
+                                                                onTouchStart={(e) => {
+                                                                    e.preventDefault();
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas) return;
+                                                                    setIsSigDrawing(true);
+                                                                    const rect = canvas.getBoundingClientRect();
+                                                                    const scaleX = canvas.width / rect.width;
+                                                                    const scaleY = canvas.height / rect.height;
+                                                                    const touch = e.touches[0];
+                                                                    sigLastPos.current = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+                                                                }}
+                                                                onTouchMove={(e) => {
+                                                                    if (!isSigDrawing) return;
+                                                                    e.preventDefault();
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas) return;
+                                                                    const ctx = canvas.getContext('2d');
+                                                                    if (!ctx || !sigLastPos.current) return;
+                                                                    const rect = canvas.getBoundingClientRect();
+                                                                    const scaleX = canvas.width / rect.width;
+                                                                    const scaleY = canvas.height / rect.height;
+                                                                    const touch = e.touches[0];
+                                                                    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+                                                                    ctx.beginPath();
+                                                                    ctx.moveTo(sigLastPos.current.x, sigLastPos.current.y);
+                                                                    ctx.lineTo(pos.x, pos.y);
+                                                                    ctx.strokeStyle = '#1a1a2e';
+                                                                    ctx.lineWidth = 2.5;
+                                                                    ctx.lineCap = 'round';
+                                                                    ctx.lineJoin = 'round';
+                                                                    ctx.stroke();
+                                                                    sigLastPos.current = pos;
+                                                                    setHasSigContent(true);
+                                                                }}
+                                                                onTouchEnd={() => { setIsSigDrawing(false); sigLastPos.current = null; }}
+                                                            />
+                                                            {!hasSigContent && (
+                                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                    <p className="text-sm text-muted-foreground/50 select-none">Dibuja tu firma aquí</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-2 justify-end">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="gap-1.5"
+                                                                disabled={!hasSigContent}
+                                                                onClick={() => {
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas) return;
+                                                                    const ctx = canvas.getContext('2d');
+                                                                    if (!ctx) return;
+                                                                    ctx.fillStyle = '#ffffff';
+                                                                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                                                    setHasSigContent(false);
+                                                                }}
+                                                            >
+                                                                <Eraser className="h-3.5 w-3.5" /> Limpiar
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="zen"
+                                                                size="sm"
+                                                                className="gap-1.5"
+                                                                disabled={!hasSigContent}
+                                                                onClick={() => {
+                                                                    const canvas = sigCanvasRef.current;
+                                                                    if (!canvas || !hasSigContent) return;
+                                                                    setProfile({ ...profile, signature_data: canvas.toDataURL('image/png') });
+                                                                    toast.success('Firma capturada. Recuerda guardar tu perfil.');
+                                                                }}
+                                                            >
+                                                                <CheckCircle2 className="h-3.5 w-3.5" /> Confirmar firma
+                                                            </Button>
                                                         </div>
                                                     </div>
                                                 )}

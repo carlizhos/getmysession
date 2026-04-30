@@ -44,6 +44,7 @@ import {
   Download,
   Mail,
   ExternalLink,
+  Plus,
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -53,6 +54,8 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PaymentModal from '@/components/finance/PaymentModal';
+
+import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
 
 interface Appointment {
   id: string;
@@ -77,6 +80,7 @@ interface Payment {
   notes: string | null;
   invoice_url?: string | null;
   invoice_id?: string | null;
+  category?: string | null;
 }
 
 type PaymentMethod = 'efectivo' | 'transferencia' | 'stripe';
@@ -145,6 +149,7 @@ const Finance = () => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed(p => ({ ...p, [key]: !p[key] }));
   const [generatingInvoiceId, setGeneratingInvoiceId] = useState<string | null>(null);
+  const [isNewIncomeOpen, setIsNewIncomeOpen] = useState(false);
 
   const handleGenerateInvoice = async (paymentId: string) => {
     setGeneratingInvoiceId(paymentId);
@@ -454,6 +459,10 @@ const Finance = () => {
               {format(new Date(), "MMMM yyyy", { locale: es })}
             </p>
           </div>
+          <Button variant="zen" className="gap-2 shadow-lg shadow-primary/20" onClick={() => setIsNewIncomeOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nuevo Ingreso Manual
+          </Button>
         </div>
 
         {/* KPI row */}
@@ -887,7 +896,14 @@ const Finance = () => {
                                               <ArrowUpRight className="h-5 w-5 text-success" />
                                             </div>
                                             <div>
-                                              <p className="font-medium">{p.patient_name}</p>
+                                              <div className="flex items-center gap-2">
+                                                <p className="font-medium">{p.patient_name}</p>
+                                                {p.category && p.category !== 'sesion' && (
+                                                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-muted/50 border-none px-1.5 py-0">
+                                                    {p.category}
+                                                  </Badge>
+                                                )}
+                                              </div>
                                               <p className="text-sm text-muted-foreground">
                                                 {dateStr ? format(parseISO(dateStr), "d MMM yyyy, HH:mm", { locale: es }) : '—'}
                                               </p>
@@ -972,6 +988,11 @@ const Finance = () => {
         open={!!payingAppointment}
         appointment={payingAppointment}
         onOpenChange={(o) => { if (!o) setPayingAppointment(null); }}
+        onSuccess={fetchData}
+      />
+      <NewIncomeDialog 
+        open={isNewIncomeOpen}
+        onOpenChange={setIsNewIncomeOpen}
         onSuccess={fetchData}
       />
     </Layout>
