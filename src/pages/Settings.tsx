@@ -158,17 +158,17 @@ const Settings = () => {
     const [showAddCurso, setShowAddCurso] = useState(false);
 
     const [horario, setHorario] = useState<{
-        dias: Record<number, { activo: boolean; inicio: string; fin: string }>;
+        dias: Record<number, { activo: boolean; inicio: string; fin: string; max_sesiones?: number }>;
         dias_no_laborables: string[];
     }>({
         dias: {
-            1: { activo: true, inicio: '08:00', fin: '17:00' },
-            2: { activo: true, inicio: '08:00', fin: '17:00' },
-            3: { activo: true, inicio: '08:00', fin: '17:00' },
-            4: { activo: true, inicio: '08:00', fin: '17:00' },
-            5: { activo: true, inicio: '08:00', fin: '17:00' },
-            6: { activo: false, inicio: '08:00', fin: '13:00' },
-            0: { activo: false, inicio: '08:00', fin: '13:00' },
+            1: { activo: true, inicio: '08:00', fin: '17:00', max_sesiones: 8 },
+            2: { activo: true, inicio: '08:00', fin: '17:00', max_sesiones: 8 },
+            3: { activo: true, inicio: '08:00', fin: '17:00', max_sesiones: 8 },
+            4: { activo: true, inicio: '08:00', fin: '17:00', max_sesiones: 8 },
+            5: { activo: true, inicio: '08:00', fin: '17:00', max_sesiones: 8 },
+            6: { activo: false, inicio: '08:00', fin: '13:00', max_sesiones: 4 },
+            0: { activo: false, inicio: '08:00', fin: '13:00', max_sesiones: 4 },
         },
         dias_no_laborables: [],
     });
@@ -223,12 +223,13 @@ const Settings = () => {
                 
                 // Migración si viene en formato antiguo (array de días y horas globales)
                 if (Array.isArray(h.dias)) {
-                    const newDias: Record<number, { activo: boolean; inicio: string; fin: string }> = {};
+                    const newDias: Record<number, { activo: boolean; inicio: string; fin: string; max_sesiones?: number }> = {};
                     [0, 1, 2, 3, 4, 5, 6].forEach(d => {
                         newDias[d] = {
                             activo: (h.dias as number[]).includes(d),
                             inicio: (h.inicio as string) || '08:00',
-                            fin: (h.fin as string) || '17:00'
+                            fin: (h.fin as string) || '17:00',
+                            max_sesiones: 8,
                         };
                     });
                     setHorario({
@@ -440,17 +441,31 @@ const Settings = () => {
         }));
     };
 
+    const updateMaxSesiones = (d: number, value: string) => {
+        const num = parseInt(value) || 0;
+        setHorario((prev: any) => ({
+            ...prev,
+            dias: {
+                ...prev.dias,
+                [d]: {
+                    ...prev.dias[d],
+                    max_sesiones: Math.max(0, Math.min(num, 30))
+                }
+            }
+        }));
+    };
+
     const copiarHorarioATodos = (sourceDia: number) => {
-        const { inicio, fin } = horario.dias[sourceDia];
+        const { inicio, fin, max_sesiones } = horario.dias[sourceDia];
         const newDias = { ...horario.dias };
         Object.keys(newDias).forEach((k) => {
             const key = parseInt(k);
             if (newDias[key].activo) {
-                newDias[key] = { ...newDias[key], inicio, fin };
+                newDias[key] = { ...newDias[key], inicio, fin, max_sesiones };
             }
         });
         setHorario({ ...horario, dias: newDias });
-        toast.success(`Copiado ${inicio} - ${fin} a todos los días activos`);
+        toast.success(`Copiado ${inicio} - ${fin} (máx. ${max_sesiones ?? '∞'}) a todos los días activos`);
     };
 
     const addNonWorkingDay = () => {
@@ -1011,7 +1026,7 @@ const Settings = () => {
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <Label className="text-sm font-semibold">Días y Horas de Atención</Label>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Activo | Inicio | Fin</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Activo | Inicio | Fin | Máx.</p>
                                             </div>
                                             
                                             <div className="space-y-3">
@@ -1055,6 +1070,17 @@ const Settings = () => {
                                                                             onChange={(e) => updateDiaHorario(d.value, 'fin', e.target.value)}
                                                                             className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
                                                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0" title="Máximo de sesiones por día">
+                                                                        <Input
+                                                                            type="number"
+                                                                            min={0}
+                                                                            max={30}
+                                                                            value={config.max_sesiones ?? ''}
+                                                                            onChange={(e) => updateMaxSesiones(d.value, e.target.value)}
+                                                                            placeholder="∞"
+                                                                            className="h-9 w-16 py-1 px-2 text-center border-none bg-background shadow-none focus-visible:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                         />
                                                                     </div>
                                                                     <Button
