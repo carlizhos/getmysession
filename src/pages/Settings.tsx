@@ -1072,7 +1072,8 @@ const Settings = () => {
                                                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                                                         />
                                                                     </div>
-                                                                    <div className="flex items-center gap-1.5 shrink-0" title="Máximo de sesiones por día">
+                                                                    <div className="flex items-center gap-1.5 shrink-0 border-l border-border/40 pl-3 ml-1" title="Máximo de sesiones por día">
+                                                                        <span className="text-xs text-muted-foreground whitespace-nowrap">Máx. sesiones</span>
                                                                         <Input
                                                                             type="number"
                                                                             min={0}
