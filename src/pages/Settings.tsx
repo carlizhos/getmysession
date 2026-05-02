@@ -1026,7 +1026,6 @@ const Settings = () => {
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <Label className="text-sm font-semibold">Días y Horas de Atención</Label>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Activo | Inicio | Fin | Máx.</p>
                                             </div>
                                             
                                             <div className="space-y-3">
@@ -1056,6 +1055,7 @@ const Settings = () => {
                                                             {config.activo ? (
                                                                 <>
                                                                     <div className="flex items-center gap-2 flex-1">
+                                                                        <span className="text-xs text-muted-foreground whitespace-nowrap">Desde</span>
                                                                         <Input
                                                                             type="time"
                                                                             value={config.inicio}
@@ -1063,7 +1063,7 @@ const Settings = () => {
                                                                             className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
                                                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                                                         />
-                                                                        <span className="text-muted-foreground">—</span>
+                                                                        <span className="text-xs text-muted-foreground whitespace-nowrap">Hasta</span>
                                                                         <Input
                                                                             type="time"
                                                                             value={config.fin}
