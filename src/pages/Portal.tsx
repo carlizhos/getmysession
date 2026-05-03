@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Clock, LogOut, Loader2, User, XCircle, AlertCircle } from 'lucide-react';
+import { CalendarIcon, Clock, LogOut, Loader2, User, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Appointment {
@@ -18,11 +18,21 @@ interface Appointment {
   specialist_name: string;
   specialist_avatar: string | null;
   specialist_prefix: string | null;
+  management_token: string;
+}
+
+interface PatientSession {
+  isLoggedIn: boolean;
+  accessToken: string;
+  email: string;
+  phone: string;
+  name: string;
+  expiresAt: string;
 }
 
 export default function Portal() {
   const navigate = useNavigate();
-  const [session, setSession] = useState<{ email: string; phone: string; name: string } | null>(null);
+  const [session, setSession] = useState<PatientSession | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
@@ -34,26 +44,43 @@ export default function Portal() {
       return;
     }
 
-    const parsedSession = JSON.parse(savedSession);
-    if (!parsedSession.isLoggedIn) {
+    const parsedSession: PatientSession = JSON.parse(savedSession);
+    
+    // Check if session is valid
+    if (!parsedSession.isLoggedIn || !parsedSession.accessToken) {
+      navigate('/portal/login');
+      return;
+    }
+
+    // Check if token has expired
+    if (parsedSession.expiresAt && new Date(parsedSession.expiresAt) < new Date()) {
+      localStorage.removeItem('saudade_patient_session');
+      toast.error('Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
       navigate('/portal/login');
       return;
     }
 
     setSession(parsedSession);
-    fetchAppointments(parsedSession.email, parsedSession.phone);
+    fetchAppointments(parsedSession.accessToken);
   }, [navigate]);
 
-  const fetchAppointments = async (email: string, phone: string) => {
+  const fetchAppointments = async (accessToken: string) => {
     setLoading(true);
     try {
-      // Call the RPC we created securely
+      // Use secure token-based RPC instead of email/phone
       const { data, error } = await supabase.rpc('get_patient_appointments', {
-        p_email: email,
-        p_phone: phone
+        p_access_token: accessToken
       });
 
-      if (error) throw error;
+      if (error) {
+        // If token is invalid, redirect to login
+        if (error.message.includes('invalid') || error.code === 'PGRST202') {
+          localStorage.removeItem('saudade_patient_session');
+          navigate('/portal/login');
+          return;
+        }
+        throw error;
+      }
       
       // Sort: upcoming first
       const sorted = (data || []).sort((a: Appointment, b: Appointment) => 
@@ -69,15 +96,15 @@ export default function Portal() {
     }
   };
 
-  const handleCancelAppointment = async (id: string) => {
+  const handleCancelAppointment = async (id: string, managementToken: string) => {
     if (!session || !confirm('¿Estás seguro de que deseas cancelar esta cita?')) return;
     
     setCancelingId(id);
     try {
+      // Use secure token-based cancellation
       const { data, error } = await supabase.rpc('cancel_patient_appointment', {
         p_appointment_id: id,
-        p_email: session.email,
-        p_phone: session.phone
+        p_token: managementToken
       });
 
       if (error) throw error;
@@ -86,7 +113,7 @@ export default function Portal() {
         toast.success('Cita cancelada con éxito.');
         setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' } : a));
       } else {
-        toast.error('No tienes permiso para cancelar esta cita.');
+        toast.error('No se pudo cancelar esta cita. El enlace puede haber expirado.');
       }
     } catch (err: unknown) {
       const error = err as Error;
@@ -203,7 +230,7 @@ export default function Portal() {
                         variant="ghost" 
                         size="sm" 
                         className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleCancelAppointment(apt.id)}
+                        onClick={() => handleCancelAppointment(apt.id, apt.management_token)}
                         disabled={cancelingId === apt.id}
                       >
                         {cancelingId === apt.id ? (

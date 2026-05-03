@@ -25,6 +25,8 @@
 - [ ] **Automatización de Pipeline**: Mover leads a "Cita Agendada" automáticamente al crear el primer appointment.
 - [x] **Fix de UX**: Bug de botón deshabilitado al navegar hacia atrás (Completado en Fase 6).
 - [x] **Google GSI**: Implementar login nativo con marca Saudade (Completado en Fase 6).
+- [x] **Unificación de Headers**: Patrón "Island" aplicado en toda la plataforma (Completado en Fase 6).
+- [x] **Límites de Reserva**: Lógica de configuración reparada en Ajustes (Completado en Fase 6).
 
 ## 📊 Estado Actual
 La mayoría de la infraestructura core y las integraciones externas (Stripe, Facturapi, Google Calendar) están listas y funcionando. El enfoque ahora vira hacia la **retención del paciente** y la **automatización avanzada** mediante IA y el portal.

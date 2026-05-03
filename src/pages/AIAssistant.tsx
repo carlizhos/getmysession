@@ -521,19 +521,15 @@ const AIAssistant = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="relative overflow-hidden flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] animate-in slide-in-from-top duration-700">
-          {/* subtle background glow */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-          
-          <div className="flex items-center gap-5 w-full lg:w-auto relative z-10">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-              <Brain className="h-7 w-7 text-white" />
+        {/* Header Section (Island Style) */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+              <Brain className="h-6 w-6 text-white" />
             </div>
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground/90">IA Asistente</h1>
-              <p className="text-sm text-muted-foreground/80 font-medium tracking-wide">Potencia tu práctica clínica con inteligencia artificial de vanguardia</p>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-black tracking-tight text-foreground">IA Asistente</h1>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Potencia tu práctica clínica con IA</p>
             </div>
           </div>
 

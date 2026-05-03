@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, parseISO, startOfDay, isBefore } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -120,7 +120,8 @@ const NewAppointmentDialog = ({
                             newDias[d] = {
                                 activo: h.dias.includes(d),
                                 inicio: h.inicio || '08:00',
-                                fin: h.fin || '17:00'
+                                fin: h.fin || '17:00',
+                                max_sesiones: 8
                             };
                         });
                         normalized = {
@@ -274,6 +275,55 @@ const NewAppointmentDialog = ({
                 toast.error(`La hora seleccionada está fuera del horario de este día (${config.inicio} - ${config.fin})`);
                 setIsSubmitting(false);
                 return;
+            }
+
+            // 1.5 Validar límite diario de sesiones (max_sesiones)
+            if (config.max_sesiones != null && config.max_sesiones > 0) {
+                const { count, error: countErr } = await supabase
+                    .from('appointments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', sessionUser?.id)
+                    .neq('status', 'cancelled')
+                    .gte('start_time', startOfDay(date).toISOString())
+                    .lte('start_time', endOfDay(date).toISOString());
+
+                if (countErr) {
+                    console.error('Error counting appointments:', countErr);
+                } else if (count != null) {
+                    // Si estamos editando y no cambiamos de día, restamos 1 (el actual)
+                    let currentLimit = config.max_sesiones;
+                    let existingCount = count;
+                    
+                    if (isEditing) {
+                        const originalStart = format(parseISO(editingAppointment.startTime), 'yyyy-MM-dd');
+                        if (originalStart === dateStr) {
+                            // Estamos en el mismo día, la cita actual ya está contada
+                            if (count > currentLimit) {
+                                // Ya estaba excedido, permitir editar si no se aumenta el número
+                                // Pero por simplicidad, si count > limit, solo bloqueamos si movemos A un día lleno
+                            }
+                        }
+                    }
+
+                    if (existingCount >= currentLimit) {
+                        // Check if we are editing and moving to a DIFFERENT day or if it's new
+                        let shouldBlock = false;
+                        if (!isEditing) {
+                            shouldBlock = true;
+                        } else {
+                            const originalStart = format(parseISO(editingAppointment.startTime), 'yyyy-MM-dd');
+                            if (originalStart !== dateStr) {
+                                shouldBlock = true;
+                            }
+                        }
+
+                        if (shouldBlock) {
+                            toast.error(`Has alcanzado el límite de ${currentLimit} sesiones para este día (${dateStr}).`);
+                            setIsSubmitting(false);
+                            return;
+                        }
+                    }
+                }
             }
 
             // 2. Validar que no sea fecha/hora en el pasado (solo para citas nuevas o si se cambió la fecha)

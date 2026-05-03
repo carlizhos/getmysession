@@ -213,13 +213,21 @@ const Consents = () => {
         return (
             <Layout>
                 <div className="space-y-6 animate-fade-in">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => setIsCreating(false)}>
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Nuevo Consentimiento</h1>
-                            <p className="text-muted-foreground">Firma digital NOM-024</p>
+                    {/* Header Section (Island Style) */}
+                    <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+                        <div className="flex items-center gap-4 w-full lg:w-auto">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setIsCreating(false)}
+                                className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                            >
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                            <div className="space-y-0.5">
+                                <h1 className="text-2xl font-black tracking-tight text-foreground">Nuevo Consentimiento</h1>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Firma digital NOM-024</p>
+                            </div>
                         </div>
                     </div>
                     <ConsentFormView
@@ -235,23 +243,42 @@ const Consents = () => {
     return (
         <Layout>
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                            <FileSignature className="h-5 w-5 text-primary" />
+                {/* Header Section (Island Style) */}
+                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+                    <div className="flex items-center gap-4 w-full lg:w-auto">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                            <FileSignature className="h-6 w-6 text-white" />
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Consentimientos Informados</h1>
-                            <p className="text-muted-foreground">Documentos firmados digitalmente · NOM-024-SSA3-2012</p>
+                        <div className="space-y-0.5">
+                            <h1 className="text-2xl font-black tracking-tight text-foreground">Consentimientos Informados</h1>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Documentos firmados digitalmente · NOM-024-SSA3-2012</p>
                         </div>
                     </div>
-                    {activeTab === 'firmados' && (
-                        <Button variant="zen" className="gap-2" onClick={() => setIsCreating(true)}>
-                            <Plus className="h-4 w-4" />
-                            Nuevo Consentimiento
-                        </Button>
-                    )}
+
+                    <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3">
+                        {activeTab === 'firmados' && (
+                            <div className="relative w-full sm:w-64 group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                    placeholder="Buscar paciente..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9 bg-muted/30 border-transparent focus:bg-background transition-all"
+                                />
+                            </div>
+                        )}
+                        
+                        {activeTab === 'firmados' && (
+                            <Button 
+                                variant="zen" 
+                                className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all" 
+                                onClick={() => setIsCreating(true)}
+                            >
+                                <Plus className="h-4 w-4" />
+                                <span>Nuevo Consentimiento</span>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -319,16 +346,7 @@ const Consents = () => {
                             ))}
                         </div>
 
-                        {/* Search */}
-                        <div className="relative max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar por paciente o tipo..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
+
 
                         {/* List */}
                         <Card variant="default">

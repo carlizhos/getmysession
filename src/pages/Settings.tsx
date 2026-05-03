@@ -14,10 +14,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
     Settings as SettingsIcon, ShieldCheck, User, Bell,
     Loader2, CheckCircle2, DollarSign, Clock, Mail, MessageSquare, CalendarOff, Plus, Trash2, Copy, CalendarPlus,
-    Building2, CreditCard, Unlink, AlertTriangle, PenTool, Eraser, RotateCcw
+    Building2, CreditCard, Unlink, AlertTriangle, PenTool, Eraser, RotateCcw, ChevronUp, ChevronDown, ExternalLink, GraduationCap, Briefcase,
+    Instagram, Linkedin, Facebook
 } from 'lucide-react';
 import {
     AlertDialog,
@@ -138,7 +146,14 @@ const Settings = () => {
         slug: '',
         is_public: false,
         signature_data: null as string | null,
+        bio: '',
+        experience_years: 0,
+        social_links: { instagram: '', linkedin: '', facebook: '' } as Record<string, string>,
     });
+
+    const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+    const [slugSuggestions, setSlugSuggestions] = useState<string[]>([]);
+    const [originalSlug, setOriginalSlug] = useState('');
 
     // Signature canvas refs
     const sigCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -189,7 +204,7 @@ const Settings = () => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token, signature_data')
+                .select('prefix, full_name, avatar_url, cedulas, cursos, institucion_formadora, telefono_profesional, porcentaje_consultorio, stripe_fee_percent, horario_atencion, notification_settings, slug, is_public, google_refresh_token, signature_data, bio, experience_years, social_links')
                 .eq('id', user.id)
                 .single();
 
@@ -211,7 +226,11 @@ const Settings = () => {
                 slug: data?.slug || '',
                 is_public: data?.is_public || false,
                 signature_data: data?.signature_data || null,
+                bio: data?.bio || '',
+                experience_years: data?.experience_years || 0,
+                social_links: data?.social_links || { instagram: '', linkedin: '', facebook: '' },
             });
+            setOriginalSlug(data?.slug || '');
 
             // Dynamic lists — stored as JSONB in profiles
             const d = data as { cedulas?: Cedula[]; cursos?: Curso[] };
@@ -284,6 +303,47 @@ const Settings = () => {
         }
     }, [user, fetchProfile]);
 
+    // Check slug availability
+    useEffect(() => {
+        const checkSlug = async () => {
+            if (!profile.slug || profile.slug === originalSlug) {
+                setSlugStatus('idle');
+                setSlugSuggestions([]);
+                return;
+            }
+
+            setSlugStatus('checking');
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('slug', profile.slug)
+                    .neq('id', user?.id)
+                    .maybeSingle();
+
+                if (data) {
+                    setSlugStatus('taken');
+                    // Generate suggestions
+                    const suggestions = [
+                        `${profile.slug}-${Math.floor(Math.random() * 99)}`,
+                        `${profile.slug}-psic`,
+                        `${profile.slug}-prof`
+                    ];
+                    setSlugSuggestions(suggestions);
+                } else {
+                    setSlugStatus('available');
+                    setSlugSuggestions([]);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        const timer = setTimeout(checkSlug, 500);
+        return () => clearTimeout(timer);
+    }, [profile.slug, originalSlug, user?.id]);
+
+
     // Initialize Google OAuth Code Client (for branded synchronization)
     useEffect(() => {
         if (!window.google || !GOOGLE_CLIENT_ID) return;
@@ -312,6 +372,12 @@ const Settings = () => {
     const handleSavePerfil = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+        
+        if (slugStatus === 'taken') {
+            toast.error('El nombre de enlace ya está ocupado. Por favor elige otro.');
+            return;
+        }
+
         setIsSaving(true);
         setSaved(false);
         try {
@@ -327,9 +393,13 @@ const Settings = () => {
                 slug: profile.slug || null,
                 is_public: profile.is_public,
                 signature_data: profile.signature_data,
+                bio: profile.bio || null,
+                experience_years: profile.experience_years || 0,
+                social_links: profile.social_links || {},
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'id' });
             if (error) throw error;
+            setOriginalSlug(profile.slug);
             setSaved(true);
             toast.success('Perfil guardado');
             setTimeout(() => setSaved(false), 3000);
@@ -534,14 +604,16 @@ const Settings = () => {
     return (
         <Layout>
             <div className="space-y-6 w-full">
-                {/* Header */}
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                        <SettingsIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
-                        <p className="text-muted-foreground">Administra tu cuenta y perfil profesional</p>
+                {/* Header Section (Island Style) */}
+                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+                    <div className="flex items-center gap-4 w-full lg:w-auto">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                            <SettingsIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <h1 className="text-2xl font-black tracking-tight text-foreground">Configuración</h1>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Gestión de Cuenta · Perfil Profesional</p>
+                        </div>
                     </div>
                 </div>
 
@@ -641,45 +713,11 @@ const Settings = () => {
                                             <p className="text-xs text-muted-foreground">El correo se gestiona desde tu proveedor de autenticación.</p>
                                         </div>
 
-                                        {/* ── Perfil Público ── */}
-                                        <div className="pt-2 space-y-6">
-                                            <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
-                                                            Portal de Reservas Público
-                                                        </h3>
-                                                        <p className="text-xs text-muted-foreground mt-1">Permite que tus pacientes agenden directamente usando tu enlace personal.</p>
-                                                    </div>
-                                                    <Switch
-                                                        checked={profile.is_public}
-                                                        onCheckedChange={(c) => setProfile({ ...profile, is_public: c })}
-                                                        disabled={isSaving}
-                                                    />
-                                                </div>
-
-                                                <div className={cn("space-y-2 transition-all", !profile.is_public && "opacity-50 pointer-events-none")}>
-                                                    <Label htmlFor="slug">Tu enlace personalizado</Label>
-                                                    <div className="flex rounded-md shadow-sm">
-                                                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-border bg-muted px-3 text-muted-foreground sm:text-sm">
-                                                            saudade.app/reservar/
-                                                        </span>
-                                                        <Input
-                                                            id="slug"
-                                                            className="rounded-none rounded-r-md"
-                                                            placeholder="tu-nombre"
-                                                            value={profile.slug}
-                                                            onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                                                            disabled={isSaving || !profile.is_public}
-                                                        />
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground">O usa letras minúsculas, números y guiones.</p>
-                                                </div>
-                                            </div>
-
-                                            {/* ── Teléfono profesional */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <Label htmlFor="telefono_profesional">Teléfono profesional</Label>
+                                                <Label htmlFor="telefono_profesional" className="flex items-center gap-2">
+                                                    <Briefcase className="h-4 w-4 text-primary" /> Teléfono profesional
+                                                </Label>
                                                 <Input
                                                     id="telefono_profesional"
                                                     type="tel"
@@ -689,6 +727,419 @@ const Settings = () => {
                                                     disabled={isSaving}
                                                 />
                                             </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="experience_years" className="flex items-center gap-2">
+                                                    <GraduationCap className="h-4 w-4 text-primary" /> Años de experiencia
+                                                </Label>
+                                                <Input
+                                                    id="experience_years"
+                                                    type="number"
+                                                    min={0}
+                                                    max={60}
+                                                    value={profile.experience_years}
+                                                    onChange={(e) => setProfile({ ...profile, experience_years: parseInt(e.target.value) || 0 })}
+                                                    placeholder="Ej: 10"
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="bio" className="flex items-center justify-between">
+                                                <span>Biografía Profesional</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Perfil Público</span>
+                                            </Label>
+                                            <Textarea
+                                                id="bio"
+                                                rows={4}
+                                                value={profile.bio}
+                                                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                                                placeholder="Describe tu enfoque terapéutico, especialidades y trayectoria..."
+                                                className="resize-none"
+                                                disabled={isSaving}
+                                            />
+                                            <p className="text-[11px] text-muted-foreground">Esta información será visible en tu página de perfil profesional.</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest flex items-center gap-2">
+                                                Redes Sociales <span className="text-primary/40">(Opcional)</span>
+                                            </Label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Instagram className="h-4 w-4 text-pink-500" />
+                                                        <span className="text-xs font-medium">Instagram</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={profile.social_links?.instagram || ''}
+                                                            onChange={(e) => setProfile({
+                                                                ...profile,
+                                                                social_links: { ...profile.social_links, instagram: e.target.value }
+                                                            })}
+                                                            placeholder="usuario"
+                                                            className="h-9 text-sm"
+                                                        />
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.instagram;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://instagram.com/${val}`;
+                                                                            navigator.clipboard.writeText(url);
+                                                                            toast.success('Enlace de Instagram copiado');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.instagram}
+                                                                    >
+                                                                        <Copy className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Copiar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.instagram;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://instagram.com/${val}`;
+                                                                            window.open(url, '_blank');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.instagram}
+                                                                    >
+                                                                        <ExternalLink className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Probar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Linkedin className="h-4 w-4 text-blue-600" />
+                                                        <span className="text-xs font-medium">LinkedIn</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={profile.social_links?.linkedin || ''}
+                                                            onChange={(e) => setProfile({
+                                                                ...profile,
+                                                                social_links: { ...profile.social_links, linkedin: e.target.value }
+                                                            })}
+                                                            placeholder="perfil-url"
+                                                            className="h-9 text-sm"
+                                                        />
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.linkedin;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://linkedin.com/in/${val}`;
+                                                                            navigator.clipboard.writeText(url);
+                                                                            toast.success('Enlace de LinkedIn copiado');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.linkedin}
+                                                                    >
+                                                                        <Copy className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Copiar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.linkedin;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://linkedin.com/in/${val}`;
+                                                                            window.open(url, '_blank');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.linkedin}
+                                                                    >
+                                                                        <ExternalLink className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Probar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Facebook className="h-4 w-4 text-blue-800" />
+                                                        <span className="text-xs font-medium">Facebook</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={profile.social_links?.facebook || ''}
+                                                            onChange={(e) => setProfile({
+                                                                ...profile,
+                                                                social_links: { ...profile.social_links, facebook: e.target.value }
+                                                            })}
+                                                            placeholder="nombre-usuario"
+                                                            className="h-9 text-sm"
+                                                        />
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.facebook;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://facebook.com/${val}`;
+                                                                            navigator.clipboard.writeText(url);
+                                                                            toast.success('Enlace de Facebook copiado');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.facebook}
+                                                                    >
+                                                                        <Copy className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Copiar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon-sm"
+                                                                        onClick={() => {
+                                                                            const val = profile.social_links?.facebook;
+                                                                            if (!val) return;
+                                                                            const url = val.startsWith('http') ? val : `https://facebook.com/${val}`;
+                                                                            window.open(url, '_blank');
+                                                                        }}
+                                                                        disabled={!profile.social_links?.facebook}
+                                                                    >
+                                                                        <ExternalLink className="h-3 w-3" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Probar enlace</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* ── Perfil Público ── */}
+                                        <div className="pt-2 space-y-6">
+                                            <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                                                            Perfil y Presencia Pública
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground mt-1">Habilita tu perfil profesional y permite que tus pacientes agenden directamente.</p>
+                                                    </div>
+                                                    <Switch
+                                                        checked={profile.is_public}
+                                                        onCheckedChange={(c) => setProfile({ ...profile, is_public: c })}
+                                                        disabled={isSaving}
+                                                    />
+                                                </div>
+
+                                                <div className={cn("space-y-3 transition-all", !profile.is_public && "opacity-50 pointer-events-none")}>
+                                                    <Label htmlFor="slug">Tu enlace personalizado</Label>
+                                                    <div className="flex gap-2">
+                                                        <div className="flex flex-1 rounded-md shadow-sm">
+                                                            <span className="inline-flex items-center rounded-l-md border border-r-0 border-border bg-muted px-3 text-muted-foreground text-[10px] md:text-sm">
+                                                                app.saudade.mx/reservar/
+                                                            </span>
+                                                            <Input
+                                                                id="slug"
+                                                                className={cn(
+                                                                    "rounded-none rounded-r-md",
+                                                                    slugStatus === 'available' && "border-success focus-visible:ring-success/20",
+                                                                    slugStatus === 'taken' && "border-destructive focus-visible:ring-destructive/20",
+                                                                    originalSlug && "bg-muted/30 cursor-not-allowed opacity-80"
+                                                                )}
+                                                                placeholder="tu-nombre"
+                                                                value={profile.slug}
+                                                                onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                                                                disabled={isSaving || !profile.is_public || !!originalSlug}
+                                                            />
+                                                            {slugStatus === 'checking' && (
+                                                                <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-10 w-10 shrink-0"
+                                                                    onClick={() => {
+                                                                        const url = `https://app.saudade.mx/reservar/${profile.slug}`;
+                                                                        navigator.clipboard.writeText(url);
+                                                                        toast.success('Enlace copiado');
+                                                                    }}
+                                                                    disabled={!profile.is_public || !profile.slug || slugStatus === 'taken'}
+                                                                >
+                                                                    <Copy className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Copiar enlace directo</TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
+                                                    
+                                                    {slugStatus === 'taken' && (
+                                                        <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                            <p className="text-xs text-destructive font-medium flex items-center gap-1">
+                                                                <AlertTriangle className="h-3 w-3" /> Este nombre ya está ocupado.
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2 items-center">
+                                                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Sugerencias:</span>
+                                                                {slugSuggestions.map((s) => (
+                                                                    <button
+                                                                        key={s}
+                                                                        type="button"
+                                                                        onClick={() => setProfile({ ...profile, slug: s })}
+                                                                        className="text-[10px] px-2 py-1 bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 rounded-full transition-colors font-medium"
+                                                                    >
+                                                                        {s}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {slugStatus === 'available' && (
+                                                        <p className="text-xs text-success font-medium flex items-center gap-1 animate-in fade-in duration-200">
+                                                            <CheckCircle2 className="h-3 w-3" /> ¡Este nombre está disponible!
+                                                        </p>
+                                                    )}
+
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs text-muted-foreground">Usa letras minúsculas, números y guiones para personalizar tu URL.</p>
+                                                        {originalSlug ? (
+                                                            <p className="text-[10px] text-primary/60 font-medium flex items-center gap-1">
+                                                                <ShieldCheck className="h-3 w-3" /> Este enlace es permanente y no puede ser modificado.
+                                                            </p>
+                                                        ) : (
+                                                            <p className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                                                                <AlertTriangle className="h-3 w-3" /> Una vez establecido, este enlace no podrá ser modificado.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 transition-all", !profile.is_public && "opacity-50 pointer-events-none")}>
+                                                    <div className="space-y-1.5">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Enlace de Perfil</Label>
+                                                        <div className="flex gap-1.5">
+                                                            <div className="flex-1 text-[11px] bg-background border border-border rounded-md px-2 py-1.5 truncate">
+                                                                app.saudade.mx/perfil/{profile.slug || '...'}
+                                                            </div>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 shrink-0"
+                                                                        onClick={() => {
+                                                                            const url = `https://app.saudade.mx/perfil/${profile.slug}`;
+                                                                            navigator.clipboard.writeText(url);
+                                                                            toast.success('Enlace de perfil copiado');
+                                                                        }}
+                                                                        disabled={!profile.is_public || !profile.slug}
+                                                                    >
+                                                                        <Copy className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Copiar enlace de perfil</TooltipContent>
+                                                            </Tooltip>
+
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 shrink-0"
+                                                                        onClick={() => window.open(`/perfil/${profile.slug}`, '_blank')}
+                                                                        disabled={!profile.is_public || !profile.slug}
+                                                                    >
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Ver perfil público</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Enlace de Reservas</Label>
+                                                        <div className="flex gap-1.5">
+                                                            <div className="flex-1 text-[11px] bg-background border border-border rounded-md px-2 py-1.5 truncate">
+                                                                app.saudade.mx/reservar/{profile.slug || '...'}
+                                                            </div>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 shrink-0"
+                                                                        onClick={() => {
+                                                                            const url = `https://app.saudade.mx/reservar/${profile.slug}`;
+                                                                            navigator.clipboard.writeText(url);
+                                                                            toast.success('Enlace de reservas copiado');
+                                                                        }}
+                                                                        disabled={!profile.is_public || !profile.slug}
+                                                                    >
+                                                                        <Copy className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Copiar enlace de reservas</TooltipContent>
+                                                            </Tooltip>
+
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 shrink-0"
+                                                                        onClick={() => window.open(`/reservar/${profile.slug}`, '_blank')}
+                                                                        disabled={!profile.is_public || !profile.slug}
+                                                                    >
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Ir al portal de reservas</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            </div>
+
+
 
                                             {/* ── Cédulas Profesionales ── */}
                                             <div className="space-y-3">
@@ -992,7 +1443,6 @@ const Settings = () => {
                                                 )}
                                             </div>
 
-                                        </div>
 
                                         <div className="flex justify-end pt-2">
                                             <Button type="submit" variant="zen" disabled={isSaving} className="gap-2">
@@ -1072,17 +1522,39 @@ const Settings = () => {
                                                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                                                         />
                                                                     </div>
-                                                                    <div className="flex items-center gap-1.5 shrink-0 border-l border-border/40 pl-3 ml-1" title="Máximo de sesiones por día">
+                                                                    <div className="flex items-center gap-2 shrink-0 border-l border-border/40 pl-3 ml-1" title="Máximo de sesiones por día">
                                                                         <span className="text-xs text-muted-foreground whitespace-nowrap">Máx. sesiones</span>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min={0}
-                                                                            max={30}
-                                                                            value={config.max_sesiones ?? ''}
-                                                                            onChange={(e) => updateMaxSesiones(d.value, e.target.value)}
-                                                                            placeholder="∞"
-                                                                            className="h-9 w-16 py-1 px-2 text-center border-none bg-background shadow-none focus-visible:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                        />
+                                                                        <div className="flex items-center gap-1 bg-muted/20 rounded-lg p-0.5 border border-border/40">
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-6 w-6 text-muted-foreground hover:text-primary rounded-md"
+                                                                                onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) - 1))}
+                                                                                disabled={(config.max_sesiones || 0) <= 0}
+                                                                            >
+                                                                                <ChevronDown className="h-3 w-3" />
+                                                                            </Button>
+                                                                            <Input
+                                                                                type="number"
+                                                                                min={0}
+                                                                                max={30}
+                                                                                value={config.max_sesiones ?? ''}
+                                                                                onChange={(e) => updateMaxSesiones(d.value, e.target.value)}
+                                                                                placeholder="∞"
+                                                                                className="h-7 w-10 p-0 text-center border-none bg-transparent shadow-none focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm font-medium"
+                                                                            />
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-6 w-6 text-muted-foreground hover:text-primary rounded-md"
+                                                                                onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) + 1))}
+                                                                                disabled={(config.max_sesiones || 0) >= 30}
+                                                                            >
+                                                                                <ChevronUp className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
                                                                     <Button
                                                                         type="button"

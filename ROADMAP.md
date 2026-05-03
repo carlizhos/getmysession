@@ -144,3 +144,9 @@
   - ✅ **Google Authentication (Native/GSI)**: Implementación de popup nativo que muestra la marca "Saudade" en lugar del dominio de Supabase.
   - ✅ **Google One Tap**: Activación de inicio de sesión con un solo clic.
   - ✅ **Fix de UX**: Resolución del bug de botón deshabilitado al navegar hacia atrás.
+- ✅ **Unificación Estética "Island Design"**:
+  - ✅ Rediseño de headers en todos los módulos (Pacientes, CRM, Finanzas, etc.) al patrón de "isla" premium.
+  - ✅ Estandarización de alturas compactas para optimizar el área de trabajo.
+  - ✅ Iconografía coherente con degradados Sage Green y tipografía editorial.
+- ✅ **Configuración y Límites**:
+  - ✅ Reparación de la sección de Ajustes y lógica de límites de reserva.

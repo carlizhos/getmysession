@@ -248,19 +248,21 @@ const Messages = () => {
   return (
     <Layout>
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
-            <MessageCircle className="h-5 w-5 text-success" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Mensajes</h1>
-            <p className="text-sm text-muted-foreground">Centro de comunicación WhatsApp</p>
+        {/* Header Section (Island Style) */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+              <MessageCircle className="h-6 w-6 text-white" />
+            </div>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-black tracking-tight text-foreground">Mensajes</h1>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Comunicación WhatsApp</p>
+            </div>
           </div>
         </div>
 
         {/* Main Chat Layout */}
-        <Card className="flex h-[calc(100vh-220px)] overflow-hidden border-border">
+        <Card variant="flat" className="flex h-[calc(100vh-260px)] overflow-hidden border-border shadow-soft">
           {/* Left: Conversation List */}
           <div className={cn(
             "flex flex-col border-r border-border bg-muted/20",

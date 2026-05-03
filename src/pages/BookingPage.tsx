@@ -18,7 +18,7 @@ interface SpecialistProfile {
   full_name: string;
   prefix: string | null;
   horario_atencion: {
-    dias: Record<number, { activo: boolean; inicio: string; fin: string }>;
+    dias: Record<number, { activo: boolean; inicio: string; fin: string; max_sesiones?: number }>;
     dias_no_laborables: string[];
   } | null;
   slug: string;
@@ -108,6 +108,25 @@ const BookingPage = () => {
         if (rpcError) console.error("Error fetching busy slots via RPC:", rpcError);
 
         const busySlots = (apts || []).map((a: { start_time: string }) => format(parseISO(a.start_time), 'HH:mm'));
+        
+        // Count non-cancelled appointments for capacity check
+        const { count: nonCancelledCount } = await supabase
+          .from('appointments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+          .neq('status', 'cancelled')
+          .gte('start_time', dayStartIso)
+          .lte('start_time', dayEndIso);
+
+        // Check Daily Session Limit
+        const maxSesiones = configDia.max_sesiones;
+        if (maxSesiones != null && maxSesiones > 0) {
+          if ((nonCancelledCount || 0) >= maxSesiones) {
+            setAvailableSlots([]);
+            setLoadingSlots(false);
+            return;
+          }
+        }
 
         // Query Edge Function for Google Calendar free/busy
         const gcalBusyRanges: { start: Date, end: Date }[] = [];
@@ -330,25 +349,23 @@ const BookingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-foreground flex flex-col font-sans">
-      {/* Top Banner */}
-      <header className="py-6 bg-white border-b border-border/50 px-4 md:px-8 flex justify-center sticky top-0 z-10">
-        <div className="w-full max-w-5xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="text-primary font-bold text-sm tracking-tighter">S.</span>
-            </div>
-            <span className="font-bold tracking-tight text-lg">Saudade</span>
+    <div className="min-h-screen text-foreground flex flex-col font-sans">
+      {/* Top Banner (Floating Glass Header) */}
+      <header className="fixed top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-40 h-14 flex items-center justify-between border border-white/20 backdrop-blur-2xl bg-white/50 px-4 shadow-soft rounded-[16px] sm:rounded-[20px] max-w-5xl mx-auto">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <span className="text-primary font-bold text-sm tracking-tighter">S.</span>
           </div>
+          <span className="font-bold tracking-tight text-lg">Saudade</span>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 py-12 px-4 flex justify-center">
-        <Card className="w-full max-w-4xl shadow-xl shadow-black/5 overflow-hidden flex flex-col md:flex-row border-border/60">
+      <main className="flex-1 p-2 sm:p-4 pt-20 sm:pt-24 flex justify-center w-full mx-auto">
+        <Card className="w-full max-w-5xl backdrop-blur-2xl bg-white/50 shadow-elevated overflow-hidden flex flex-col md:flex-row border border-white/30 rounded-[18px] sm:rounded-[24px]">
           
           {/* Left Panel: Profile Info */}
-          <div className="bg-muted/30 p-8 w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border/60 flex flex-col">
+          <div className="p-8 w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/20 flex flex-col bg-white/40">
             <div className="mb-6">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt={displayName} className="w-20 h-20 rounded-full border shadow-sm object-cover mb-4" />
@@ -381,7 +398,7 @@ const BookingPage = () => {
           </div>
 
           {/* Right Panel: Interactive Content */}
-          <div className="p-8 w-full md:w-2/3 bg-white">
+          <div className="p-8 w-full md:w-2/3 bg-white/60">
             {step === 1 && (
               <div className="animate-fade-in flex flex-col h-full">
                 <h2 className="text-xl font-bold mb-6">Selecciona fecha y hora</h2>
@@ -396,7 +413,7 @@ const BookingPage = () => {
                         setSelectedTime(null);
                       }}
                       disabled={isDateDisabled}
-                      className="rounded-xl border shadow-sm p-3 w-full max-w-full flex justify-center bg-background"
+                      className="rounded-xl border shadow-sm p-3 w-full max-w-full flex justify-center glass border-white/20"
                       classNames={{
                         day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                         day_today: "bg-accent text-accent-foreground",
@@ -406,7 +423,7 @@ const BookingPage = () => {
                   
                   {selectedDate && (
                     <div className="w-full lg:w-48 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar animate-fade-in">
-                      <p className="text-sm font-medium mb-2 text-center sticky top-0 bg-white pb-2">
+                      <p className="text-sm font-medium mb-2 text-center sticky top-0 bg-white/60 backdrop-blur-md pb-2 z-10 rounded-t-md">
                         {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                       </p>
                       
@@ -415,7 +432,7 @@ const BookingPage = () => {
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                       ) : availableSlots.length === 0 ? (
-                        <div className="text-center py-8 px-4 bg-muted/30 rounded-lg border border-dashed border-border">
+                        <div className="text-center py-8 px-4 bg-white/40 rounded-lg border border-dashed border-white/40">
                           <p className="text-sm text-muted-foreground">No hay horas disponibles este día.</p>
                         </div>
                       ) : (
@@ -452,7 +469,7 @@ const BookingPage = () => {
             {step === 2 && (
               <div className="animate-fade-in max-w-md mx-auto">
                 <h2 className="text-xl font-bold mb-6">Completa tus datos</h2>
-                <div className="mb-6 p-4 rounded-xl border bg-muted/20 text-sm font-medium text-muted-foreground">
+                <div className="mb-6 p-4 rounded-xl border glass border-white/20 text-sm font-medium text-muted-foreground">
                   <span className="block text-foreground text-base mb-1">
                     {format(selectedDate!, "EEEE, d 'de' MMMM", { locale: es })} a las {selectedTime}
                   </span>
@@ -504,7 +521,15 @@ const BookingPage = () => {
             )}
 
             {step === 3 && (
-              <div className="animate-fade-in flex flex-col items-center justify-center h-full text-center py-12 px-4">
+              <div className="relative animate-fade-in flex flex-col items-center justify-center h-full text-center py-12 px-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute top-0 right-0 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white hover:shadow-medium transition-all duration-300 px-6 scale-100 hover:scale-105 active:scale-95"
+                  onClick={() => window.location.href = 'https://saudade.mx'}
+                >
+                  Salir
+                </Button>
                 <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-6">
                   <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
@@ -512,7 +537,7 @@ const BookingPage = () => {
                 <p className="text-muted-foreground mb-6 max-w-sm">
                   Se ha enviado una notificación al especialista. {displayName} se pondrá en contacto contigo pronto.
                 </p>
-                <div className="p-4 rounded-xl border bg-muted/20 w-full max-w-sm text-left">
+                <div className="p-4 rounded-xl border glass border-white/20 w-full max-w-sm text-left">
                   <p className="text-sm text-muted-foreground mb-1">Cuándo</p>
                   <p className="font-semibold mb-3">
                     {format(selectedDate!, "EEEE, d 'de' MMMM, yyyy", { locale: es })} <br/>

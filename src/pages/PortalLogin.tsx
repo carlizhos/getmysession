@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
 export default function PortalLogin() {
   const [email, setEmail] = useState('');
@@ -23,32 +23,30 @@ export default function PortalLogin() {
 
     setIsLoading(true);
     try {
-      // For this MVP, we query the `appointments` table
-      // To see if an appointment exists where notes contains this email AND phone
-      // OR we can query `leads` where email = input and phone = input.
-      
-      const { data: leads, error } = await supabase
-        .from('leads')
-        .select('id, name, email, phone')
-        .eq('email', email)
-        .eq('phone', phone)
-        .limit(1);
+      // Use the secure create_portal_session RPC
+      // This validates credentials and returns a temporary access token
+      const { data, error } = await supabase.rpc('create_portal_session', {
+        p_email: email,
+        p_phone: phone
+      });
 
       if (error) throw error;
 
-      if (!leads || leads.length === 0) {
+      if (!data || data.length === 0) {
         toast.error('No encontramos registros con este correo y teléfono. Verifica e intenta de nuevo.');
         return;
       }
 
-      const patientData = leads[0];
+      const session = data[0];
 
-      // Save pseudo-session in localStorage
+      // Save secure session with access_token (no raw email/phone in subsequent calls)
       localStorage.setItem('saudade_patient_session', JSON.stringify({
         isLoggedIn: true,
-        email: patientData.email,
-        phone: patientData.phone,
-        name: patientData.name
+        accessToken: session.access_token,
+        email: session.patient_email,
+        phone: session.patient_phone,
+        name: session.patient_name,
+        expiresAt: session.expires_at
       }));
 
       toast.success('¡Bienvenido al portal!');
@@ -107,6 +105,11 @@ export default function PortalLogin() {
                 'Ingresar a mi portal'
               )}
             </Button>
+
+            <p className="text-[10px] text-center text-muted-foreground flex items-center justify-center gap-1 mt-3">
+              <ShieldCheck className="h-3 w-3" />
+              Sesión segura con token temporal de 24 horas.
+            </p>
           </form>
         </CardContent>
       </Card>

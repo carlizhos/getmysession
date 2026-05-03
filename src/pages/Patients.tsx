@@ -440,10 +440,10 @@ const Patients = () => {
       <Layout>
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
             <div className="flex items-center gap-4 w-full lg:w-auto">
-              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Users className="h-6 w-6 text-primary" />
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                <Users className="h-6 w-6 text-white" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
@@ -489,7 +489,69 @@ const Patients = () => {
           {/* Full-Width Content Area */}
           <div className="w-full">
             {selectedPatientData ? (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <Tabs defaultValue="info" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {/* Modern Floating Tabs List (Pill style like Settings) */}
+                <div className="flex w-full rounded-xl border border-border overflow-hidden bg-muted/30 p-0 h-auto">
+                  <TabsList className="flex w-full bg-transparent p-0 h-auto rounded-none border-none overflow-x-auto no-scrollbar">
+                    <TabsTrigger
+                      value="info"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <User className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">General</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="timeline"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <Activity className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Actividad 360°</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="evolution"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <TrendingUp className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Evolución</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="tests"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <Brain className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Pruebas</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="history"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Notas</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="economy"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <DollarSign className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Economía</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="documents"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Docs</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="whatsapp"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-success data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
                 <Card variant="flat" className="min-h-[calc(100vh-280px)] overflow-hidden flex flex-col border-border/50 shadow-medium">
                   {/* Detailed Information Section */}
                   <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -598,61 +660,7 @@ const Patients = () => {
 
                     {/* Right: Modern Tabbed Layout */}
                     <div className="flex-1 flex flex-col overflow-hidden bg-white">
-                      <Tabs defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
-                        <div className="px-4 sm:px-8 border-b border-border bg-muted/5">
-                          <TabsList className="h-14 w-full justify-start gap-8 bg-transparent border-none p-0 overflow-x-auto no-scrollbar">
-                            <TabsTrigger
-                              value="info"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              General
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="timeline"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              Actividad 360°
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="evolution"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              Evolución Clín.
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="tests"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              Pruebas
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="history"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              Notas
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="economy"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              Economía
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="documents"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              <Paperclip className="h-3.5 w-3.5 mr-1.5" /> Documentos
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="whatsapp"
-                              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-success data-[state=active]:text-success rounded-none h-14 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                              <MessageCircle className="h-3.5 w-3.5 mr-1.5" /> WhatsApp
-                            </TabsTrigger>
-                          </TabsList>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-zen">
+                      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-zen">
                           <TabsContent value="info" className="m-0 space-y-6 animate-in fade-in duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <section className="space-y-4">
@@ -1236,11 +1244,10 @@ const Patients = () => {
                             </div>
                           </TabsContent>
                         </div>
-                      </Tabs>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              </div>
+                  </Card>
+                </Tabs>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

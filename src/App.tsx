@@ -28,6 +28,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Consents = lazy(() => import("./pages/Consents"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const PortalLogin = lazy(() => import("./pages/PortalLogin"));
 const Portal = lazy(() => import("./pages/Portal"));
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reservar/:slug" element={<BookingPage />} />
+            <Route path="/perfil/:slug" element={<PublicProfile />} />
             <Route
               path="/"
               element={

@@ -11,10 +11,9 @@ Este archivo documenta el estado actual, el contexto y las normas del proyecto p
 ### 📍 Foco Actual
 El equipo (Usuario + Agente) se encuentra trabajando en la **estabilización de las integraciones** y la **corrección de funcionalidades críticas**.
 
-**Tareas Recientes/En Curso:**
-*   **Integración con Stripe**: Se han realizado esfuerzos para corregir la sincronización de pagos, webhooks y generación de enlaces de pago.
-*   **Autenticación y Datos de Usuario**: Debugging de problemas de login, visualización de datos de usuario en la sidebar y persistencia de sesión.
-*   **Correcciones de UI**: Ajustes en el dashboard, orden de elementos (usuario/logout) y estilos visuales.
+*   **Unificación de UI (Island Design)**: Se ha completado la estandarización de los headers en toda la plataforma hacia un diseño de "isla" premium y minimalista.
+*   **Ajustes y Límites**: Corrección de la lógica de configuración para límites de citas y ajustes globales del profesional.
+*   **Autenticación Premium**: Implementación exitosa de Google GSI (popup nativo) y One Tap.
 
 ## 🛠️ Stack Tecnológico
 
