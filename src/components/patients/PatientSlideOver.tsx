@@ -367,7 +367,7 @@ const PatientSlideOver = ({
                                         </div>
 
                                         {/* Datos NOM-024 */}
-                                        {(patient.curp || patient.sex || patient.occupation) && (
+                                        {(patient.curp || patient.gender || patient.occupation) && (
                                             <div className="space-y-2 pt-1">
                                                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Datos oficiales (NOM-024)
@@ -378,10 +378,10 @@ const PatientSlideOver = ({
                                                         <span className="font-mono text-xs font-medium tracking-wide">{patient.curp}</span>
                                                     </div>
                                                 )}
-                                                {patient.sex && (
+                                                {patient.gender && (
                                                     <div className="flex items-center justify-between text-sm p-3 rounded-xl bg-muted/40">
-                                                        <span className="text-muted-foreground">Sexo</span>
-                                                        <span>{patient.sex === 'F' ? 'Femenino' : patient.sex === 'M' ? 'Masculino' : 'No especificado'}</span>
+                                                        <span className="text-muted-foreground">Género</span>
+                                                        <span>{patient.gender === 'F' ? 'Femenino' : patient.gender === 'M' ? 'Masculino' : 'No especificado'}</span>
                                                     </div>
                                                 )}
                                                 {patient.occupation && (

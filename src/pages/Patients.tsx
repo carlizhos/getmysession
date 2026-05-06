@@ -73,6 +73,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF } from '@/lib/generateExpedientePDF';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
+import { decryptText } from '@/lib/encryption';
 
 // Enriched patient type with appointment metadata
 interface EnrichedPatient extends Patient {
@@ -115,6 +116,7 @@ const Patients = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
 
   // ── Helpers ─────────────────────────────────────────────────────────────
@@ -132,7 +134,7 @@ const Patients = () => {
 
       const { data: patientsData, error: pErr } = await supabase
         .from('patients')
-        .select('*')
+        .select('*, patient_clinical_data(*), patient_fiscal_data(*)')
         .eq('organization_id', organization?.id)
         .is('deleted_at', null)
         .order('name');
@@ -160,11 +162,24 @@ const Patients = () => {
         }
       });
 
-      const enriched: EnrichedPatient[] = (patientsData || []).map((p: Patient) => ({
-        ...p,
-        _next_appointment: nextByPatient[p.id] || null,
-        _last_appointment: lastByPatient[p.id] || null,
-      }));
+      const enriched: EnrichedPatient[] = (patientsData || []).map((p: Patient) => {
+        // Map the array relationship if present (Supabase returns arrays for one-to-many/one-to-one joins)
+        const fiscalData = p.patient_fiscal_data?.[0] || {};
+        const clinicalData = p.patient_clinical_data?.[0] || {};
+
+        return {
+          ...p,
+          curp: decryptText(p.curp),
+          rfc: decryptText(fiscalData.rfc) || undefined,
+          tax_name: fiscalData.tax_name || undefined,
+          tax_zip_code: fiscalData.tax_zip_code || undefined,
+          tax_regime: fiscalData.tax_regime || undefined,
+          cfdi_use: fiscalData.cfdi_use || undefined,
+          notes: clinicalData.notes || undefined,
+          _next_appointment: nextByPatient[p.id] || null,
+          _last_appointment: lastByPatient[p.id] || null,
+        };
+      });
 
       setPatients(enriched);
     } catch (err: unknown) {
@@ -435,6 +450,145 @@ const Patients = () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    if (patients.length === 0) {
+      toast.error('No hay pacientes para exportar');
+      return;
+    }
+
+    if (!organization?.id) {
+      toast.error('Error de sesión. Intente recargar.');
+      return;
+    }
+
+    try {
+      // 1. Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No autorizado');
+
+      // 2. Log to audit_logs
+      const { error: auditErr } = await supabase
+        .from('audit_logs')
+        .insert({
+          organization_id: organization.id,
+          profile_id: user.id,
+          action: 'export_patients_csv',
+          resource_type: 'patients',
+          details: { count: patients.length, non_sensitive_only: true }
+        });
+      
+      if (auditErr) throw auditErr;
+
+      // 3. Define headers for export (Sensitive fields like notes, curp, rfc removed for security)
+      const headers = [
+        'name', 'email', 'phone', 'date_of_birth', 'gender', 
+        'occupation', 'emergency_contact_name', 'emergency_contact_phone', 
+        'status'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        ...patients.map(p => headers.map(h => {
+          let val = (p as any)[h] || '';
+          
+          // Special formatting for phone: only digits
+          if (h === 'phone') {
+            val = String(val).replace(/\D/g, '');
+          }
+
+          // Escape quotes and wrap in quotes to handle commas/newlines
+          const escaped = String(val).replace(/"/g, '""');
+          return `"${escaped}"`;
+        }).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `pacientes_saudade_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Lista de pacientes exportada con éxito. Acción auditada.');
+    } catch (err: any) {
+      toast.error('Error al exportar: ' + (err.message || 'Intente de nuevo.'));
+      console.error('Export error:', err);
+    }
+  };
+
+  const handleImportCSV = async (file: File) => {
+    if (!organization?.id) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n');
+      if (lines.length < 2) {
+        toast.error('El archivo CSV está vacío o no tiene el formato correcto');
+        return;
+      }
+
+      // Parse headers
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const newPatients = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Basic CSV parser that handles quoted values with commas
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (let char of line) {
+          if (char === '"') inQuotes = !inQuotes;
+          else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        const patient: any = {
+          organization_id: organization.id,
+          status: 'activo'
+        };
+
+        headers.forEach((header, index) => {
+          // Avoid overwriting IDs or organization IDs to prevent conflicts
+          if (header !== 'id' && header !== 'organization_id' && header.length > 0) {
+            patient[header] = values[index] || null;
+          }
+        });
+
+        if (patient.name && patient.name !== 'name') {
+          newPatients.push(patient);
+        }
+      }
+
+      if (newPatients.length === 0) {
+        toast.error('No se encontraron pacientes válidos para importar');
+        return;
+      }
+
+      try {
+        const { error } = await supabase.from('patients').insert(newPatients);
+        if (error) throw error;
+        toast.success(`${newPatients.length} pacientes importados correctamente`);
+        fetchPatients();
+        setSearchRefreshTrigger(prev => prev + 1);
+      } catch (err: any) {
+        console.error('Error importing:', err);
+        toast.error('Error al importar: ' + (err.message || 'Error desconocido'));
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <>
       <Layout>
@@ -478,9 +632,38 @@ const Patients = () => {
               />
             </div>
 
-            <div className="flex gap-3 w-full lg:w-auto justify-end">
-              <Button variant="zen" size="sm" className="h-10 text-xs font-bold px-4 shadow-lg shadow-primary/20" onClick={() => setIsNewPatientOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+            <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto justify-end">
+              <input
+                type="file"
+                ref={importFileInputRef}
+                className="hidden"
+                accept=".csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImportCSV(file);
+                  e.target.value = '';
+                }}
+              />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-10 text-[10px] font-bold uppercase tracking-widest px-4 border-primary/20 hover:bg-primary/5 transition-all"
+                onClick={() => importFileInputRef.current?.click()}
+              >
+                <Upload className="h-3.5 w-3.5 mr-2" />
+                Importar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-10 text-[10px] font-bold uppercase tracking-widest px-4 border-primary/20 hover:bg-primary/5 transition-all"
+                onClick={handleExportCSV}
+              >
+                <Download className="h-3.5 w-3.5 mr-2" />
+                Exportar
+              </Button>
+              <Button variant="zen" size="sm" className="h-10 text-[10px] font-bold uppercase tracking-widest px-4 shadow-lg shadow-primary/20" onClick={() => setIsNewPatientOpen(true)}>
+                <Plus className="h-3.5 w-3.5 mr-2" />
                 Nuevo Paciente
               </Button>
             </div>
@@ -679,9 +862,9 @@ const Patients = () => {
                                   <div>
                                     <p className="text-[10px] uppercase font-bold text-muted-foreground">Género</p>
                                     <p className="font-medium">
-                                      {selectedPatientData.sex === 'F' ? 'Femenino' : 
-                                       selectedPatientData.sex === 'M' ? 'Masculino' : 
-                                       selectedPatientData.sex === 'otro' ? 'Otro' : 'N/A'}
+                                      {selectedPatientData.gender === 'F' ? 'Femenino' : 
+                                       selectedPatientData.gender === 'M' ? 'Masculino' : 
+                                       selectedPatientData.gender === 'otro' ? 'Otro' : 'N/A'}
                                     </p>
                                   </div>
                                   <div className="col-span-2">

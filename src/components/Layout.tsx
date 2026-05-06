@@ -421,6 +421,29 @@ const Layout = ({ children }: LayoutProps) => {
         <main className="min-h-screen p-2 sm:p-3 lg:p-4 flex flex-col pt-20 lg:pt-[5.25rem]">
           <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[18px] sm:rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-4 sm:p-6 lg:p-8">
             {children}
+
+            {/* Footer Information */}
+            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-widest font-medium">
+              <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
+              <div className="flex items-center gap-6">
+                <a 
+                  href="/politicas" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
+                  Políticas de uso
+                </a>
+                <a 
+                  href="/terminos" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
+                  Términos y condiciones
+                </a>
+              </div>
+            </footer>
           </div>
         </main>
       </div>

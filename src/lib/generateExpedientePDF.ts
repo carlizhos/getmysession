@@ -10,7 +10,7 @@ export interface PatientData {
     phone?: string;
     date_of_birth?: string;
     curp?: string;
-    sex?: string;
+    gender?: string;
     occupation?: string;
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
@@ -53,7 +53,7 @@ const FORM_TYPE_LABELS: Record<string, string> = {
     datos_personales: 'Datos Personales (LFPDPPP)',
 };
 
-const SEX_LABELS: Record<string, string> = {
+const GENDER_LABELS: Record<string, string> = {
     M: 'Masculino', F: 'Femenino', otro: 'No especificado',
 };
 
@@ -163,7 +163,7 @@ export function generateExpedientePDF(
         ['Edad', age],
         ['Fecha de nacimiento', patient.date_of_birth ? format(parseISO(patient.date_of_birth), 'd MMM yyyy', { locale: es }) : '—'],
         ['CURP', patient.curp || '—'],
-        ['Sexo', patient.sex ? (SEX_LABELS[patient.sex] || patient.sex) : '—'],
+        ['Género', patient.gender ? (GENDER_LABELS[patient.gender] || patient.gender) : '—'],
         ['Ocupación', patient.occupation || '—'],
         ['Correo electrónico', patient.email || '—'],
         ['Teléfono', patient.phone || '—'],

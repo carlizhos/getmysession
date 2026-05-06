@@ -1,5 +1,25 @@
 // ── Clinical & Personnel Types ──────────────────────────────────────────────
 
+export interface PatientClinicalData {
+    patient_id: string;
+    organization_id: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface PatientFiscalData {
+    patient_id: string;
+    organization_id: string;
+    rfc?: string;
+    tax_name?: string;
+    tax_zip_code?: string;
+    tax_regime?: string;
+    cfdi_use?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface Patient {
     id: string;
     organization_id: string;
@@ -8,21 +28,19 @@ export interface Patient {
     phone: string;
     date_of_birth: string;
     birth_date?: string; // Legacy/Compatibility
-    sex?: string;
+    gender?: string;
     occupation?: string;
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
-    notes?: string;
     tags?: string[];
     curp?: string;
-    rfc?: string;
-    tax_name?: string;
-    tax_zip_code?: string;
-    tax_regime?: string;
-    cfdi_use?: string;
     status?: 'active' | 'archived' | 'inactive';
     created_at?: string;
     deleted_at?: string | null;
+    
+    // Joined relations from Supabase
+    patient_clinical_data?: PatientClinicalData[];
+    patient_fiscal_data?: PatientFiscalData[];
 }
 
 export interface SessionNote {
@@ -117,4 +135,14 @@ export interface Profile {
     avatar_url?: string;
     organization_id?: string;
     role?: 'admin' | 'therapist' | 'receptionist';
+}
+
+export interface AuditLog {
+    id: string;
+    organization_id: string;
+    profile_id: string;
+    action: string;
+    resource_type: string;
+    details?: Record<string, any>;
+    created_at: string;
 }

@@ -395,26 +395,17 @@ const Finance = () => {
 
     const verifyPayment = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-
-        const SUPABASE_URL = 'https://zhnbrftspwzacarpjqxd.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobmJyZnRzcHd6YWNhcnBqcXhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMzQyNDgsImV4cCI6MjA4NTgxMDI0OH0.56Jis1mnVl-Rfof091ejuHR5g8oINumZKiwGL7bygVA';
-
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-stripe-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ appointment_id: appointmentId }),
+        const { data: result, error: funcError } = await supabase.functions.invoke('verify-stripe-payment', {
+          body: { appointment_id: appointmentId },
         });
 
-        const result = await res.json();
+        if (funcError) {
+          toast.error('No se pudo registrar el pago de Stripe: ' + (funcError.message || 'Error desconocido'));
+          return;
+        }
 
-        if (!res.ok) {
-          toast.error('No se pudo registrar el pago de Stripe: ' + (result.error || 'Error desconocido'));
+        if (result?.error) {
+          toast.error('No se pudo registrar el pago de Stripe: ' + result.error);
           return;
         }
 

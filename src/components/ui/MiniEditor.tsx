@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import {
   Bold,
@@ -150,7 +151,7 @@ const MiniEditor = ({ content, onChange, className }: MiniEditorProps) => {
         suppressContentEditableWarning
         onInput={handleInput}
         onPaste={handlePaste}
-        dangerouslySetInnerHTML={{ __html: getInitialHtml() }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getInitialHtml()) }}
         className={cn(
           'min-h-[300px] max-h-[500px] overflow-y-auto p-4 text-sm outline-none',
           'bg-white dark:bg-slate-900/40',

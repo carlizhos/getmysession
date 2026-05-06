@@ -79,32 +79,17 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
 
         try {
             if (selected === 'stripe') {
-                // Obtener sesión activa con refresh para garantizar token válido
-                const { data: sessionData } = await supabase.auth.getSession();
-                const token = sessionData.session?.access_token;
-
-                if (!token) throw new Error('No hay sesión activa. Vuelve a iniciar sesión.');
-
-                const SUPABASE_URL = 'https://zhnbrftspwzacarpjqxd.supabase.co';
-                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobmJyZnRzcHd6YWNhcnBqcXhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMzQyNDgsImV4cCI6MjA4NTgxMDI0OH0.56Jis1mnVl-Rfof091ejuHR5g8oINumZKiwGL7bygVA';
-
-                const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                        'apikey': SUPABASE_ANON_KEY,
-                    },
-                    body: JSON.stringify({
+                const { data: result, error: funcError } = await supabase.functions.invoke('create-checkout-session', {
+                    body: {
                         appointment_id: appointment.id,
                         amount_mxn: appointment.fee,
                         patient_name: appointment.patient_name,
                         description: `Sesión terapéutica — ${appointment.patient_name} — ${format(parseISO(appointment.start_time), 'd MMM yyyy', { locale: es })}`,
-                    }),
+                    },
                 });
 
-                const result = await res.json();
-                if (!res.ok) throw new Error(result.error || 'Error al crear sesión de pago');
+                if (funcError) throw new Error(funcError.message || 'Error al conectar con el servidor');
+                if (result?.error) throw new Error(result.error);
 
                 // Guardar URL para mostrarla en el modal
                 setStripeUrl(result.url);

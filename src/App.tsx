@@ -31,6 +31,8 @@ const BookingPage = lazy(() => import("./pages/BookingPage"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const PortalLogin = lazy(() => import("./pages/PortalLogin"));
 const Portal = lazy(() => import("./pages/Portal"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
 const queryClient = new QueryClient();
 
@@ -176,6 +178,10 @@ const App = () => (
             <Route path="/t/:token" element={<PatientTestView />} />
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route path="/portal" element={<Portal />} />
+
+            {/* Public Info Routes */}
+            <Route path="/politicas" element={<PrivacyPolicy />} />
+            <Route path="/terminos" element={<TermsOfService />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="/auth/v1/verify" element={<Navigate to="/" replace />} />

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import {
@@ -258,7 +259,7 @@ const HelpWidget = () => {
                                         )}
                                         dangerouslySetInnerHTML={
                                             msg.role === 'assistant'
-                                                ? { __html: renderMarkdown(msg.content) }
+                                                ? { __html: DOMPurify.sanitize(renderMarkdown(msg.content)) }
                                                 : undefined
                                         }
                                     >

@@ -58,7 +58,7 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
   const [{ data: patient }, { data: notes }] = await Promise.all([
     supabase
       .from('patients')
-      .select('name, date_of_birth, birth_date, sex, occupation, notes, status, tags, curp')
+      .select('name, date_of_birth, birth_date, gender, occupation, status, tags, curp, patient_clinical_data(notes)')
       .eq('id', patientId)
       .eq('organization_id', organizationId)
       .single(),
@@ -74,7 +74,7 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
 
   if (!patient) return '';
 
-  const sexLabel = patient.sex === 'M' ? 'Masculino' : patient.sex === 'F' ? 'Femenino' : patient.sex || 'No especificado';
+  const genderLabel = patient.gender === 'M' ? 'Masculino' : patient.gender === 'F' ? 'Femenino' : patient.gender || 'No especificado';
   const dob = patient.birth_date || patient.date_of_birth;
   const age = dob ? Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : null;
   const statusMap: Record<string, string> = {
@@ -85,10 +85,11 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
   let ctx = `=== EXPEDIENTE DEL PACIENTE ===\n`;
   ctx += `Nombre: ${patient.name}\n`;
   if (age) ctx += `Edad: ${age} años\n`;
-  ctx += `Sexo: ${sexLabel}\n`;
+  ctx += `Género: ${genderLabel}\n`;
   if (patient.occupation) ctx += `Ocupación: ${patient.occupation}\n`;
   ctx += `Etapa clínica: ${statusMap[patient.status] || patient.status}\n`;
-  if (patient.notes) ctx += `Notas generales: ${patient.notes}\n`;
+  const clinicalNotes = patient.patient_clinical_data?.[0]?.notes;
+  if (clinicalNotes) ctx += `Notas generales: ${clinicalNotes}\n`;
   if (patient.tags?.length) ctx += `Etiquetas: ${patient.tags.join(', ')}\n`;
 
   if (notes && notes.length > 0) {

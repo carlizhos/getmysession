@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
 import { logActivity } from '@/lib/activityLogger';
+import { encryptText } from '@/lib/encryption';
 
 interface Patient {
     id: string;
@@ -28,7 +29,7 @@ interface Patient {
     notes: string;
     tags: string[];
     curp?: string;
-    sex?: string;
+    gender?: string;
     occupation?: string;
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
@@ -64,7 +65,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         phone: '',
         dateOfBirth: '',
         curp: '',
-        sex: '',
+        gender: '',
         occupation: '',
         emergencyContactName: '',
         emergencyContactPhone: '',
@@ -89,7 +90,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 phone: editingPatient.phone || '',
                 dateOfBirth: editingPatient.date_of_birth || '',
                 curp: editingPatient.curp || '',
-                sex: editingPatient.sex || '',
+                gender: editingPatient.gender || '',
                 occupation: editingPatient.occupation || '',
                 emergencyContactName: editingPatient.emergency_contact_name || '',
                 emergencyContactPhone: editingPatient.emergency_contact_phone || '',
@@ -104,7 +105,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         } else {
             setFormData({
                 name: '', email: '', phone: '', dateOfBirth: '',
-                curp: '', sex: '', occupation: '',
+                curp: '', gender: '', occupation: '',
                 emergencyContactName: '', emergencyContactPhone: '', notes: '',
                 rfc: '', taxName: '', taxZipCode: '', taxRegime: '', cfdiUse: '',
             });
@@ -118,7 +119,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         const upper = val.toUpperCase();
         setFormData({ ...formData, curp: upper });
         if (upper && !validateCURP(upper)) {
-            setCurpError('Formato inválido (18 caracteres: 4 letras, 6 dígitos, sexo, estado, 3 letras, 2 alfanuméricos)');
+            setCurpError('Formato inválido (18 caracteres: 4 letras, 6 dígitos, género, estado, 3 letras, 2 alfanuméricos)');
         } else {
             setCurpError('');
         }
@@ -142,41 +143,76 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
-            const payload = {
+            const basePayload = {
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
                 date_of_birth: formData.dateOfBirth,
-                curp: formData.curp || null,
-                sex: formData.sex || null,
+                curp: encryptText(formData.curp || null),
+                gender: formData.gender || null,
                 occupation: formData.occupation || null,
                 emergency_contact_name: formData.emergencyContactName || null,
                 emergency_contact_phone: formData.emergencyContactPhone || null,
-                notes: formData.notes,
                 tags: tags,
-                rfc: formData.rfc || null,
-                tax_name: formData.taxName || null,
-                tax_zip_code: formData.taxZipCode || null,
-                tax_regime: formData.taxRegime || null,
-                cfdi_use: formData.cfdiUse || null,
                 user_id: user?.id ?? null,
                 organization_id: organization?.id,
             };
 
+            const clinicalPayload = {
+                notes: formData.notes,
+                organization_id: organization?.id,
+            };
+
+            const fiscalPayload = {
+                rfc: encryptText(formData.rfc || null),
+                tax_name: formData.taxName || null,
+                tax_zip_code: formData.taxZipCode || null,
+                tax_regime: formData.taxRegime || null,
+                cfdi_use: formData.cfdiUse || null,
+                organization_id: organization?.id,
+            };
+
             if (isEditing && editingPatient) {
-                const { error } = await supabase
+                // Update Base
+                const { error: err1 } = await supabase
                     .from('patients')
-                    .update(payload)
+                    .update(basePayload)
                     .eq('id', editingPatient.id)
                     .eq('organization_id', organization?.id);
-                if (error) throw error;
+                if (err1) throw err1;
+
+                // Update Clinical Data (upsert-like behavior using update, but if it doesn't exist, we must insert. Safer to upsert)
+                const { error: err2 } = await supabase
+                    .from('patient_clinical_data')
+                    .upsert({ patient_id: editingPatient.id, ...clinicalPayload });
+                if (err2) throw err2;
+
+                // Update Fiscal Data
+                const { error: err3 } = await supabase
+                    .from('patient_fiscal_data')
+                    .upsert({ patient_id: editingPatient.id, ...fiscalPayload });
+                if (err3) throw err3;
+
                 toast.success('Paciente actualizado');
             } else {
-                const { error } = await supabase
+                // Insert Base
+                const { data: insertedPatient, error: err1 } = await supabase
                     .from('patients')
-                    .insert([payload])
-                    .select();
-                if (error) throw error;
+                    .insert([basePayload])
+                    .select()
+                    .single();
+                if (err1 || !insertedPatient) throw err1;
+
+                // Insert Clinical
+                if (clinicalPayload.notes) {
+                    await supabase.from('patient_clinical_data').insert({ patient_id: insertedPatient.id, ...clinicalPayload });
+                }
+
+                // Insert Fiscal
+                if (fiscalPayload.tax_name || fiscalPayload.rfc || fiscalPayload.tax_zip_code) {
+                    await supabase.from('patient_fiscal_data').insert({ patient_id: insertedPatient.id, ...fiscalPayload });
+                }
+
                 toast.success('Paciente agregado exitosamente');
 
                 await logActivity({
@@ -276,7 +312,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     </div>
                                 </div>
 
-                                {/* Fecha de nacimiento y Sexo */}
+                                {/* Fecha de nacimiento y Género */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
@@ -293,12 +329,12 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="sex">Sexo</Label>
+                                        <Label htmlFor="gender">Género</Label>
                                         <Select
-                                            value={formData.sex}
-                                            onValueChange={(v) => setFormData({ ...formData, sex: v })}
+                                            value={formData.gender}
+                                            onValueChange={(v) => setFormData({ ...formData, gender: v })}
                                         >
-                                            <SelectTrigger id="sex">
+                                            <SelectTrigger id="gender">
                                                 <SelectValue placeholder="Selecciona" />
                                             </SelectTrigger>
                                             <SelectContent>
