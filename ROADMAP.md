@@ -71,7 +71,7 @@
 - ✅ **IA Asistente**:
   - ✅ Interfaz de chat
   - ✅ Generación de notas clínicas con IA (Edge Function `process-clinical-note`)
-  - 📅 Contexto de paciente en el chat
+  - ✅ Contexto de paciente en el chat (Seguro: sin datos sensibles)
 
 - ✅ **Pagos en Línea (Stripe)**:
   - ✅ Edge Function `create-checkout-session` → genera Stripe Checkout Session
@@ -150,3 +150,8 @@
   - ✅ Iconografía coherente con degradados Sage Green y tipografía editorial.
 - ✅ **Configuración y Límites**:
   - ✅ Reparación de la sección de Ajustes y lógica de límites de reserva.
+- ✅ **Seguridad y Cumplimiento (NOM-024)**:
+  - ✅ **Audit Logs**: Registro inmutable de exportaciones de datos en Supabase.
+  - ✅ **Cifrado ALE (Application-Level Encryption)**: Protección Zero-Knowledge para CURP y RFC utilizando `crypto-js`.
+  - ✅ **Segregación de Tablas**: Separación física de notas clínicas e información fiscal para reducir el radio de impacto.
+  - ✅ **Privacidad en Exportaciones**: Eliminación automática de campos sensibles en descargas de CSV.

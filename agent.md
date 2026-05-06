@@ -11,8 +11,11 @@ Este archivo documenta el estado actual, el contexto y las normas del proyecto p
 ### 📍 Foco Actual
 El equipo (Usuario + Agente) se encuentra trabajando en la **estabilización de las integraciones** y la **corrección de funcionalidades críticas**.
 
+*   **Seguridad y Cumplimiento (NOM-024)**: Se ha implementado un sistema robusto de seguridad que incluye:
+    *   **Audit Logs**: Registro inmutable de exportaciones de datos.
+    *   **Cifrado ALE (Application-Level Encryption)**: Protección Zero-Knowledge para CURP y RFC.
+    *   **Segregación de Tablas**: Separación física de notas clínicas e información fiscal para reducir el radio de impacto.
 *   **Unificación de UI (Island Design)**: Se ha completado la estandarización de los headers en toda la plataforma hacia un diseño de "isla" premium y minimalista.
-*   **Ajustes y Límites**: Corrección de la lógica de configuración para límites de citas y ajustes globales del profesional.
 *   **Autenticación Premium**: Implementación exitosa de Google GSI (popup nativo) y One Tap.
 
 ## 🛠️ Stack Tecnológico
