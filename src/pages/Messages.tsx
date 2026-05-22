@@ -72,8 +72,35 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [processingReminders, setProcessingReminders] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleProcessReminders = async () => {
+    setProcessingReminders(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('twilio-whatsapp', {
+        body: { action: 'send-batch-reminders' },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(
+        `Recordatorios procesados con éxito. Se enviaron ${data.sentCount} recordatorios. ${
+          data.isMockMode ? '(Modo Simulación)' : ''
+        }`
+      );
+      fetchConversations();
+    } catch (err: any) {
+      toast.error('Error al procesar recordatorios: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setProcessingReminders(false);
+    }
+  };
 
   const selectedConvo = conversations.find(c => c.phone === selectedPhone);
 
@@ -258,6 +285,26 @@ const Messages = () => {
               <h1 className="text-2xl font-black tracking-tight text-foreground">Mensajes</h1>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Comunicación WhatsApp</p>
             </div>
+          </div>
+          <div className="flex gap-2 items-center w-full lg:w-auto justify-end">
+            <Button
+              variant="zen"
+              onClick={handleProcessReminders}
+              disabled={processingReminders || loading}
+              className="bg-primary hover:bg-primary/90 text-white gap-2 h-10 px-4 rounded-xl shadow-md transition-all duration-200"
+            >
+              {processingReminders ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4" />
+                  Procesar Recordatorios
+                </>
+              )}
+            </Button>
           </div>
         </div>
 

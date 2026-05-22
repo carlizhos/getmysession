@@ -63,9 +63,13 @@ interface EditingAppointment {
     status?: string;
     color?: string;
     modality?: 'presencial' | 'online';
+    location?: string;
     isRecurring?: boolean;
     recurrenceId?: string;
     paymentStatus?: string;
+    patientAge?: number;
+    reasonForConsultation?: string;
+    serviceId?: string;
 }
 
 interface NewAppointmentDialogProps {
@@ -92,8 +96,12 @@ const NewAppointmentDialog = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [confirmCancel, setConfirmCancel] = useState(false);
+    const [services, setServices] = useState<any[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
 
     const [specialistName, setSpecialistName] = useState('');
+    const [porcentajeGlobal, setPorcentajeGlobal] = useState<number>(30);
+    const [reschedulePolicyGlobal, setReschedulePolicyGlobal] = useState<number>(24);
 
     // Schedule config loaded from profile
     const [horarioConfig, setHorarioConfig] = useState<any>({
@@ -105,11 +113,17 @@ const NewAppointmentDialog = ({
         if (!user) return;
         supabase
             .from('profiles')
-            .select('horario_atencion, full_name')
+            .select('horario_atencion, full_name, porcentaje_consultorio, reschedule_policy_hours')
             .eq('id', user.id)
             .single()
             .then(({ data }) => {
                 if (data?.full_name) setSpecialistName(data.full_name);
+                if (data?.porcentaje_consultorio !== undefined && data?.porcentaje_consultorio !== null) {
+                    setPorcentajeGlobal(data.porcentaje_consultorio);
+                }
+                if (data?.reschedule_policy_hours !== undefined && data?.reschedule_policy_hours !== null) {
+                    setReschedulePolicyGlobal(data.reschedule_policy_hours);
+                }
                 if (data?.horario_atencion) {
                     const h = data.horario_atencion;
                     let normalized: any;
@@ -145,6 +159,25 @@ const NewAppointmentDialog = ({
                     }
                 }
             });
+
+        // Fetch services
+        const fetchServices = async () => {
+            setIsLoadingServices(true);
+            try {
+                const { data } = await supabase
+                    .from('services')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('active', true)
+                    .order('name');
+                if (data) setServices(data);
+            } catch (err) {
+                console.error('Error fetching services:', err);
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+        fetchServices();
     }, [user, isEditing]);
 
     // Returns a warning message if the given date is blocked
@@ -168,9 +201,13 @@ const NewAppointmentDialog = ({
         meetingPlatform: '',
         notes: '',
         modality: 'presencial' as 'presencial' | 'online',
+        location: '',
         isRecurring: false,
         recurrenceWeeks: 8,
         editSeries: false,
+        patientAge: '' as string | number,
+        reasonForConsultation: '',
+        serviceId: '',
     });
 
     // Sincronizar fecha cuando cambia selectedDate
@@ -200,9 +237,13 @@ const NewAppointmentDialog = ({
                 meetingPlatform: editingAppointment.meetingPlatform || '',
                 notes: editingAppointment.notes || '',
                 modality: editingAppointment.modality || 'presencial',
+                location: editingAppointment.location || '',
                 isRecurring: editingAppointment.isRecurring || false,
                 recurrenceWeeks: 8,
                 editSeries: false,
+                patientAge: editingAppointment.patientAge || '',
+                reasonForConsultation: editingAppointment.reasonForConsultation || '',
+                serviceId: editingAppointment.serviceId || '',
             });
         } else {
             resetForm();
@@ -223,10 +264,29 @@ const NewAppointmentDialog = ({
             meetingPlatform: '',
             notes: '',
             modality: 'presencial',
+            location: '',
             isRecurring: false,
             recurrenceWeeks: 8,
             editSeries: false,
+            patientAge: '',
+            reasonForConsultation: '',
+            serviceId: '',
         });
+    };
+
+    const handleServiceChange = (serviceId: string) => {
+        const service = services.find(s => s.id === serviceId);
+        if (service) {
+            setFormData(prev => ({
+                ...prev,
+                serviceId,
+                type: service.name,
+                fee: String(service.price),
+                color: service.color || prev.color
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, serviceId: '' }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -334,8 +394,20 @@ const NewAppointmentDialog = ({
                 return;
             }
 
-            // Duración fija: 1 hora
-            const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+            // Dynamic duration based on service
+            const duration = services.find(s => s.id === formData.serviceId)?.duration || 60;
+            const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
+
+            const selectedService = services.find(s => s.id === formData.serviceId);
+            let finalCommission = porcentajeGlobal;
+            if (selectedService && selectedService.commission_percentage !== undefined && selectedService.commission_percentage !== null) {
+                finalCommission = selectedService.commission_percentage;
+            }
+
+            let finalReschedulePolicy = reschedulePolicyGlobal;
+            if (selectedService && selectedService.reschedule_policy_hours !== undefined && selectedService.reschedule_policy_hours !== null) {
+                finalReschedulePolicy = selectedService.reschedule_policy_hours;
+            }
 
             const { data: { user: sessionUser } } = await supabase.auth.getUser();
 
@@ -353,39 +425,82 @@ const NewAppointmentDialog = ({
                 user_id: sessionUser?.id ?? null,
                 organization_id: organization?.id,
                 modality: formData.modality,
+                location: formData.location || null,
                 is_recurring: formData.isRecurring,
                 recurrence_id: isEditing ? editingAppointment?.recurrenceId : (formData.isRecurring ? crypto.randomUUID() : null),
+                patient_age: formData.patientAge ? parseInt(formData.patientAge.toString()) : null,
+                reason_for_consultation: formData.reasonForConsultation || null,
+                service_id: formData.serviceId || null,
+                commission_percentage: finalCommission,
+                reschedule_policy_hours: finalReschedulePolicy,
             };
 
             let finalMeetingLink = formData.meetingLink;
 
-            // --- Google Calendar Sync (for Create and Edit) ---
+            // --- External Calendar / Meeting Sync (Google, Microsoft, or Zoom) ---
             const isMeetSelected = formData.meetingPlatform === 'meet';
+            const isTeamsSelected = formData.meetingPlatform === 'teams';
+            const isZoomSelected = formData.meetingPlatform === 'zoom';
             const wasMeetSelected = isEditing && editingAppointment?.meetingPlatform === 'meet';
+            const wasTeamsSelected = isEditing && editingAppointment?.meetingPlatform === 'teams';
+            const wasZoomSelected = isEditing && editingAppointment?.meetingPlatform === 'zoom';
 
-            // Logic: 
-            // 1. If was Meet and now it's NOT Meet -> Clear link
-            // 2. If it is Meet and (didn't have link OR was not Meet before) -> Generate link
-            let shouldSync = false;
+            let shouldSyncGoogle = false;
+            let shouldSyncMicrosoft = false;
+            let shouldSyncZoom = false;
 
             if (isEditing && wasMeetSelected && !isMeetSelected) {
                 finalMeetingLink = '';
+            } else if (isEditing && wasTeamsSelected && !isTeamsSelected) {
+                finalMeetingLink = '';
+            } else if (isEditing && wasZoomSelected && !isZoomSelected) {
+                finalMeetingLink = '';
             } else if (isMeetSelected && (!finalMeetingLink || !wasMeetSelected)) {
-                shouldSync = true;
+                shouldSyncGoogle = true;
+            } else if (isTeamsSelected && (!finalMeetingLink || !wasTeamsSelected)) {
+                shouldSyncMicrosoft = true;
+            } else if (isZoomSelected && (!finalMeetingLink || !wasZoomSelected)) {
+                shouldSyncZoom = true;
             }
 
-            console.log('[MeetSync] shouldSync:', shouldSync, 'platform:', formData.meetingPlatform, 'linkExists:', !!finalMeetingLink);
+            console.log('[SyncLog] Google:', shouldSyncGoogle, 'Microsoft:', shouldSyncMicrosoft, 'Zoom:', shouldSyncZoom, 'Platform:', formData.meetingPlatform);
 
-            if (shouldSync) {
+            if (shouldSyncGoogle) {
                 try {
-                    console.log('[MeetSync] Invoking google-calendar-sync for user:', sessionUser?.id);
                     const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
                         body: {
                             userId: sessionUser?.id,
                             createMeet: true,
                             event: {
                                 summary: `Cita Saudade: ${formData.patientName}`,
-                                description: `Tipo: ${formData.type}\nNotas: ${formData.notes || 'Ninguna'}`,
+                                description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
+                                start: { dateTime: startDateTime.toISOString() },
+                                end: { dateTime: endDateTime.toISOString() },
+                                location: formData.location || undefined,
+                            }
+                        }
+                    });
+
+                    if (syncErr) {
+                        console.error('[MeetSync] Error:', syncErr);
+                        toast.warning('No se pudo sincronizar con Google Calendar.');
+                    } else if (data?.meetLink) {
+                        finalMeetingLink = data.meetLink;
+                    } else if (data?.message === 'Google Calendar not connected') {
+                        toast.warning('Google Calendar no está conectado.');
+                    }
+                } catch (err) {
+                    console.error('[MeetSync] Exception:', err);
+                }
+            } else if (shouldSyncMicrosoft) {
+                try {
+                    const { data, error: syncErr } = await supabase.functions.invoke('microsoft-calendar-sync', {
+                        body: {
+                            userId: sessionUser?.id,
+                            createTeams: true,
+                            event: {
+                                summary: `Cita Saudade: ${formData.patientName}`,
+                                description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                                 start: { dateTime: startDateTime.toISOString() },
                                 end: { dateTime: endDateTime.toISOString() },
                             }
@@ -393,20 +508,40 @@ const NewAppointmentDialog = ({
                     });
 
                     if (syncErr) {
-                        console.error('[MeetSync] Network/Invoke Error:', syncErr);
-                        toast.warning('No se pudo sincronizar con Google Calendar. La cita se guardará sin link actualizado.');
-                    } else if (data?.error || data?.success === false) {
-                        console.warn('[MeetSync] API Error:', data.error || data.googleApiError);
-                        toast.warning('No se pudo generar el link de Google Meet. Verifica tu conexión con Google en Configuración.');
-                    } else if (data?.meetLink) {
-                        console.log('[MeetSync] Success! Link generated:', data.meetLink);
-                        finalMeetingLink = data.meetLink;
-                    } else if (data?.message === 'Google Calendar not connected') {
-                        console.warn('[MeetSync] Not connected');
-                        toast.warning('Google Calendar no está conectado. Conéctalo en Configuración para generar links.');
+                        console.error('[TeamsSync] Error:', syncErr);
+                        toast.warning('No se pudo sincronizar con Microsoft 365.');
+                    } else if (data?.teamsLink) {
+                        finalMeetingLink = data.teamsLink;
+                    } else if (data?.message === 'Microsoft not connected') {
+                        toast.warning('Microsoft 365 no está conectado.');
                     }
                 } catch (err) {
-                    console.error('[MeetSync] Unexpected Exception:', err);
+                    console.error('[TeamsSync] Exception:', err);
+                }
+            } else if (shouldSyncZoom) {
+                try {
+                    const { data, error: syncErr } = await supabase.functions.invoke('zoom-meeting-create', {
+                        body: {
+                            userId: sessionUser?.id,
+                            topic: `Cita Saudade: ${formData.patientName}`,
+                            startTime: startDateTime.toISOString(),
+                            duration: duration
+                        }
+                    });
+
+                    if (syncErr) {
+                        console.error('[ZoomSync] Error:', syncErr);
+                        toast.warning('No se pudo generar la reunión en Zoom.');
+                    } else if (data?.joinUrl) {
+                        finalMeetingLink = data.joinUrl;
+                    } else if (data?.message === 'Zoom not connected') {
+                        toast.warning('Zoom no está conectado. Por favor, conéctalo en Ajustes.');
+                    } else if (data?.error) {
+                        console.error('[ZoomSync] Error en API:', data.error);
+                        toast.warning(`Error de Zoom: ${data.error}`);
+                    }
+                } catch (err) {
+                    console.error('[ZoomSync] Exception:', err);
                 }
             }
 
@@ -432,6 +567,11 @@ const NewAppointmentDialog = ({
                             status: formData.status,
                             color: payload.color,
                             modality: payload.modality,
+                            location: payload.location,
+                            patient_age: payload.patient_age,
+                            reason_for_consultation: payload.reason_for_consultation,
+                            commission_percentage: payload.commission_percentage,
+                            reschedule_policy_hours: payload.reschedule_policy_hours,
                         })
                         .eq('recurrence_id', editingAppointment.recurrenceId)
                         .gte('start_time', editingAppointment.startTime);
@@ -508,7 +648,7 @@ const NewAppointmentDialog = ({
                         fee: formData.fee || 0,
                         meetingLink: finalMeetingLink,
                         meetingPlatform: formData.meetingPlatform || null,
-                        notes: formData.notes || null,
+                        notes: `Edad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                     },
                 }).catch((err: any) => {
                     console.warn('Email de notificación no enviado:', err.message);
@@ -707,6 +847,39 @@ const NewAppointmentDialog = ({
                             </div>
                         </div>
 
+                        {/* Servicio de Agenda */}
+                        {services.length > 0 && !isReadOnly && (
+                            <div className="space-y-2">
+                                <Label htmlFor="serviceId">Servicio de Agenda (Opcional)</Label>
+                                <Select
+                                    value={formData.serviceId}
+                                    onValueChange={handleServiceChange}
+                                >
+                                    <SelectTrigger className="border-primary/20 bg-primary/5 font-medium">
+                                        <SelectValue placeholder="Selecciona un servicio para autocompletar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Personalizado</SelectItem>
+                                        {services.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={cn("h-2 w-2 rounded-full", {
+                                                        'bg-violet-500': s.color === 'violet',
+                                                        'bg-blue-500': s.color === 'blue',
+                                                        'bg-emerald-500': s.color === 'green',
+                                                        'bg-amber-500': s.color === 'amber',
+                                                        'bg-rose-500': s.color === 'rose',
+                                                        'bg-indigo-500': s.color === 'indigo',
+                                                    })} />
+                                                    {s.name} ({s.duration}m — ${s.price})
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         {/* Tipo de sesión */}
                         <div className="space-y-2">
                             <Label htmlFor="type">Tipo de Sesión</Label>
@@ -758,7 +931,7 @@ const NewAppointmentDialog = ({
                                         />
                                     );
                                 })()}
-                                <span className="text-sm text-muted-foreground">— Duración: 1 hora</span>
+                                <span className="text-sm text-muted-foreground">— Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min</span>
                             </div>
                         </div>
 
@@ -867,44 +1040,89 @@ const NewAppointmentDialog = ({
                             />
                         </div>
 
-                        {/* Plataforma de videollamada */}
-                        <div className="space-y-2">
-                            <Label htmlFor="platform">Plataforma de Videollamada (Opcional)</Label>
-                            <Select
-                                value={formData.meetingPlatform}
-                                onValueChange={(value) => !isReadOnly && setFormData({ ...formData, meetingPlatform: value })}
-                                disabled={isReadOnly}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona la plataforma" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="teams">Microsoft Teams</SelectItem>
-                                    <SelectItem value="meet">Google Meet</SelectItem>
-                                    <SelectItem value="zoom">Zoom</SelectItem>
-                                    <SelectItem value="other">Otra</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {formData.modality === 'online' ? (
+                            <>
+                                {/* Plataforma de videollamada */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="platform">Plataforma de Videollamada (Opcional)</Label>
+                                    <Select
+                                        value={formData.meetingPlatform}
+                                        onValueChange={(value) => !isReadOnly && setFormData({ ...formData, meetingPlatform: value })}
+                                        disabled={isReadOnly}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona la plataforma" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="meet">Google Meet</SelectItem>
+                                            <SelectItem value="zoom">Zoom</SelectItem>
+                                            <SelectItem value="other">Otra</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                        {/* Link de videollamada */}
-                        <div className="space-y-2">
-                            <Label htmlFor="meetingLink">Link de Videollamada (Opcional)</Label>
-                            <div className="relative">
-                                <Video className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                {/* Link de videollamada */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="meetingLink">Link de Videollamada (Opcional)</Label>
+                                    <div className="relative">
+                                        <Video className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="meetingLink"
+                                            type="url"
+                                            placeholder="https://zoom.us/j/... o https://meet.google.com/..."
+                                            className="pl-9"
+                                            value={formData.meetingLink}
+                                            onChange={(e) => !isReadOnly && setFormData({ ...formData, meetingLink: e.target.value })}
+                                            disabled={isSubmitting || isReadOnly}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Puedes agregar el link después de crear la reunión en Zoom o Meet
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label htmlFor="location">Ubicación / Consultorio (Opcional)</Label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="location"
+                                        placeholder="Ej. Consultorio 302, Piso 3"
+                                        className="pl-9"
+                                        value={formData.location}
+                                        onChange={(e) => !isReadOnly && setFormData({ ...formData, location: e.target.value })}
+                                        disabled={isSubmitting || isReadOnly}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Especifica la dirección física o el consultorio para esta cita
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="patientAge">Edad</Label>
                                 <Input
-                                    id="meetingLink"
-                                    type="url"
-                                    placeholder="https://teams.microsoft.com/... o https://meet.google.com/..."
-                                    className="pl-9"
-                                    value={formData.meetingLink}
-                                    onChange={(e) => !isReadOnly && setFormData({ ...formData, meetingLink: e.target.value })}
+                                    id="patientAge"
+                                    type="number"
+                                    placeholder="Ej. 25"
+                                    value={formData.patientAge}
+                                    onChange={(e) => !isReadOnly && setFormData({ ...formData, patientAge: e.target.value })}
                                     disabled={isSubmitting || isReadOnly}
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Puedes agregar el link después de crear la reunión en Teams o Meet
-                            </p>
+                            <div className="space-y-2">
+                                <Label htmlFor="reasonForConsultation">Motivo de Consulta</Label>
+                                <Input
+                                    id="reasonForConsultation"
+                                    placeholder="Ej. Ansiedad, Depresión..."
+                                    value={formData.reasonForConsultation}
+                                    onChange={(e) => !isReadOnly && setFormData({ ...formData, reasonForConsultation: e.target.value })}
+                                    disabled={isSubmitting || isReadOnly}
+                                />
+                            </div>
                         </div>
 
                         {/* Notas */}

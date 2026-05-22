@@ -65,6 +65,7 @@ interface Appointment {
   payment_status: 'pending' | 'paid' | 'partial';
   status: string;
   stripe_checkout_id?: string;
+  commission_percentage?: number | null;
 }
 
 interface Payment {
@@ -284,6 +285,18 @@ const Finance = () => {
 
   const sumOf = (ps: Payment[]) => ps.reduce((s, p) => s + p.amount, 0);
 
+  // Helper to determine snapshot commission_percentage with global fallback
+  const getPaymentCommission = (p: Payment, isLastMonth: boolean = false) => {
+    if (p.appointment_id) {
+      const list = isLastMonth ? lastMonthAppointments : appointments;
+      const apt = list.find(a => a.id === p.appointment_id);
+      if (apt && apt.commission_percentage !== undefined && apt.commission_percentage !== null) {
+        return apt.commission_percentage;
+      }
+    }
+    return feeConfig.porcentaje_consultorio;
+  };
+
   const stripeTotal = sumOf(stripe);
   const efectivoTotal = sumOf(efectivo);
   const transferenciaTotal = sumOf(transferencia);
@@ -292,7 +305,29 @@ const Finance = () => {
   const stripeFeeAmount = stripeTotal * (feeConfig.stripe_fee_percent / 100);
   const stripeNeto = stripeTotal - stripeFeeAmount;
   const totalNeto = totalBruto - stripeFeeAmount;
-  const consultorioAmount = totalNeto * (feeConfig.porcentaje_consultorio / 100);
+
+  // Group-level commission overrides calculations
+  const efectivoConsultorio = efectivo.reduce((sum, p) => sum + (p.amount * (getPaymentCommission(p) / 100)), 0);
+  const efectivoLoQueTeQueda = efectivoTotal - efectivoConsultorio;
+
+  const transferenciaConsultorio = transferencia.reduce((sum, p) => sum + (p.amount * (getPaymentCommission(p) / 100)), 0);
+  const transferenciaLoQueTeQueda = transferenciaTotal - transferenciaConsultorio;
+
+  const stripeConsultorio = stripe.reduce((sum, p) => {
+    const fee = p.amount * (feeConfig.stripe_fee_percent / 100);
+    const neto = p.amount - fee;
+    return sum + (neto * (getPaymentCommission(p) / 100));
+  }, 0);
+  const stripeLoQueTeQueda = stripeNeto - stripeConsultorio;
+
+  const consultorioAmount = paidPayments.reduce((sum, p) => {
+    const isStripe = (p.method || 'stripe') === 'stripe';
+    const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
+    const neto = p.amount - fee;
+    const pct = getPaymentCommission(p);
+    return sum + (neto * (pct / 100));
+  }, 0);
+
   const psicologoNeto = totalNeto - consultorioAmount;
 
   // ── Cancelaciones ──────────────────────────────────────────────────────
@@ -340,7 +375,7 @@ const Finance = () => {
       const [{ data: appts }, { data: pmts }, { data: cfg }, { data: lastPmts }, { data: lastAppts }] = await Promise.all([
         supabase
           .from('appointments')
-          .select('id, patient_name, start_time, fee, payment_status, status, stripe_checkout_id')
+          .select('id, patient_name, start_time, fee, payment_status, status, stripe_checkout_id, commission_percentage')
           .eq('organization_id', organization?.id)
           .gte('start_time', start)
           .lte('start_time', end)
@@ -362,7 +397,7 @@ const Finance = () => {
           .lte('created_at', lastEnd),
         supabase
           .from('appointments')
-          .select('id, fee, status')
+          .select('id, fee, status, commission_percentage')
           .eq('organization_id', organization?.id)
           .gte('start_time', lastStart)
           .lte('start_time', lastEnd),
@@ -432,7 +467,15 @@ const Finance = () => {
     .filter(p => p.method === 'stripe' || !p.method)
     .reduce((s, p) => s + p.amount * (feeConfig.stripe_fee_percent / 100), 0);
   const lastNeto = lastTotalBruto - lastStripeFee;
-  const lastConsultorio = lastNeto * (feeConfig.porcentaje_consultorio / 100);
+  
+  const lastConsultorio = lastPaid.reduce((sum, p) => {
+    const isStripe = (p.method || 'stripe') === 'stripe';
+    const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
+    const neto = p.amount - fee;
+    const pct = getPaymentCommission(p, true);
+    return sum + (neto * (pct / 100));
+  }, 0);
+
   const lastPsicologoNeto = lastNeto - lastConsultorio;
   const lastPending = lastPaid.length;
 
@@ -616,12 +659,12 @@ const Finance = () => {
                               <span className="font-medium">$0.00</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Consultorio ({feeConfig.porcentaje_consultorio}%)</span>
-                              <span className="font-medium text-warning">−{fmt(efectivoTotal * feeConfig.porcentaje_consultorio / 100)}</span>
+                              <span className="text-muted-foreground">Consultorio</span>
+                              <span className="font-medium text-warning">−{fmt(efectivoConsultorio)}</span>
                             </div>
                             <div className="flex justify-between text-xs font-semibold">
                               <span>Lo que te queda</span>
-                              <span className="text-success">{fmt(efectivoTotal * (1 - feeConfig.porcentaje_consultorio / 100))}</span>
+                              <span className="text-success">{fmt(efectivoLoQueTeQueda)}</span>
                             </div>
                           </div>
                         </div>
@@ -647,12 +690,12 @@ const Finance = () => {
                               <span className="font-medium">$0.00</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Consultorio ({feeConfig.porcentaje_consultorio}%)</span>
-                              <span className="font-medium text-warning">−{fmt(transferenciaTotal * feeConfig.porcentaje_consultorio / 100)}</span>
+                              <span className="text-muted-foreground">Consultorio</span>
+                              <span className="font-medium text-warning">−{fmt(transferenciaConsultorio)}</span>
                             </div>
                             <div className="flex justify-between text-xs font-semibold">
                               <span>Lo que te queda</span>
-                              <span className="text-success">{fmt(transferenciaTotal * (1 - feeConfig.porcentaje_consultorio / 100))}</span>
+                              <span className="text-success">{fmt(transferenciaLoQueTeQueda)}</span>
                             </div>
                           </div>
                         </div>
@@ -678,12 +721,12 @@ const Finance = () => {
                               <span className="font-medium text-destructive">−{fmt(stripeFeeAmount)}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Consultorio ({feeConfig.porcentaje_consultorio}%) del neto</span>
-                              <span className="font-medium text-warning">−{fmt(stripeNeto * feeConfig.porcentaje_consultorio / 100)}</span>
+                              <span className="text-muted-foreground">Consultorio</span>
+                              <span className="font-medium text-warning">−{fmt(stripeConsultorio)}</span>
                             </div>
                             <div className="flex justify-between text-xs font-semibold">
                               <span>Lo que te queda</span>
-                              <span className="text-success">{fmt(stripeNeto * (1 - feeConfig.porcentaje_consultorio / 100))}</span>
+                              <span className="text-success">{fmt(stripeLoQueTeQueda)}</span>
                             </div>
                           </div>
                         </div>
@@ -727,7 +770,7 @@ const Finance = () => {
                           <p className="text-xs text-muted-foreground">Solo pagos en línea</p>
                         </div>
                         <div className="rounded-xl bg-warning/5 border border-warning/10 p-4 space-y-1">
-                          <p className="text-xs text-warning uppercase tracking-wide">Consultorio ({feeConfig.porcentaje_consultorio}%)</p>
+                          <p className="text-xs text-warning uppercase tracking-wide">Comisión Consultorio</p>
                           <p className="text-2xl font-bold text-warning">−{fmt(consultorioAmount)}</p>
                           <p className="text-xs text-muted-foreground">Del neto total</p>
                         </div>
@@ -882,7 +925,8 @@ const Finance = () => {
                                     const isStripe = m === 'stripe';
                                     const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
                                     const neto = p.amount - fee;
-                                    const consultorio = neto * (feeConfig.porcentaje_consultorio / 100);
+                                    const pct = getPaymentCommission(p);
+                                    const consultorio = neto * (pct / 100);
                                     const psicologo = neto - consultorio;
                                     const dateStr = p.paid_at || p.created_at;
                                     return (
@@ -954,7 +998,7 @@ const Finance = () => {
                                             </span>
                                           )}
                                           <span className="text-warning">
-                                            Consultorio: −${consultorio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            Consultorio ({pct}%): −${consultorio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                           </span>
                                           <span className="text-success font-semibold">
                                             Tu parte: ${psicologo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

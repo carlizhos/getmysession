@@ -390,7 +390,12 @@ const Consents = () => {
                                                             <Badge variant="outline" className={`text-xs ${FORM_TYPE_BADGE_CLASS[consent.form_type] || ''}`}>
                                                                 {FORM_TYPE_LABELS[consent.form_type]}
                                                             </Badge>
-                                                            {consent.is_valid ? (
+                                                            {!consent.signed_at ? (
+                                                                <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-900/30">
+                                                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                                    Pendiente de Firma
+                                                                </span>
+                                                            ) : consent.is_valid ? (
                                                                 <span className="flex items-center gap-1 text-xs text-green-600">
                                                                     <CheckCircle2 className="h-3 w-3" /> Válido
                                                                 </span>
@@ -408,20 +413,32 @@ const Consents = () => {
                                                         <p className="text-xs text-muted-foreground">
                                                             {consent.signed_at
                                                                 ? format(parseISO(consent.signed_at), "d MMM yyyy", { locale: es })
-                                                                : 'Sin fecha'}
+                                                                : 'Pendiente'}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground font-mono">
                                                             #{consent.id.substring(0, 8).toUpperCase()}
                                                         </p>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        title="Descargar PDF"
-                                                        onClick={() => handleDownloadPDF(consent)}
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                    </Button>
+                                                    {consent.signed_at ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            title="Descargar PDF"
+                                                            onClick={() => handleDownloadPDF(consent)}
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            title="Pendiente de Firma"
+                                                            disabled
+                                                            className="opacity-40 cursor-not-allowed text-muted-foreground"
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

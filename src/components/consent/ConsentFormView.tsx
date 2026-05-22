@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
 import jsPDF from 'jspdf';
 import { DEFAULT_CONSENT_TEXTS } from '@/components/consent/ConsentTemplateEditor';
+import { cn } from '@/lib/utils';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
 interface ConsentFormViewProps {
@@ -194,21 +195,75 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
         }
     };
 
+    const handleRequestRemoteSignature = async () => {
+        if (!user) return;
+        if (!patientId) {
+            setPatientError(true);
+            toast.error('Selecciona un paciente del catálogo antes de continuar');
+            return;
+        }
+        setPatientError(false);
+
+        setIsSaving(true);
+        try {
+            const { data: saved, error } = await supabase
+                .from('consent_forms')
+                .insert({
+                    user_id: user.id,
+                    patient_id: patientId || null,
+                    patient_name: patientName,
+                    form_type: formType,
+                    consent_text: consentBody,
+                    signed_at: null, // Indicates remote signature pending
+                    signature_data_url: null,
+                    signature_hash: null,
+                    is_valid: false, // Invalid until signed by the patient
+                    organization_id: organization?.id,
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            toast.success('Solicitud de firma remota creada con éxito en el portal del paciente.');
+            setSavedId(saved.id);
+            onSaved?.();
+        } catch (err: any) {
+            toast.error('Error al solicitar firma remota: ' + err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     // ── Saved confirmation screen ────────────────────────────────────────────
     if (savedId) {
+        const isRemotePending = !signatureDataUrl;
         return (
             <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                <div className={cn(
+                    "flex h-16 w-16 items-center justify-center rounded-full",
+                    isRemotePending ? "bg-amber-100" : "bg-green-100"
+                )}>
+                    {isRemotePending ? (
+                        <FileSignature className="h-8 w-8 text-amber-600 animate-pulse" />
+                    ) : (
+                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                    )}
                 </div>
-                <h3 className="text-xl font-semibold">¡Consentimiento guardado!</h3>
+                <h3 className="text-xl font-semibold">
+                    {isRemotePending ? '¡Firma remota solicitada!' : '¡Consentimiento guardado!'}
+                </h3>
                 <p className="text-muted-foreground text-sm max-w-sm">
-                    El PDF se descargó automáticamente. Puedes volver a descargarlo desde la lista de consentimientos.
+                    {isRemotePending
+                        ? `El documento ha sido publicado en el portal de ${patientName}. El paciente ya puede ingresar y firmar de manera digital.`
+                        : 'El PDF se descargó automáticamente. Puedes volver a descargarlo desde la lista de consentimientos.'}
                 </p>
                 <div className="flex gap-3 pt-2">
-                    <Button variant="outline" onClick={() => generatePDF(signatureDataUrl!, savedId)}>
-                        <Download className="h-4 w-4 mr-2" /> Descargar PDF de nuevo
-                    </Button>
+                    {!isRemotePending && (
+                        <Button variant="outline" onClick={() => generatePDF(signatureDataUrl!, savedId)}>
+                            <Download className="h-4 w-4 mr-2" /> Descargar PDF de nuevo
+                        </Button>
+                    )}
                     <Button variant="zen" onClick={onCancel}>
                         Ver lista de consentimientos
                     </Button>
@@ -333,11 +388,25 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
             {/* Acciones */}
             <div className="flex gap-3 justify-end border-t pt-4">
                 {onCancel && (
-                    <Button variant="outline" onClick={onCancel}>
+                    <Button variant="outline" onClick={onCancel} type="button">
                         Cancelar
                     </Button>
                 )}
                 <Button
+                    type="button"
+                    onClick={handleRequestRemoteSignature}
+                    disabled={isSaving || !patientId}
+                    variant="outline"
+                    className="gap-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 text-amber-700"
+                >
+                    {isSaving ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
+                    ) : (
+                        <><FileSignature className="h-4 w-4" /> Solicitar Firma Remota</>
+                    )}
+                </Button>
+                <Button
+                    type="button"
                     onClick={handleSave}
                     disabled={isSaving || !signatureDataUrl}
                     variant="zen"
@@ -346,7 +415,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                     {isSaving ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
                     ) : (
-                        <><FileSignature className="h-4 w-4" /> Firmar y Guardar</>
+                        <><FileSignature className="h-4 w-4" /> Firmar en Oficina</>
                     )}
                 </Button>
             </div>

@@ -21,7 +21,8 @@ import {
   PanelLeftOpen,
   BrainCircuit,
   ShieldCheck,
-  MessageCircle
+  MessageCircle,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,9 @@ const navigation = [
   { name: 'Consentimientos', href: '/consents', icon: FileSignature },
   { name: 'Finanzas', href: '/finance', icon: DollarSign },
   { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
+  { name: 'Centro de Ayuda', href: '/help', icon: HelpCircle },
 ];
+
 
 interface LayoutProps {
   children: React.ReactNode;

@@ -791,7 +791,7 @@ const PatientSlideOver = ({
                                                             <p className="text-xs text-muted-foreground">
                                                                 {consent.signed_at
                                                                     ? format(parseISO(consent.signed_at), "d MMM yyyy", { locale: es })
-                                                                    : 'Sin fecha de firma'}
+                                                                    : 'Firma pendiente'}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -802,7 +802,12 @@ const PatientSlideOver = ({
                                                         >
                                                             {consent.form_type === 'general' ? 'General' : consent.form_type === 'tratamiento' ? 'Tratamiento' : 'Datos'}
                                                         </Badge>
-                                                        {consent.is_valid ? (
+                                                        {!consent.signed_at ? (
+                                                            <span className="flex items-center gap-1 text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-900/30">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                                Pendiente
+                                                            </span>
+                                                        ) : consent.is_valid ? (
                                                             <span className="flex items-center gap-1 text-xs text-green-600">
                                                                 <CheckCircle2 className="h-3.5 w-3.5" /> Válido
                                                             </span>

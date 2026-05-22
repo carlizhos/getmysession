@@ -118,6 +118,9 @@ export interface Appointment {
     meeting_link?: string; // Consistency
     meeting_platform?: string;
     modality?: 'presencial' | 'online';
+    location?: string;
+    commission_percentage?: number;
+    reschedule_policy_hours?: number;
 }
 
 export interface Organization {

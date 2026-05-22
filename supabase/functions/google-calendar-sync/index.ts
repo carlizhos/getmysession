@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     let query = supabaseAdmin
       .from('profiles')
-      .select('google_refresh_token, id');
+      .select('google_refresh_token, google_access_token, id');
     
     if (slug) {
       query = query.eq('slug', slug);
@@ -57,29 +57,9 @@ Deno.serve(async (req) => {
       throw new Error('Server configuration error: missing Google OAuth credentials');
     }
 
-    // --- Refresh the access token ---
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: profile.google_refresh_token,
-        grant_type: 'refresh_token',
-      }).toString(),
-    });
-
-    if (!tokenResponse.ok) {
-      const err = await tokenResponse.text();
-      console.error('Failed to refresh Google token:', err);
-      return new Response(JSON.stringify({ success: false, error: 'Failed to refresh Google token', details: err }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    let accessToken = profile.google_access_token;
+    let eventCreated = false;
+    let insertData: any = null;
 
     // --- Build the calendar event ---
     if (createMeet) {
@@ -97,25 +77,96 @@ Deno.serve(async (req) => {
       ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1' 
       : 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
-    const insertResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
-    });
+    // 1. Try creating the event optimistically using the existing access token
+    if (accessToken) {
+      console.log(`[GoogleCalendarSync] Attempting to use existing access token for profile: ${profile.id}...`);
+      try {
+        const insertResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(event),
+        });
 
-    if (!insertResponse.ok) {
-      const err = await insertResponse.text();
-      console.error('Failed to insert event into Google Calendar:', err);
-      return new Response(JSON.stringify({ success: false, error: 'Failed to insert event', googleApiError: err }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+        if (insertResponse.ok) {
+          insertData = await insertResponse.json();
+          eventCreated = true;
+          console.log(`[GoogleCalendarSync] Event created successfully using existing token for profile: ${profile.id}`);
+        } else if (insertResponse.status === 401) {
+          console.log(`[GoogleCalendarSync] Existing access token expired (401). Proceeding to refresh token...`);
+        } else {
+          const errText = await insertResponse.text();
+          console.error(`[GoogleCalendarSync] Google Calendar API error with existing token (Status: ${insertResponse.status}): ${errText}`);
+        }
+      } catch (err) {
+        console.warn('[GoogleCalendarSync] Error during optimistic token try:', err);
+      }
     }
 
-    const insertData = await insertResponse.json();
+    // 2. If token was missing or expired, refresh it and retry
+    if (!eventCreated) {
+      console.log(`[GoogleCalendarSync] Refreshing Google token for profile: ${profile.id}...`);
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: profile.google_refresh_token,
+          grant_type: 'refresh_token',
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        const err = await tokenResponse.text();
+        console.error('Failed to refresh Google token:', err);
+        return new Response(JSON.stringify({ success: false, error: 'Failed to refresh Google token', details: err }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      const tokenData = await tokenResponse.json();
+      accessToken = tokenData.access_token;
+      const newRefreshToken = tokenData.refresh_token || profile.google_refresh_token;
+
+      // Save refreshed tokens to database
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          google_access_token: accessToken,
+          google_refresh_token: newRefreshToken,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        console.error('[GoogleCalendarSync] Failed to update profile tokens:', updateError);
+      }
+
+      console.log(`[GoogleCalendarSync] Retrying event creation with new token for profile: ${profile.id}...`);
+      const insertResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      if (!insertResponse.ok) {
+        const err = await insertResponse.text();
+        console.error('Failed to insert event into Google Calendar after refresh:', err);
+        return new Response(JSON.stringify({ success: false, error: 'Failed to insert event', googleApiError: err }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      insertData = await insertResponse.json();
+    }
 
     // --- Extract Meet link with multiple fallbacks ---
     let meetLink: string | null = null;

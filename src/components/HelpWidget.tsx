@@ -12,6 +12,7 @@ import {
     Sparkles,
     RotateCcw,
     Minimize2,
+    BookOpen,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -221,6 +222,14 @@ const HelpWidget = () => {
                                             {suggestion}
                                         </button>
                                     ))}
+                                    <div className="pt-4 mt-2 border-t border-border/40">
+                                        <button 
+                                            onClick={() => { setIsOpen(false); window.location.href = '/help'; }}
+                                            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-all"
+                                        >
+                                            <BookOpen className="h-3.5 w-3.5" /> Ver Centro de Ayuda Completo
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (

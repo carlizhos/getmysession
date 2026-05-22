@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
@@ -39,7 +39,10 @@ const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [fullName, setFullName] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [mfaPending, setMfaPending] = useState(false);
@@ -48,6 +51,47 @@ const Auth = () => {
     const googleBtnRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
     const { signIn, signUp, signInWithGoogleIdToken } = useAuth();
+
+    const getPasswordStrength = (pwd: string) => {
+        if (!pwd) return { score: 0, label: '', color: 'bg-muted', checks: { length: false, number: false, upper: false, special: false } };
+        
+        const checks = {
+            length: pwd.length >= 8,
+            number: /[0-9]/.test(pwd),
+            upper: /[A-Z]/.test(pwd),
+            special: /[^A-Za-z0-9]/.test(pwd),
+        };
+        
+        const score = Object.values(checks).filter(Boolean).length;
+        
+        let label = '';
+        let color = '';
+        switch(score) {
+            case 1:
+                label = 'Muy débil';
+                color = 'bg-red-500';
+                break;
+            case 2:
+                label = 'Débil';
+                color = 'bg-amber-500';
+                break;
+            case 3:
+                label = 'Moderada';
+                color = 'bg-sky-500';
+                break;
+            case 4:
+                label = 'Fuerte';
+                color = 'bg-emerald-500';
+                break;
+            default:
+                label = '';
+                color = 'bg-muted';
+        }
+        
+        return { score, label, color, checks };
+    };
+
+    const passwordStrength = getPasswordStrength(password);
 
     useEffect(() => {
         // Reset loading state when returning to page (browser back button)
@@ -115,6 +159,13 @@ const Auth = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate passwords match on signup
+        if (!isLogin && password !== confirmPassword) {
+            toast.error('Las contraseñas no coinciden');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -173,29 +224,39 @@ const Auth = () => {
                             <Brain className="h-8 w-8 text-primary-foreground" />
                         </div>
                         <h1 className="text-2xl font-bold">Saudade</h1>
-                        <p className="text-muted-foreground mt-2">
-                            {isLogin ? 'Bienvenido de vuelta' : 'Crea tu cuenta profesional'}
-                        </p>
+                        <div className="relative h-6 mt-2 w-full flex justify-center overflow-hidden">
+                            <p className={`absolute text-muted-foreground transition-all duration-300 ${isLogin ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                                Bienvenido de vuelta
+                            </p>
+                            <p className={`absolute text-muted-foreground transition-all duration-300 ${!isLogin ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                                Crea tu cuenta profesional
+                            </p>
+                        </div>
                     </div>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {!isLogin && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Nombre completo</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Dr. Juan Pérez"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        className="pl-10"
-                                        required
-                                    />
+                        {/* Nombre completo */}
+                        <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                            <div className="overflow-hidden">
+                                <div className="space-y-2 pb-3">
+                                    <label className="text-sm font-medium">Nombre completo</label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            type="text"
+                                            placeholder="Dr. Juan Pérez"
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
+                                            className="pl-10"
+                                            required={!isLogin}
+                                            disabled={isLogin}
+                                            autoComplete="name"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        )}
+                        </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Correo electrónico</label>
@@ -208,6 +269,7 @@ const Auth = () => {
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="pl-10"
                                     required
+                                    autoComplete="email"
                                 />
                             </div>
                         </div>
@@ -217,39 +279,140 @@ const Auth = () => {
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-10"
+                                    className="pl-10 pr-10"
                                     required
                                     minLength={6}
+                                    autoComplete={isLogin ? "current-password" : "new-password"}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <Eye className="h-4 w-4" />
+                                    )}
+                                </button>
                             </div>
                         </div>
 
-                        {isLogin && (
-                            <div className="flex justify-end -mt-1">
-                                <Link
-                                    to="/forgot-password"
-                                    className="text-sm text-primary hover:underline"
-                                >
-                                    ¿Olvidaste tu contraseña?
-                                </Link>
+                        {/* Indicador de Fuerza de Contraseña */}
+                        <div className={`grid transition-all duration-300 ease-in-out ${isLogin || !password ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                            <div className="overflow-hidden">
+                                <div className="space-y-1.5 pt-1.5 pb-2">
+                                    <div className="flex justify-between items-center text-[11px]">
+                                        <span className="text-muted-foreground">Fuerza de la contraseña</span>
+                                        <span className={`font-semibold transition-colors duration-300 ${
+                                            passwordStrength.score === 1 ? 'text-red-500' :
+                                            passwordStrength.score === 2 ? 'text-amber-500' :
+                                            passwordStrength.score === 3 ? 'text-sky-500' :
+                                            passwordStrength.score === 4 ? 'text-emerald-500' : 'text-muted-foreground'
+                                        }`}>
+                                            {passwordStrength.label}
+                                        </span>
+                                    </div>
+                                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all duration-500 ease-out ${passwordStrength.color}`} 
+                                            style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1 text-[10px] text-muted-foreground">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${passwordStrength.checks.length ? 'bg-emerald-500' : 'bg-muted'}`} />
+                                            <span>Mínimo 8 caracteres</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${passwordStrength.checks.upper ? 'bg-emerald-500' : 'bg-muted'}`} />
+                                            <span>Una letra mayúscula</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${passwordStrength.checks.number ? 'bg-emerald-500' : 'bg-muted'}`} />
+                                            <span>Al menos un número</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${passwordStrength.checks.special ? 'bg-emerald-500' : 'bg-muted'}`} />
+                                            <span>Un carácter especial</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Confirmar contraseña */}
+                        <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                            <div className="overflow-hidden">
+                                <div className="space-y-2 pt-2 pb-2">
+                                    <label className="text-sm font-medium">Confirmar contraseña</label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className={`pl-10 pr-10 ${confirmPassword && password !== confirmPassword ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                            required={!isLogin}
+                                            disabled={isLogin}
+                                            minLength={6}
+                                            autoComplete="new-password"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                                            disabled={isLogin}
+                                            tabIndex={isLogin ? -1 : 0}
+                                        >
+                                            {showConfirmPassword ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                    {confirmPassword && password !== confirmPassword && (
+                                        <p className="text-xs text-red-500 animate-in fade-in duration-200">Las contraseñas no coinciden</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Olvidaste tu contraseña */}
+                        <div className={`grid transition-all duration-300 ease-in-out ${!isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                            <div className="overflow-hidden">
+                                <div className="flex justify-end pt-1">
+                                    <Link
+                                        to="/forgot-password"
+                                        className="text-sm text-primary hover:underline"
+                                        tabIndex={isLogin ? 0 : -1}
+                                    >
+                                        ¿Olvidaste tu contraseña?
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
 
                         <Button
                             type="submit"
-                            className="w-full gap-2"
+                            className="w-full gap-2 relative overflow-hidden transition-all duration-300"
                             variant="zen"
                             disabled={loading || googleLoading}
                         >
-                            {loading
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')
-                            }
-                            {!loading && <ArrowRight className="h-4 w-4" />}
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <span className="flex items-center gap-2 transition-all duration-300">
+                                    {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                                    <ArrowRight className="h-4 w-4" />
+                                </span>
+                            )}
                         </Button>
 
                         <div className="relative my-4">
@@ -305,7 +468,12 @@ const Auth = () => {
                         </span>
                         <button
                             type="button"
-                            onClick={() => setIsLogin(!isLogin)}
+                            onClick={() => {
+                            setIsLogin(!isLogin);
+                            setConfirmPassword('');
+                            setShowPassword(false);
+                            setShowConfirmPassword(false);
+                        }}
                             className="text-primary font-medium hover:underline"
                         >
                             {isLogin ? 'Regístrate' : 'Inicia sesión'}

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import CIE10Selector from '@/components/notes/CIE10Selector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, X, Save, CheckCircle2, Circle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -17,9 +19,20 @@ interface StructuredNoteFormProps {
     onCancel: () => void;
     initialPatientId?: string;
     initialPatientName?: string;
+    templateId?: string;
 }
 
-const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatientName }: StructuredNoteFormProps) => {
+interface NoteTemplate {
+    id: string;
+    name: string;
+    sections: string[];
+    section_labels: Record<string, string>;
+}
+
+const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatientName, templateId }: StructuredNoteFormProps) => {
+    const [template, setTemplate] = useState<NoteTemplate | null>(null);
+    const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+
     // General Info
     const [patientId, setPatientId] = useState(initialPatientId || '');
     const [patientName, setPatientName] = useState(initialPatientName || '');
@@ -68,6 +81,46 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     // CIE-10 (NOM-024 INT-01)
     const [cie10, setCie10] = useState<{ code: string; description: string } | null>(null);
     const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
+
+    // Dynamic Sections State (for generic text areas)
+    const [dynamicFields, setDynamicFields] = useState<Record<string, string>>({});
+
+    // Load Template
+    useEffect(() => {
+        const fetchTemplate = async () => {
+            if (!templateId) return;
+            setIsLoadingTemplate(true);
+            try {
+                const { data, error } = await supabase
+                    .from('note_templates')
+                    .select('*')
+                    .eq('id', templateId)
+                    .single();
+                
+                if (data) {
+                    setTemplate(data);
+                    // Initialize dynamic fields
+                    const initialFields: Record<string, string> = {};
+                    data.sections.forEach((s: string) => {
+                        if (['free_text', 'techniques', 'observations', 'goals', 'homework'].includes(s)) {
+                            initialFields[s] = '';
+                        }
+                    });
+                    setDynamicFields(initialFields);
+                }
+            } catch (err) {
+                console.error('Error loading template:', err);
+            } finally {
+                setIsLoadingTemplate(false);
+            }
+        };
+
+        fetchTemplate();
+    }, [templateId]);
+
+    const hasSection = (key: string) => !template || template.sections.includes(key);
+    const getLabel = (key: string, defaultLabel: string) => template?.section_labels?.[key] || defaultLabel;
+
 
     // Handlers
     const handleAddBridgeItem = () => {
@@ -196,217 +249,303 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                     </div>
                 </div>
 
-                {/* Mood Tracker */}
-                <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 space-y-4">
-                    <label className="text-sm font-medium text-blue-900">Estado de ánimo (1-100)</label>
-                    <div className="flex items-center gap-4">
-                        <Slider
-                            value={moodRating}
-                            onValueChange={setMoodRating}
-                            max={100}
-                            step={1}
-                            className="flex-1"
-                        />
-                        <span className="font-bold text-blue-700 w-8">{moodRating[0]}</span>
-                    </div>
-                    <Textarea
-                        placeholder="Cómo se siente el paciente..."
-                        value={moodNotes}
-                        onChange={(e) => setMoodNotes(e.target.value)}
-                        className="bg-white/50 border-blue-200 focus:border-blue-400 focus:ring-blue-400 min-h-[80px]"
-                    />
-                </div>
-            </div>
+                {/* Mood Section */}
+                {hasSection('mood') && (
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel('mood', 'Estado de Ánimo')}</CardTitle>
+                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{moodRating[0]}%</Badge>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Slider
+                                value={moodRating}
+                                onValueChange={setMoodRating}
+                                max={100}
+                                step={1}
+                                className="py-4"
+                            />
+                            <Textarea
+                                placeholder="Notas sobre el estado de ánimo..."
+                                value={moodNotes}
+                                onChange={(e) => setMoodNotes(e.target.value)}
+                                className="min-h-[80px]"
+                            />
+                        </CardContent>
+                    </Card>
+                )}
 
-            {/* Bridge Section */}
-            <div className="bg-purple-50/50 p-6 rounded-2xl border border-purple-100 space-y-4">
-                <h3 className="font-medium text-purple-900 flex items-center gap-2">
-                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Puente</Badge>
-                    Sesión pasada y tarea
-                </h3>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                        <label className="text-sm text-purple-800">Revisión de Tareas</label>
-                        <div className="space-y-2">
-                            {bridgeItems.map((item, index) => (
-                                <div key={index} className="flex items-center gap-2 group">
-                                    <button onClick={() => toggleBridgeItem(index)} className="text-purple-600 hover:text-purple-800">
-                                        {item.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                                    </button>
-                                    <span className={cn("flex-1 text-sm", item.completed && "line-through text-muted-foreground")}>
-                                        {item.text}
-                                    </span>
-                                    <button
-                                        onClick={() => {
-                                            const newItems = bridgeItems.filter((_, i) => i !== index);
-                                            setBridgeItems(newItems);
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            ))}
-                            <div className="flex gap-2 mt-2">
+                {/* Bridge Section */}
+                {hasSection('bridge') && (
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel('bridge', 'Puente Intersesión')}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                {bridgeItems.map((item, index) => (
+                                    <div key={index} className="flex items-center justify-between group p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <button onClick={() => toggleBridgeItem(index)}>
+                                                {item.completed ? (
+                                                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                                ) : (
+                                                    <Circle className="h-5 w-5 text-muted-foreground" />
+                                                )}
+                                            </button>
+                                            <span className={cn("text-sm", item.completed && "line-through text-muted-foreground")}>
+                                                {item.text}
+                                            </span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => setBridgeItems(bridgeItems.filter((_, i) => i !== index))}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
                                 <Input
-                                    placeholder="Nueva tarea revisada..."
+                                    placeholder="Nueva tarea o tema pendiente..."
                                     value={newBridgeItem}
                                     onChange={(e) => setNewBridgeItem(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddBridgeItem()}
-                                    className="bg-white/50 border-purple-200"
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddBridgeItem()}
                                 />
-                                <Button size="icon" variant="ghost" onClick={handleAddBridgeItem} className="text-purple-600 hover:bg-purple-100">
+                                <Button variant="outline" size="icon" onClick={handleAddBridgeItem}>
                                     <Plus className="h-4 w-4" />
                                 </Button>
                             </div>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm text-purple-800">Notas del Puente</label>
-                        <Textarea
-                            placeholder="Comentarios sobre la sesión anterior..."
-                            value={bridgeNotes}
-                            onChange={(e) => setBridgeNotes(e.target.value)}
-                            className="h-full min-h-[120px] bg-white/50 border-purple-200 focus:border-purple-400 focus:ring-purple-400"
-                        />
-                    </div>
-                </div>
-            </div>
+                            <Textarea
+                                placeholder="Notas sobre el puente..."
+                                value={bridgeNotes}
+                                onChange={(e) => setBridgeNotes(e.target.value)}
+                                className="h-full min-h-[80px] bg-white/50 border-purple-200"
+                            />
+                        </CardContent>
+                    </Card>
+                )}
 
-            {/* Agenda Section */}
-            <div className="bg-orange-50/50 p-6 rounded-2xl border border-orange-100 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-orange-900 flex items-center gap-2">
-                        <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200">Agenda</Badge>
-                        Situaciones, pensamientos, emociones, conductas e intervenciones
-                    </h3>
-                    <Button size="sm" variant="outline" onClick={handleAddAgendaItem} className="text-orange-700 border-orange-200 hover:bg-orange-100">
-                        <Plus className="h-4 w-4 mr-2" /> Agregar Item
-                    </Button>
-                </div>
-
-                <div className="space-y-4">
-                    {agendaItems.map((item, index) => (
-                        <div key={item.id} className="bg-white/60 p-4 rounded-xl border border-orange-200 relative group transition-all hover:shadow-sm">
-                            <button
-                                onClick={() => {
-                                    const newItems = agendaItems.filter((_, i) => i !== index);
-                                    setAgendaItems(newItems);
-                                }}
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-
-                            <div className="grid md:grid-cols-12 gap-4">
-                                <div className="md:col-span-1 flex items-center justify-center">
-                                    <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold border border-orange-200">
-                                        {index + 1}
+                {/* Agenda Section */}
+                {hasSection('agenda') && (
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel('agenda', 'Agenda / Conceptualización')}</CardTitle>
+                            <Button variant="outline" size="sm" onClick={handleAddAgendaItem} className="h-8 gap-1.5 font-bold">
+                                <Plus className="h-3.5 w-3.5" /> Agregar Tema
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {agendaItems.map((item, index) => (
+                                <div key={item.id} className="space-y-4 p-4 rounded-xl border border-border bg-muted/30 relative">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                        onClick={() => setAgendaItems(agendaItems.filter(i => i.id !== item.id))}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Tema / Problema</Label>
+                                            <Input
+                                                value={item.topic}
+                                                onChange={(e) => updateAgendaItem(index, 'topic', e.target.value)}
+                                                placeholder="¿De qué trata este punto?"
+                                                className="bg-background h-9 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Situación</Label>
+                                            <Input
+                                                value={item.situation}
+                                                onChange={(e) => updateAgendaItem(index, 'situation', e.target.value)}
+                                                placeholder="¿Qué pasó exactamente?"
+                                                className="bg-background h-9 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Pensamientos</Label>
+                                            <Textarea
+                                                value={item.thoughts}
+                                                onChange={(e) => updateAgendaItem(index, 'thoughts', e.target.value)}
+                                                placeholder="Cogniciones / Creencias"
+                                                className="bg-background min-h-[60px] text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Emociones</Label>
+                                            <Input
+                                                value={item.emotions}
+                                                onChange={(e) => updateAgendaItem(index, 'emotions', e.target.value)}
+                                                placeholder="Sentimientos e intensidad"
+                                                className="bg-background h-9 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/70">Intervenciones / Reestructuración</Label>
+                                        <Textarea
+                                            value={item.interventions}
+                                            onChange={(e) => updateAgendaItem(index, 'interventions', e.target.value)}
+                                            placeholder="¿Qué técnicas se aplicaron?"
+                                            className="bg-background min-h-[60px] text-sm"
+                                        />
                                     </div>
                                 </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
 
-                                <div className="md:col-span-11 grid gap-4">
-                                    <Input
-                                        placeholder="Tema / Título (Ej: Laboral)"
-                                        value={item.topic}
-                                        onChange={(e) => updateAgendaItem(index, 'topic', e.target.value)}
-                                        className="font-medium border-orange-200 focus:border-orange-400"
-                                    />
-
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <Textarea
-                                            placeholder="Situación / Activador..."
-                                            value={item.situation}
-                                            onChange={(e) => updateAgendaItem(index, 'situation', e.target.value)}
-                                            className="min-h-[80px] text-sm border-orange-200 focus:border-orange-400"
-                                        />
-                                        <Textarea
-                                            placeholder="Pensamientos y Emociones..."
-                                            value={item.thoughts}
-                                            onChange={(e) => updateAgendaItem(index, 'thoughts', e.target.value)}
-                                            className="min-h-[80px] text-sm border-orange-200 focus:border-orange-400"
-                                        />
-                                    </div>
-
-                                    <Textarea
-                                        placeholder="Intervenciones y Técnicas Aplicadas..."
-                                        value={item.interventions}
-                                        onChange={(e) => updateAgendaItem(index, 'interventions', e.target.value)}
-                                        className="min-h-[60px] text-sm bg-orange-50/30 border-orange-200 focus:border-orange-400"
-                                    />
-                                </div>
+                {/* Beliefs Section */}
+                {hasSection('beliefs') && (
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel('beliefs', 'Creencias Nucleares')}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-muted-foreground">Creencias Identificadas</Label>
+                                <Textarea
+                                    value={coreBeliefs}
+                                    onChange={(e) => setCoreBeliefs(e.target.value)}
+                                    placeholder="Creencias nucleares o intermedias..."
+                                    className="min-h-[100px]"
+                                />
                             </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-muted-foreground">Creencias Alternativas</Label>
+                                <Textarea
+                                    value={alternativeBeliefs}
+                                    onChange={(e) => setAlternativeBeliefs(e.target.value)}
+                                    placeholder="Nuevas perspectivas desarrolladas..."
+                                    className="min-h-[100px]"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Dynamic Text Areas (Generic sections from template) */}
+                {template?.sections.filter(s => ['free_text', 'techniques', 'observations', 'goals', 'homework'].includes(s)).map(sKey => (
+                    <Card key={sKey} className="border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel(sKey, sKey)}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea
+                                value={dynamicFields[sKey] || ''}
+                                onChange={(e) => setDynamicFields({ ...dynamicFields, [sKey]: e.target.value })}
+                                placeholder={`Escribe aquí...`}
+                                className="min-h-[120px]"
+                            />
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {/* Action Plan Section */}
+                {hasSection('action_plan') && (
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold text-primary">{getLabel('action_plan', 'Plan de Acción / Tareas')}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                {actionPlanItems.map((item, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50 border border-emerald-100 group">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                            <span className="text-sm font-medium text-emerald-900">{item}</span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => setActionPlanItems(actionPlanItems.filter((_, i) => i !== index))}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Siguiente paso, tarea o recomendación..."
+                                    value={newActionPlanItem}
+                                    onChange={(e) => setNewActionPlanItem(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddActionPlanItem()}
+                                />
+                                <Button variant="zen" size="icon" onClick={handleAddActionPlanItem}>
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* CIE-10 Selector */}
+                <Card className="border-border shadow-sm bg-muted/20">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                            <Save className="h-4 w-4" /> Diagnóstico y Clasificación (NOM-024)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-muted-foreground">Búsqueda CIE-10</Label>
+                            <CIE10Selector onSelect={setCie10} />
+                            {cie10 && (
+                                <div className="mt-2 p-3 bg-white rounded-lg border border-primary/20 flex items-center justify-between">
+                                    <div>
+                                        <span className="font-bold text-primary mr-2">{cie10.code}</span>
+                                        <span className="text-sm text-muted-foreground">{cie10.description}</span>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setCie10(null)}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-muted-foreground">Impresión Diagnóstica</Label>
+                            <Textarea
+                                placeholder="Detalles específicos del diagnóstico..."
+                                value={diagnosticoPrincipal}
+                                onChange={(e) => setDiagnosticoPrincipal(e.target.value)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
-            {/* Beliefs Section */}
-            <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 space-y-4">
-                <h3 className="font-medium text-amber-900 flex items-center gap-2">
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Creencias</Badge>
-                    Nucleares y Alternativas
-                </h3>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-amber-800">Creencias Limitantes / Nucleares</label>
-                        <Textarea
-                            placeholder="Escribe las creencias identificadas..."
-                            value={coreBeliefs}
-                            onChange={(e) => setCoreBeliefs(e.target.value)}
-                            className="min-h-[120px] bg-white/50 border-amber-200 focus:border-amber-400 focus:ring-amber-400"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-amber-800">Creencias Alternativas / Adaptativas</label>
-                        <Textarea
-                            placeholder="Reestructuración y nuevas creencias..."
-                            value={alternativeBeliefs}
-                            onChange={(e) => setAlternativeBeliefs(e.target.value)}
-                            className="min-h-[120px] bg-white/50 border-amber-200 focus:border-amber-400 focus:ring-amber-400"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Action Plan Section */}
-            <div className="bg-pink-50/50 p-6 rounded-2xl border border-pink-100 space-y-4">
-                <h3 className="font-medium text-pink-900 flex items-center gap-2 px-1">
-                    Tareas y Recomendaciones
-                </h3>
-
-                <div className="space-y-3">
-                    {actionPlanItems.map((item, index) => (
-                        <div key={index} className="flex items-center gap-3 bg-white/60 p-3 rounded-lg border border-pink-200">
-                            <div className="h-2 w-2 rounded-full bg-pink-400" />
-                            <span className="flex-1 text-sm">{item}</span>
-                            <button
-                                onClick={() => {
-                                    const newItems = actionPlanItems.filter((_, i) => i !== index);
-                                    setActionPlanItems(newItems);
-                                }}
-                                className="text-pink-400 hover:text-pink-600"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                    ))}
-
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="Nueva tarea o recomendación..."
-                            value={newActionPlanItem}
-                            onChange={(e) => setNewActionPlanItem(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddActionPlanItem()}
-                            className="bg-white/50 border-pink-200 focus:border-pink-400"
-                        />
-                        <Button onClick={handleAddActionPlanItem} className="bg-pink-500 hover:bg-pink-600 text-white border-none">
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
+            <div className="flex justify-end gap-3 pt-6 border-t border-border mt-8">
+                <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+                <Button variant="zen" onClick={() => onSave({
+                    patientId,
+                    patientName,
+                    sessionDate,
+                    sessionNumber,
+                    moodRating: moodRating[0],
+                    moodNotes,
+                    bridgeItems,
+                    bridgeNotes,
+                    agendaItems,
+                    coreBeliefs,
+                    alternativeBeliefs,
+                    actionPlanItems,
+                    cie10,
+                    diagnosticoPrincipal,
+                    dynamicFields,
+                    templateId
+                })} className="gap-2">
+                    <Save className="h-4 w-4" /> Guardar Nota
+                </Button>
             </div>
         </div>
     );

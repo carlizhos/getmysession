@@ -33,6 +33,10 @@ const PortalLogin = lazy(() => import("./pages/PortalLogin"));
 const Portal = lazy(() => import("./pages/Portal"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const StripeCallback = lazy(() => import("./pages/StripeCallback"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+
 
 const queryClient = new QueryClient();
 
@@ -174,6 +178,15 @@ const App = () => (
               }
             />
 
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <HelpCenter />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Public Patient Routes */}
             <Route path="/t/:token" element={<PatientTestView />} />
             <Route path="/portal/login" element={<PortalLogin />} />
@@ -184,6 +197,9 @@ const App = () => (
             <Route path="/terminos" element={<TermsOfService />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/auth/microsoft/callback" element={<AuthCallback />} />
+            <Route path="/auth/zoom/callback" element={<AuthCallback />} />
+            <Route path="/auth/stripe/callback" element={<StripeCallback />} />
             <Route path="/auth/v1/verify" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -49,6 +49,9 @@ const Notes = () => {
   const [editingText, setEditingText] = useState('');
   const [isExportingNote, setIsExportingNote] = useState(false);
   const [professionalProfile, setProfessionalProfile] = useState<any>(null);
+  const [noteTemplates, setNoteTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
 
 
@@ -78,6 +81,31 @@ const Notes = () => {
     }
     setLoading(false);
   }, [selectedPatient, selectedNote]);
+
+  const fetchTemplates = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    setIsLoadingTemplates(true);
+    try {
+      const { data, error } = await supabase
+        .from('note_templates')
+        .select('*')
+        .or(`is_system.eq.true,user_id.eq.${user.id}`)
+        .order('is_system', { ascending: false })
+        .order('name', { ascending: true });
+      if (data) setNoteTemplates(data);
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
 
   const handleDownloadNote = async (note: SessionNote) => {
     setIsExportingNote(true);
@@ -218,21 +246,80 @@ const Notes = () => {
     return (
       <Layout>
         <div className="space-y-6 animate-fade-in">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setIsCreatingNote(false)}>
-              <ArrowLeft className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Nueva Nota</h1>
-              <p className="text-muted-foreground">Registra los detalles de la sesión</p>
-            </div>
+            <h1 className="text-2xl font-black text-primary tracking-tight">Nueva Nota Clínica</h1>
           </div>
-          <StructuredNoteForm
-            initialPatientId={selectedPatient || undefined}
-            initialPatientName={selectedPatientName || undefined}
-            onSave={handleSaveNote}
-            onCancel={() => setIsCreatingNote(false)}
-          />
+
+          {!selectedTemplateId ? (
+            <Card className="border-border shadow-sm overflow-hidden">
+              <CardHeader className="bg-muted/10 border-b border-border/50">
+                <CardTitle className="text-lg">Selecciona una Plantilla</CardTitle>
+                <CardDescription>Elige la estructura que mejor se adapte a esta sesión</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingTemplates ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+                    <p className="text-xs text-muted-foreground font-medium">Cargando plantillas...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {noteTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        onClick={() => setSelectedTemplateId(template.id)}
+                        className="group flex flex-col items-start p-5 rounded-2xl border border-border bg-card text-left transition-all hover:border-primary hover:shadow-md hover:-translate-y-1"
+                      >
+                        <div className={cn(
+                          "h-10 w-10 rounded-xl flex items-center justify-center mb-4 transition-colors",
+                          template.is_system ? "bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white" : "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white"
+                        )}>
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <h4 className="font-bold text-sm mb-1 group-hover:text-primary transition-colors">{template.name}</h4>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed mb-4">{template.description}</p>
+                        <div className="mt-auto pt-4 w-full flex items-center justify-between border-t border-border/40">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                            {template.is_system ? 'Sistema' : 'Personalizada'}
+                          </span>
+                          <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <StructuredNoteForm
+              templateId={selectedTemplateId}
+              initialPatientId={selectedPatient || undefined}
+              initialPatientName={selectedPatientName || undefined}
+              onCancel={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}
+              onSave={async (noteData) => {
+                const { error } = await supabase
+                  .from('session_notes')
+                  .insert({
+                    patient_id: noteData.patientId,
+                    date: noteData.sessionDate,
+                    content: noteData,
+                    organization_id: organization?.id,
+                    template_id: noteData.templateId
+                  });
+                if (error) {
+                  toast.error('Error al guardar: ' + error.message);
+                } else {
+                  toast.success('Nota guardada con éxito');
+                  setIsCreatingNote(false);
+                  setSelectedTemplateId(null);
+                  fetchNotes();
+                }
+              }}
+            />
+          )}
         </div>
       </Layout>
     );
