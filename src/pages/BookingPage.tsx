@@ -239,13 +239,16 @@ const BookingPage = () => {
           const duration = selectedService?.duration || 60;
           const slotEnd = new Date(current.getTime() + duration * 60 * 1000);
           
+          // Verificar si el slot ya pasó (en el día actual)
+          const isPastSlot = isBefore(current, new Date());
+          
           // Verificar colisión con Google Calendar
           const hasGoogleCollision = gcalBusyRanges.some(busy => {
             // Hay traslape si: inicio_slot < fin_busy Y fin_slot > inicio_busy
             return current < busy.end && slotEnd > busy.start;
           });
 
-          if (!busySlots.includes(timeStr) && !isPast && !hasGoogleCollision) {
+          if (!busySlots.includes(timeStr) && !isPastSlot && !hasGoogleCollision) {
             slots.push(timeStr);
           }
           current = slotEnd;
