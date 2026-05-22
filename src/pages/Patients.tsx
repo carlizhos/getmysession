@@ -29,7 +29,8 @@ import {
   Paperclip,
   Upload,
   File,
-  Image
+  Image,
+  Sparkles
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -49,8 +50,8 @@ import {
 } from "@/components/ui/select";
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import {
-    LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip as RechartsTooltip, ResponsiveContainer
+  LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
 import { psychometricTests } from '@/lib/psychometricTests';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -70,7 +71,7 @@ import {
 import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
-import { generateExpedientePDF } from '@/lib/generateExpedientePDF';
+import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
 import { decryptText } from '@/lib/encryption';
@@ -108,6 +109,7 @@ const Patients = () => {
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'newest' | 'oldest'>(() => (localStorage.getItem('patientsSortBy') as any) || 'name_asc');
   const [searchRefreshTrigger, setSearchRefreshTrigger] = useState(0);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingNoteId, setIsExportingNoteId] = useState<string | null>(null);
   
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
@@ -309,6 +311,37 @@ const Patients = () => {
       toast.error('Error al generar PDF: ' + err.message);
     } finally {
       setIsExportingPDF(false);
+    }
+  };
+
+  const handleDownloadNote = async (note: SessionNote) => {
+    if (!selectedPatientData) return;
+    setIsExportingNoteId(note.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay sesión activa");
+
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('full_name, prefix, cedulas, signature_data')
+        .eq('id', user.id)
+        .single();
+
+      generateSessionNotePDF(
+        { 
+          name: selectedPatientData.name, 
+          id: selectedPatientData.id, 
+          date_of_birth: selectedPatientData.date_of_birth 
+        },
+        note as any,
+        prof || undefined
+      );
+      toast.success('Nota generada con éxito');
+    } catch (err: any) {
+      console.error('Error generating PDF:', err);
+      toast.error('Error al generar PDF: ' + err.message);
+    } finally {
+      setIsExportingNoteId(null);
     }
   };
 
@@ -1067,25 +1100,50 @@ const Patients = () => {
                                 <Button size="sm" variant="outline" className="text-xs h-8 border-primary/20 text-primary">Exportar Historial</Button>
                               </div>
                               <div className="space-y-4">
-                                {patientNotes.map((note) => (
-                                  <div key={note.id} className="p-5 rounded-2xl border border-border bg-white shadow-soft transition-all hover:shadow-medium">
-                                    <div className="flex justify-between items-start mb-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                                          <FileText className="h-4 w-4 text-primary" />
+                                  {patientNotes.map((note) => (
+                                    <div key={note.id} className="p-5 rounded-2xl border border-border bg-white shadow-soft transition-all hover:shadow-medium">
+                                      <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-3">
+                                          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                                            <FileText className="h-4 w-4 text-primary" />
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-bold text-muted-foreground uppercase opacity-50">Sesión Clínica</p>
+                                            <p className="text-sm font-bold">{format(new Date(note.date), 'd MMMM, yyyy', { locale: es })}</p>
+                                          </div>
                                         </div>
-                                        <div>
-                                          <p className="text-xs font-bold text-muted-foreground uppercase opacity-50">Sesión Clínica</p>
-                                          <p className="text-sm font-bold">{format(new Date(note.date), 'd MMMM, yyyy', { locale: es })}</p>
-                                        </div>
+                                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest">{note.session_number}</Badge>
                                       </div>
-                                      <Badge variant="outline" className="text-[9px] uppercase tracking-widest">{note.session_number}</Badge>
+                                      <div className="line-clamp-3 text-sm text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl italic">
+                                        "{Array.isArray(note.agenda) ? note.agenda.map(a => a.topic).join(', ') : 'Resumen de sesión'}"
+                                      </div>
+                                      <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/60">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 hover:text-primary transition-colors border-primary/20"
+                                          onClick={() => navigate(`/ia-asistente?patientId=${selectedPatientData?.id}&noteId=${note.id}`)}
+                                        >
+                                          <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
+                                          Editar en IA
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
+                                          onClick={() => handleDownloadNote(note)}
+                                          disabled={isExportingNoteId === note.id}
+                                        >
+                                          {isExportingNoteId === note.id ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                          ) : (
+                                            <Download className="h-3.5 w-3.5" />
+                                          )}
+                                          Exportar
+                                        </Button>
+                                      </div>
                                     </div>
-                                    <div className="line-clamp-3 text-sm text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl italic">
-                                      "{Array.isArray(note.agenda) ? note.agenda.map(a => a.topic).join(', ') : 'Resumen de sesión'}"
-                                    </div>
-                                  </div>
-                                ))}
+                                  ))}
                               </div>
                             </div>
                           </TabsContent>

@@ -32,6 +32,7 @@ import { createWorker } from 'tesseract.js';
 import DOMPurify from 'dompurify';
 import { reportFormats } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -118,6 +119,8 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
 
 const AIAssistant = () => {
   const { organization } = useOrganization();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'notas' | 'chat'>('notas');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -255,6 +258,46 @@ const AIAssistant = () => {
       .catch(err => console.error('Error fetching patient context:', err))
       .finally(() => setIsFetchingContext(false));
   }, [selectedPatientId, selectedPatientName, organization?.id, activeTab]);
+
+  useEffect(() => {
+    const patientId = searchParams.get('patientId');
+    const noteId = searchParams.get('noteId');
+
+    if (patientId) {
+      setSelectedPatientId(patientId);
+      // Fetch patient name
+      supabase
+        .from('patients')
+        .select('name')
+        .eq('id', patientId)
+        .single()
+        .then(({ data }) => {
+          if (data) setSelectedPatientName(data.name);
+        });
+    }
+
+    if (noteId) {
+      setEditingNoteId(noteId);
+      // Fetch note details
+      supabase
+        .from('session_notes')
+        .select('cie10_code, diagnostico_principal, bridge, transcript_summary')
+        .eq('id', noteId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            if (data.cie10_code) setCie10Code(data.cie10_code);
+            if (data.diagnostico_principal) setDiagnosticoPrincipal(data.diagnostico_principal);
+            if (data.bridge && typeof data.bridge === 'object') {
+              setBulletPoints((data.bridge as any).notes || '');
+            }
+            if (data.transcript_summary) {
+              setGeneratedReport(data.transcript_summary);
+            }
+          }
+        });
+    }
+  }, [searchParams]);
 
   const startCamera = async () => {
     try {
@@ -415,6 +458,8 @@ const AIAssistant = () => {
     setDetectedFormat(null); setSelectedFormat(''); setSelectedPatientId('');
     setSelectedPatientName(''); setPatientContext(null);
     setChatMessages([]);
+    setEditingNoteId(null);
+    setSearchParams({});
     
     // Focus clinical search after small timeout to ensure DOM is ready
     setTimeout(() => {
@@ -432,35 +477,52 @@ const AIAssistant = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay sesión activa');
 
-      // 1. Obtener el último número de sesión para este paciente en esta organización
-      const { data: lastNotes, error: fetchError } = await supabase
-        .from('session_notes')
-        .select('session_number')
-        .eq('patient_id', selectedPatientId)
-        .eq('organization_id', organization.id)
-        .order('session_number', { ascending: false })
-        .limit(1);
+      if (editingNoteId) {
+        // Mode: Update note
+        const { error: noteError } = await supabase
+          .from('session_notes')
+          .update({
+            transcript_summary: generatedReport,
+            cie10_code: cie10Code,
+            diagnostico_principal: diagnosticoPrincipal,
+            bridge: { notes: bulletPoints },
+            agenda: [{ topic: 'Consulta IA', thoughts: generatedReport }]
+          })
+          .eq('id', editingNoteId);
 
-      if (fetchError) throw fetchError;
-      
-      const nextSession = (lastNotes?.[0]?.session_number || 0) + 1;
+        if (noteError) throw noteError;
+        toast.success(`Nota actualizada en el expediente de ${selectedPatientName}`);
+      } else {
+        // Mode: Insert new note
+        // 1. Obtener el último número de sesión para este paciente en esta organización
+        const { data: lastNotes, error: fetchError } = await supabase
+          .from('session_notes')
+          .select('session_number')
+          .eq('patient_id', selectedPatientId)
+          .eq('organization_id', organization.id)
+          .order('session_number', { ascending: false })
+          .limit(1);
 
-      const { error: noteError } = await supabase.from('session_notes').insert({
-        user_id: user.id, 
-        patient_id: selectedPatientId,
-        organization_id: organization.id,
-        date: new Date().toISOString().split('T')[0],
-        session_number: nextSession,
-        transcript_summary: generatedReport,
-        cie10_code: cie10Code,
-        diagnostico_principal: diagnosticoPrincipal,
-        bridge: { notes: bulletPoints },
-        agenda: [{ topic: 'Consulta IA', thoughts: generatedReport }]
-      });
+        if (fetchError) throw fetchError;
+        
+        const nextSession = (lastNotes?.[0]?.session_number || 0) + 1;
 
-      if (noteError) throw noteError;
+        const { error: noteError } = await supabase.from('session_notes').insert({
+          user_id: user.id, 
+          patient_id: selectedPatientId,
+          organization_id: organization.id,
+          date: new Date().toISOString().split('T')[0],
+          session_number: nextSession,
+          transcript_summary: generatedReport,
+          cie10_code: cie10Code,
+          diagnostico_principal: diagnosticoPrincipal,
+          bridge: { notes: bulletPoints },
+          agenda: [{ topic: 'Consulta IA', thoughts: generatedReport }]
+        });
 
-      toast.success(`Nota guardada en el expediente de ${selectedPatientName}`);
+        if (noteError) throw noteError;
+        toast.success(`Nota guardada en el expediente de ${selectedPatientName}`);
+      }
       clearAll();
     } catch (error: any) {
       console.error('Save error:', error);
@@ -469,7 +531,7 @@ const AIAssistant = () => {
       setIsProcessing(false);
       setProcessingStep('');
     }
-  }, [generatedReport, selectedPatientId, organization?.id, selectedPatientName, bulletPoints, cie10Code, diagnosticoPrincipal, clearAll]);
+  }, [generatedReport, selectedPatientId, organization?.id, selectedPatientName, bulletPoints, cie10Code, diagnosticoPrincipal, clearAll, editingNoteId]);
 
   // ── Chat send ──────────────────────────────────────────────────────────────
   const sendChatMessage = useCallback(async () => {

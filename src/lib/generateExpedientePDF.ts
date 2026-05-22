@@ -470,7 +470,7 @@ export function generateExpedientePDF(
  * Genera un PDF profesional para una nota de sesión individual.
  */
 export function generateSessionNotePDF(
-    patient: { name: string; id: string },
+    patient: { name: string; id: string; date_of_birth?: string },
     note: SessionNoteData,
     professional?: ProfessionalData
 ): void {
@@ -521,25 +521,65 @@ export function generateSessionNotePDF(
     doc.line(margin, y + 1.5, margin + 45, y + 1.5);
     y += 8;
 
+    const dob = patient.date_of_birth;
+    const age = dob
+        ? `${differenceInYears(new Date(), parseISO(dob))} años`
+        : '—';
+    const dobFormatted = dob
+        ? format(parseISO(dob), 'd MMM yyyy', { locale: es })
+        : '—';
+
     doc.setFontSize(9);
+
+    // Fila 1: Paciente y Edad
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(80, 80, 100);
     doc.text('Paciente:', margin, y);
-    doc.setTextColor(30, 30, 30);
     doc.setFont('helvetica', 'normal');
-    doc.text(patient.name, margin + 25, y);
+    doc.setTextColor(30, 30, 30);
+    doc.text(patient.name, margin + 35, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 100);
+    doc.text('Edad:', margin + 105, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(age, margin + 140, y);
     y += 6;
+
+    // Fila 2: Fecha Nac. y Fecha Sesión
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 100);
+    doc.text('F. de Nacimiento:', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(dobFormatted, margin + 35, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 100);
+    doc.text('Fecha Sesión:', margin + 105, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(format(parseISO(note.date), "d 'de' MMMM yyyy", { locale: es }), margin + 140, y);
+    y += 6;
+
+    // Fila 3: Número de Sesión y Diagnóstico
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 80, 100);
+    doc.text('Número Sesión:', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Sesión #${note.session_number}`, margin + 35, y);
 
     if (note.cie10_code) {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(80, 80, 100);
-        doc.text('Diagnóstico:', margin, y);
+        doc.text('Diagnóstico:', margin + 105, y);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
-        doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 25, y);
-        y += 6;
+        doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 140, y);
     }
-
-    y += 4;
+    y += 10;
 
     // Contenido de la nota
     const sections = [

@@ -119,8 +119,20 @@ const Notes = () => {
         .eq('id', user.id)
         .single();
 
+      let dateOfBirth: string | undefined = undefined;
+      if (selectedPatient) {
+        const { data: patientData } = await supabase
+          .from('patients')
+          .select('date_of_birth')
+          .eq('id', selectedPatient)
+          .single();
+        if (patientData) {
+          dateOfBirth = patientData.date_of_birth;
+        }
+      }
+
       generateSessionNotePDF(
-        { name: selectedPatientName, id: selectedPatient! },
+        { name: selectedPatientName, id: selectedPatient!, date_of_birth: dateOfBirth },
         note as any,
         prof || undefined
       );

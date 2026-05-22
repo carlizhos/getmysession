@@ -41,6 +41,7 @@ import MessageBell from '@/components/notifications/MessageBell';
 import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
+import SystemAgentWidget from '@/components/ai/SystemAgentWidget';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -460,6 +461,9 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Floating Help Widget — available on every page */}
       <HelpWidget />
+
+      {/* Floating AI System Agent — available on every page */}
+      <SystemAgentWidget />
     </div>
   );
 };
