@@ -324,7 +324,7 @@ const BookingPage = () => {
       let finalPlatform = null;
 
       if (modality === 'Videollamada') {
-        finalPlatform = 'Google Meet';
+        finalPlatform = 'meet';
         try {
           const { data, error: syncErr } = await supabase.functions.invoke('google-calendar-sync', {
             body: {

@@ -185,8 +185,39 @@ Deno.serve(async (req) => {
         }
       }
 
+      // If no Meet link found yet but event was created, re-fetch the event after a short delay.
+      // Google sometimes needs time to provision the Meet conference asynchronously.
+      if (!meetLink && insertData.id) {
+        console.log(`[GoogleCalendarSync] Meet link not in initial response. Polling event ${insertData.id} after 2s...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+          const getEventUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${insertData.id}?conferenceDataVersion=1`;
+          const pollResponse = await fetch(getEventUrl, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+          });
+          if (pollResponse.ok) {
+            const eventData = await pollResponse.json();
+            if (eventData.hangoutLink) {
+              meetLink = eventData.hangoutLink;
+              console.log(`[GoogleCalendarSync] Meet link obtained via polling: ${meetLink}`);
+            } else if (eventData.conferenceData?.entryPoints) {
+              const videoEntry = eventData.conferenceData.entryPoints.find(
+                (ep: any) => ep.entryPointType === 'video'
+              );
+              if (videoEntry?.uri) {
+                meetLink = videoEntry.uri;
+                console.log(`[GoogleCalendarSync] Meet link obtained via polling (entryPoints): ${meetLink}`);
+              }
+            }
+          }
+        } catch (pollErr) {
+          console.warn('[GoogleCalendarSync] Error polling for Meet link:', pollErr);
+        }
+      }
+
       if (!meetLink) {
-        console.warn('Google Meet was requested but no link was returned. Full response:', JSON.stringify(insertData));
+        console.warn('Google Meet was requested but no link was returned after polling. Full response:', JSON.stringify(insertData));
       }
     }
 

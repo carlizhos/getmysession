@@ -308,6 +308,9 @@ const NewAppointmentDialog = ({
         setIsSubmitting(true);
 
         try {
+            // Fetch session user FIRST so it's available for all subsequent code
+            const { data: { user: sessionUser } } = await supabase.auth.getUser();
+
             const dateStr = format(date, 'yyyy-MM-dd');
             const startDateTime = new Date(`${dateStr}T${formData.startTime}:00`);
 
@@ -409,7 +412,7 @@ const NewAppointmentDialog = ({
                 finalReschedulePolicy = selectedService.reschedule_policy_hours;
             }
 
-            const { data: { user: sessionUser } } = await supabase.auth.getUser();
+            // sessionUser is already fetched at the top of the try block
 
             const payload = {
                 patient_id: formData.patientId || null,
@@ -483,14 +486,48 @@ const NewAppointmentDialog = ({
 
                     if (syncErr) {
                         console.error('[MeetSync] Error:', syncErr);
-                        toast.warning('No se pudo sincronizar con Google Calendar.');
+                        toast.warning('No se pudo crear el enlace de Google Meet. Puedes agregarlo manualmente.');
                     } else if (data?.meetLink) {
                         finalMeetingLink = data.meetLink;
+                        console.log('[MeetSync] Meet link created:', finalMeetingLink);
                     } else if (data?.message === 'Google Calendar not connected') {
-                        toast.warning('Google Calendar no está conectado.');
+                        toast.warning('Google Calendar no está conectado. Conéctalo en Ajustes para generar enlaces automáticamente.');
+                    } else if (data?.eventId && !data?.meetLink) {
+                        // Google sometimes needs a moment to provision the Meet conference.
+                        // Wait briefly and try to fetch the event to get the link.
+                        console.warn('[MeetSync] Event created but no Meet link returned. Attempting retry...');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        try {
+                            const { data: retryData } = await supabase.functions.invoke('google-calendar-sync', {
+                                body: {
+                                    userId: sessionUser?.id,
+                                    createMeet: true,
+                                    event: {
+                                        summary: `Cita Saudade: ${formData.patientName}`,
+                                        description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
+                                        start: { dateTime: startDateTime.toISOString() },
+                                        end: { dateTime: endDateTime.toISOString() },
+                                        location: formData.location || undefined,
+                                    }
+                                }
+                            });
+                            if (retryData?.meetLink) {
+                                finalMeetingLink = retryData.meetLink;
+                                console.log('[MeetSync] Meet link obtained on retry:', finalMeetingLink);
+                            } else {
+                                toast.warning('El evento se creó en Google Calendar pero el enlace de Meet no se generó. Puedes agregarlo manualmente.');
+                            }
+                        } catch (retryErr) {
+                            console.warn('[MeetSync] Retry also failed:', retryErr);
+                            toast.warning('El evento se creó pero el enlace de Meet no se generó. Puedes agregarlo manualmente.');
+                        }
+                    } else {
+                        console.warn('[MeetSync] Unexpected response:', data);
+                        toast.warning('No se pudo generar el enlace de Meet. Puedes agregarlo manualmente.');
                     }
                 } catch (err) {
                     console.error('[MeetSync] Exception:', err);
+                    toast.warning('Error al conectar con Google Calendar. Puedes agregar el enlace manualmente.');
                 }
             } else if (shouldSyncMicrosoft) {
                 try {
@@ -531,17 +568,43 @@ const NewAppointmentDialog = ({
 
                     if (syncErr) {
                         console.error('[ZoomSync] Error:', syncErr);
-                        toast.warning('No se pudo generar la reunión en Zoom.');
+                        // Retry once after a brief delay
+                        console.log('[ZoomSync] Retrying after error...');
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        try {
+                            const { data: retryData, error: retryErr } = await supabase.functions.invoke('zoom-meeting-create', {
+                                body: {
+                                    userId: sessionUser?.id,
+                                    topic: `Cita Saudade: ${formData.patientName}`,
+                                    startTime: startDateTime.toISOString(),
+                                    duration: duration
+                                }
+                            });
+                            if (!retryErr && retryData?.joinUrl) {
+                                finalMeetingLink = retryData.joinUrl;
+                                console.log('[ZoomSync] Zoom link obtained on retry:', finalMeetingLink);
+                            } else {
+                                toast.warning('No se pudo generar la reunión en Zoom. Puedes agregar el enlace manualmente.');
+                            }
+                        } catch (retryExc) {
+                            console.error('[ZoomSync] Retry exception:', retryExc);
+                            toast.warning('No se pudo generar la reunión en Zoom. Puedes agregar el enlace manualmente.');
+                        }
                     } else if (data?.joinUrl) {
                         finalMeetingLink = data.joinUrl;
+                        console.log('[ZoomSync] Zoom link created:', finalMeetingLink);
                     } else if (data?.message === 'Zoom not connected') {
                         toast.warning('Zoom no está conectado. Por favor, conéctalo en Ajustes.');
                     } else if (data?.error) {
                         console.error('[ZoomSync] Error en API:', data.error);
-                        toast.warning(`Error de Zoom: ${data.error}`);
+                        toast.warning(`Error de Zoom: ${data.error}. Puedes agregar el enlace manualmente.`);
+                    } else {
+                        console.warn('[ZoomSync] Unexpected response:', data);
+                        toast.warning('No se pudo generar la reunión en Zoom. Puedes agregar el enlace manualmente.');
                     }
                 } catch (err) {
                     console.error('[ZoomSync] Exception:', err);
+                    toast.warning('Error al conectar con Zoom. Puedes agregar el enlace manualmente.');
                 }
             }
 
