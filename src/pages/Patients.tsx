@@ -1122,7 +1122,7 @@ const Patients = () => {
                                           size="sm"
                                           variant="outline"
                                           className="h-8 text-xs gap-1.5 hover:bg-primary/5 hover:text-primary transition-colors border-primary/20"
-                                          onClick={() => navigate(`/ia-asistente?patientId=${selectedPatientData?.id}&noteId=${note.id}`)}
+                                          onClick={() => navigate(`/ai-assistant?patientId=${selectedPatientData?.id}&noteId=${note.id}`)}
                                         >
                                           <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                                           Editar en IA
