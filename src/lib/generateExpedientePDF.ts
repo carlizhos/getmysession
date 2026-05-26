@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { format, parseISO, differenceInYears } from 'date-fns';
+import { format, differenceInYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -155,13 +155,13 @@ export function generateExpedientePDF(
     y += 7;
 
     const age = patient.date_of_birth
-        ? `${differenceInYears(new Date(), parseISO(patient.date_of_birth))} años`
+        ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} años`
         : '—';
 
     const infoRows = [
         ['Nombre completo', patient.name || '—'],
         ['Edad', age],
-        ['Fecha de nacimiento', patient.date_of_birth ? format(parseISO(patient.date_of_birth), 'd MMM yyyy', { locale: es }) : '—'],
+        ['Fecha de nacimiento', patient.date_of_birth ? format(new Date(patient.date_of_birth), 'd MMM yyyy', { locale: es }) : '—'],
         ['CURP', patient.curp || '—'],
         ['Género', patient.gender ? (GENDER_LABELS[patient.gender] || patient.gender) : '—'],
         ['Ocupación', patient.occupation || '—'],
@@ -277,7 +277,7 @@ export function generateExpedientePDF(
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(60, 40, 120);
         doc.text(
-            `Sesión #${note.session_number}  ·  ${format(parseISO(note.date), "d 'de' MMMM yyyy", { locale: es })}`,
+            `Sesión #${note.session_number}  ·  ${format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es })}`,
             margin + 3, y + 1,
         );
         y += 10;
@@ -395,7 +395,7 @@ export function generateExpedientePDF(
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(40, 40, 40);
             const label = FORM_TYPE_LABELS[c.form_type] || c.form_type;
-            const dateStr = c.signed_at ? format(parseISO(c.signed_at), "d MMM yyyy", { locale: es }) : 'Sin fecha';
+            const dateStr = c.signed_at ? format(new Date(c.signed_at), "d MMM yyyy", { locale: es }) : 'Sin fecha';
             const valid = c.is_valid ? '✓ Válido' : '✗ Revocado';
             const folioCons = c.id.substring(0, 8).toUpperCase();
             doc.text(`• ${label}  |  ${dateStr}  |  ${valid}  |  Folio: ${folioCons}`, margin + 3, y);
@@ -509,7 +509,7 @@ export function generateSessionNotePDF(
     doc.text(`NOTA DE SESIÓN #${note.session_number}`, pageW / 2, 28, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha de sesión: ${format(parseISO(note.date), "d 'de' MMMM yyyy", { locale: es })}`, pageW / 2, 34, { align: 'center' });
+    doc.text(`Fecha de sesión: ${format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es })}`, pageW / 2, 34, { align: 'center' });
 
     let y = 50;
 
@@ -523,10 +523,10 @@ export function generateSessionNotePDF(
 
     const dob = patient.date_of_birth;
     const age = dob
-        ? `${differenceInYears(new Date(), parseISO(dob))} años`
+        ? `${differenceInYears(new Date(), new Date(dob))} años`
         : '—';
     const dobFormatted = dob
-        ? format(parseISO(dob), 'd MMM yyyy', { locale: es })
+        ? format(new Date(dob), 'd MMM yyyy', { locale: es })
         : '—';
 
     doc.setFontSize(9);
@@ -560,7 +560,7 @@ export function generateSessionNotePDF(
     doc.text('Fecha Sesión:', margin + 105, y);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 30, 30);
-    doc.text(format(parseISO(note.date), "d 'de' MMMM yyyy", { locale: es }), margin + 140, y);
+    doc.text(format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es }), margin + 140, y);
     y += 6;
 
     // Fila 3: Número de Sesión y Diagnóstico
