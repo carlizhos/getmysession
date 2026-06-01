@@ -27,6 +27,7 @@ const PatientTestView = lazy(() => import("./pages/PatientTestView"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Consents = lazy(() => import("./pages/Consents"));
+const TelehealthSession = lazy(() => import("./pages/TelehealthSession"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
@@ -127,6 +128,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <AgendaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/session/:id"
+              element={
+                <ProtectedRoute>
+                  <TelehealthSession />
                 </ProtectedRoute>
               }
             />

@@ -19,7 +19,8 @@ import {
   X,
   ChevronRight,
   Activity,
-  Download
+  Download,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -31,6 +32,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/lib/utils';
 import { SessionNote } from '@/types';
 import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
+import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
 
 
 
@@ -52,6 +54,7 @@ const Notes = () => {
   const [noteTemplates, setNoteTemplates] = useState<any[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isDictating, setIsDictating] = useState(false);
 
 
 
@@ -255,6 +258,47 @@ const Notes = () => {
 
   // ── Vista: Formulario de nueva nota ───────────────────────────────────────
   if (isCreatingNote) {
+    if (isDictating) {
+      return (
+        <Layout>
+          <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] py-12">
+            <AIVoiceRecorder 
+              onCancel={() => setIsDictating(false)}
+              onSuccess={async (mockText) => {
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) throw new Error('Sesión inválida');
+                  
+                  // Calcular número de sesión aproximado
+                  const sessionNum = selectedPatient ? notes.filter(n => n.patient_id === selectedPatient).length + 1 : 1;
+
+                  const payload = {
+                    user_id: user.id,
+                    patient_id: selectedPatient || null,
+                    patient_name: selectedPatientName || 'Sin paciente',
+                    date: new Date().toISOString(),
+                    session_number: sessionNum,
+                    agenda: [{ id: 'ai-gen', topic: 'Reporte Generado por IA', situation: '', thoughts: mockText, emotions: '', interventions: '' }],
+                    organization_id: organization?.id,
+                  };
+
+                  const { error } = await supabase.from('session_notes').insert([payload]);
+                  if (error) throw error;
+
+                  toast.success('Nota estructurada y guardada con éxito.');
+                  setIsDictating(false);
+                  setIsCreatingNote(false);
+                  fetchNotes();
+                } catch (err: any) {
+                  toast.error('Error al guardar la nota: ' + err.message);
+                }
+              }}
+            />
+          </div>
+        </Layout>
+      );
+    }
+
     return (
       <Layout>
         <div className="space-y-6 animate-fade-in">
@@ -266,12 +310,35 @@ const Notes = () => {
           </div>
 
           {!selectedTemplateId ? (
-            <Card className="border-border shadow-sm overflow-hidden">
-              <CardHeader className="bg-muted/10 border-b border-border/50">
-                <CardTitle className="text-lg">Selecciona una Plantilla</CardTitle>
-                <CardDescription>Elige la estructura que mejor se adapte a esta sesión</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
+            <div className="space-y-6">
+              {/* Premium AI Banner */}
+              <button 
+                onClick={() => setIsDictating(true)}
+                className="w-full relative overflow-hidden group rounded-2xl bg-gradient-to-r from-primary to-emerald-600 p-8 text-left transition-all hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.01]"
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
+                  <Brain className="w-32 h-32 text-white" />
+                </div>
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4 backdrop-blur-sm">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Nuevo
+                  </div>
+                  <h3 className="text-2xl font-black text-white tracking-tight mb-2">Redactar con Inteligencia Artificial</h3>
+                  <p className="text-white/80 max-w-md leading-relaxed text-sm">
+                    Solo presiona grabar y habla sobre la sesión. Saudade extraerá, estructurará y redactará la nota SOAP automáticamente.
+                  </p>
+                </div>
+              </button>
+
+              <Card className="border-border shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 border-b border-border/50 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Selecciona una Plantilla</CardTitle>
+                    <CardDescription>O elige redactar manualmente con una estructura predefinida</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
                 {isLoadingTemplates ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
@@ -305,6 +372,7 @@ const Notes = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
           ) : (
             <StructuredNoteForm
               templateId={selectedTemplateId}

@@ -22,8 +22,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard } from 'lucide-react';
+import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { useNavigate } from 'react-router-dom';
 
 const APPOINTMENT_COLORS = [
     { value: 'violet', label: 'Morado', bg: 'bg-violet-500', ring: 'ring-violet-400' },
@@ -91,6 +92,7 @@ const NewAppointmentDialog = ({
 }: NewAppointmentDialogProps) => {
     const { user } = useAuth();
     const { organization } = useOrganization();
+    const navigate = useNavigate();
     const isEditing = !!editingAppointment;
     const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1234,6 +1236,19 @@ const NewAppointmentDialog = ({
                                     </Button>
                                 )
                             )}
+                            
+                            {/* Entrar al Consultorio Virtual */}
+                            {isEditing && (
+                                <Button
+                                    type="button"
+                                    onClick={() => navigate(`/session/${editingAppointment.id}`)}
+                                    className="mr-auto sm:ml-auto gap-2 bg-slate-900 text-white hover:bg-slate-800"
+                                >
+                                    <Video className="w-4 h-4 text-emerald-400" />
+                                    Entrar al Consultorio Virtual
+                                </Button>
+                            )}
+
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className={isReadOnly ? "w-full" : ""}>
                                 {isReadOnly ? 'Cerrar' : isEditing ? 'Cerrar' : 'Cancelar'}
                             </Button>
