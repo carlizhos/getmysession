@@ -17,6 +17,11 @@ import {
     BarChart3,
     Search,
     BrainCircuit,
+    UserPlus,
+    DollarSign,
+    ClipboardList,
+    CalendarX,
+    Users,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -31,8 +36,14 @@ interface ChatMessage {
 const QUICK_ACTIONS = [
     { label: '📅 Agenda del día', prompt: '¿Qué tengo agendado para hoy?', icon: BarChart3 },
     { label: '➕ Agendar cita', prompt: 'Quiero agendar una cita', icon: CalendarPlus },
-    { label: '🧾 Pagos por facturar', prompt: '¿Qué pagos tengo disponibles para facturar?', icon: FileText },
     { label: '🔍 Buscar paciente', prompt: 'Busca un paciente', icon: Search },
+    { label: '🧑‍⚕️ Nuevo paciente', prompt: 'Quiero registrar un nuevo paciente', icon: UserPlus },
+    { label: '💰 Registrar cobro', prompt: 'Quiero cobrar una sesión', icon: DollarSign },
+    { label: '🧾 Facturar pagos', prompt: '¿Qué pagos tengo disponibles para facturar?', icon: FileText },
+    { label: '📝 Crear nota clínica', prompt: 'Quiero crear una nota de sesión', icon: ClipboardList },
+    { label: '❌ Cancelar cita', prompt: 'Necesito cancelar una cita', icon: CalendarX },
+    { label: '💵 Resumen financiero', prompt: '¿Cuánto he ganado este mes?', icon: DollarSign },
+    { label: '👥 Ver prospectos', prompt: '¿Tengo prospectos web nuevos?', icon: Users },
 ];
 
 // ── Markdown-lite renderer ──────────────────────────────────────────────────
@@ -210,7 +221,7 @@ const SystemAgentWidget = () => {
                                     ¡Hola! 🧠
                                 </h4>
                                 <p className="text-sm text-muted-foreground mb-6 max-w-[280px] leading-relaxed">
-                                    Soy tu agente inteligente. Puedo agendar citas, facturar pagos, buscar pacientes y más — solo dime qué necesitas.
+                                    Soy tu mano derecha digital. Agendo citas, registro cobros, creo notas clínicas, facturo, asigno tests y mucho más. ¡Solo dime qué necesitas!
                                 </p>
 
                                 {/* Quick action chips */}

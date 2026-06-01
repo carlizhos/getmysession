@@ -31,6 +31,8 @@ interface AuthContextType {
     signOut: (event?: 'logout' | 'timeout') => Promise<void>;
     refreshOrganization: () => Promise<void>;
     switchOrganization: (organizationId: string) => Promise<void>;
+    profile: any | null;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [organization, setOrganization] = useState<Organization | null>(null);
+    const [profile, setProfile] = useState<any | null>(null);
     const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([]);
     const [loading, setLoading] = useState(true);
     const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
@@ -67,12 +70,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const fetchOrganization = useCallback(async (userId: string) => {
         try {
-            // 1. Get current organization ID from profile
-            const { data: profile } = await supabase
+            // 1. Get current organization ID and profile from profile
+            const { data: profileData } = await supabase
                 .from('profiles')
-                .select('current_organization_id')
+                .select('*')
                 .eq('id', userId)
                 .single();
+                
+            setProfile(profileData);
 
             // 2. Fetch all organizations where user is a member
             const { data: memberships } = await supabase
@@ -94,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 
                 setAvailableOrganizations(orgs);
 
-                const currentOrg = orgs.find(o => o.id === profile?.current_organization_id) || orgs[0];
+                const currentOrg = orgs.find(o => o.id === profileData?.current_organization_id) || orgs[0];
                 if (currentOrg) {
                     // 3. Fetch member count for the current organization
                     const { count } = await supabase
@@ -105,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setOrganization({ ...currentOrg, member_count: count || 0 });
                     
                     // Update profile if current_organization_id was missing or changed
-                    if (!profile?.current_organization_id || profile.current_organization_id !== currentOrg.id) {
+                    if (!profileData?.current_organization_id || profileData.current_organization_id !== currentOrg.id) {
                         await supabase
                             .from('profiles')
                             .update({ current_organization_id: currentOrg.id })
@@ -162,6 +167,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [fetchOrganization]);
 
     const refreshOrganization = async () => {
+        if (user) await fetchOrganization(user.id);
+    };
+
+    const refreshProfile = async () => {
         if (user) await fetchOrganization(user.id);
     };
 
@@ -301,7 +310,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             signInWithGoogleIdToken,
             signOut, 
             refreshOrganization,
-            switchOrganization
+            switchOrganization,
+            profile,
+            refreshProfile
         }}>
             {children}
         </AuthContext.Provider>

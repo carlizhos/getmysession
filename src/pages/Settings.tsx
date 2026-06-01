@@ -3091,7 +3091,6 @@ const Settings = () => {
                                                     <p className="text-sm font-semibold text-foreground">Recordatorios Automáticos</p>
                                                     <p className="text-xs text-muted-foreground">Configura notificaciones automáticas antes de la cita para reducir inasistencias.</p>
                                                 </div>
-                                                <Badge variant="secondary" className="bg-primary/10 text-primary border-none">Fase 5</Badge>
                                             </div>
                                             <div className="space-y-3">
                                                 {/* Selector de Anticipación */}
@@ -3103,21 +3102,24 @@ const Settings = () => {
                                                             <p className="text-xs text-muted-foreground">Define cuántas horas antes de la cita se enviará el aviso</p>
                                                         </div>
                                                     </div>
-                                                    <Select
-                                                        value={String(notif.recordatorio_horas ?? 24)}
-                                                        onValueChange={(v) => setNotif({ ...notif, recordatorio_horas: Number(v) })}
-                                                    >
-                                                        <SelectTrigger className="w-[140px] bg-background">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="12">12 horas antes</SelectItem>
-                                                            <SelectItem value="24">24 horas antes</SelectItem>
-                                                            <SelectItem value="36">36 horas antes</SelectItem>
-                                                            <SelectItem value="48">48 horas antes</SelectItem>
-                                                            <SelectItem value="72">72 horas antes</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            max={24}
+                                                            step={1}
+                                                            value={notif.recordatorio_horas ?? 24}
+                                                            onChange={(e) => {
+                                                                let val = parseInt(e.target.value);
+                                                                if (isNaN(val)) val = 24;
+                                                                if (val > 24) val = 24;
+                                                                if (val < 1) val = 1;
+                                                                setNotif({ ...notif, recordatorio_horas: val });
+                                                            }}
+                                                            className="w-20 text-center bg-background font-bold text-primary"
+                                                        />
+                                                        <span className="text-sm font-medium text-muted-foreground">hrs antes</span>
+                                                    </div>
                                                 </div>
 
                                                 <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">

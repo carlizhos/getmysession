@@ -98,6 +98,9 @@ const Patients = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState('pacientes');
+  const [leads, setLeads] = useState<any[]>([]);
+  const [isLeadsLoading, setIsLeadsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
   
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
@@ -194,9 +197,92 @@ const Patients = () => {
     }
   }, [organization?.id]);
 
+  const fetchLeads = useCallback(async () => {
+    try {
+      if (!organization?.id) return;
+      setIsLeadsLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('organization_id', organization.id)
+        .eq('status', 'nuevo_lead')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (err) {
+      console.error('Error fetching leads:', err);
+    } finally {
+      setIsLeadsLoading(false);
+    }
+  }, [organization?.id]);
+
+  const handleConvertLead = async (lead: any) => {
+    try {
+      if (!organization?.id) return;
+      toast.loading('Convirtiendo a paciente...', { id: `convert-${lead.id}` });
+      
+      // 1. Create Patient
+      const { data: newPatient, error: patientError } = await supabase
+        .from('patients')
+        .insert({
+          organization_id: organization.id,
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone,
+          status: 'activo',
+        })
+        .select()
+        .single();
+        
+      if (patientError) throw patientError;
+      
+      // 2. Create Patient Clinical Data for age and reason
+      const { error: clinicalError } = await supabase
+        .from('patient_clinical_data')
+        .insert({
+          patient_id: newPatient.id,
+          notes: lead.reason_for_consultation ? `Motivo de consulta (Lead): ${lead.reason_for_consultation}` : null
+        });
+        
+      if (clinicalError) console.error("Error creating clinical data:", clinicalError);
+
+      // 3. Link existing appointments
+      // We look for appointments in this org where patient_name, email, or phone matches the lead
+      const { error: aptError } = await supabase
+        .from('appointments')
+        .update({ patient_id: newPatient.id })
+        .eq('organization_id', organization.id)
+        .is('patient_id', null)
+        .ilike('patient_name', lead.name);
+
+      if (aptError) console.error("Error linking appointments:", aptError);
+
+      // 4. Update Lead status
+      const { error: leadUpdateError } = await supabase
+        .from('leads')
+        .update({ status: 'converted' })
+        .eq('id', lead.id);
+        
+      if (leadUpdateError) throw leadUpdateError;
+
+      toast.success('¡Prospecto convertido exitosamente!', { id: `convert-${lead.id}` });
+      
+      // 5. Refresh data
+      fetchPatients();
+      fetchLeads();
+      setActiveMainTab('pacientes');
+      
+    } catch (err: any) {
+      toast.error('Error al convertir prospecto: ' + err.message, { id: `convert-${lead.id}` });
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchPatients();
-  }, [fetchPatients]);
+    fetchLeads();
+  }, [fetchPatients, fetchLeads]);
 
   const fetchPatientDetails = useCallback(async (patientId: string) => {
     if (!organization?.id) return;
@@ -1436,11 +1522,24 @@ const Patients = () => {
                 </Tabs>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold tracking-tight">Directorio de Pacientes</h2>
-                    <p className="text-sm text-muted-foreground font-medium">Gestiona y visualiza todos tus expedientes activos.</p>
-                  </div>
+                <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
+                      <TabsList className="bg-muted/50 p-1 mb-4">
+                        <TabsTrigger value="pacientes" className="px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">Pacientes Activos</TabsTrigger>
+                        <TabsTrigger value="leads" className="px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                          Prospectos Web
+                          {leads.length > 0 && (
+                            <Badge variant="zen" className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary/20 text-primary border-none">
+                              {leads.length}
+                            </Badge>
+                          )}
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="pacientes" className="m-0 space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h2 className="text-xl font-bold tracking-tight">Directorio de Pacientes</h2>
+                            <p className="text-sm text-muted-foreground font-medium">Gestiona y visualiza todos tus expedientes activos.</p>
+                          </div>
                   
                   <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-64">
@@ -1681,11 +1780,83 @@ const Patients = () => {
                     </Table>
                   </div>
                 )}
-              </div>
-            )}
+              </TabsContent>
+
+              <TabsContent value="leads" className="m-0 space-y-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold tracking-tight">Nuevos Prospectos Web</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Pacientes que agendaron online y están pendientes de confirmar.</p>
+                  </div>
+                </div>
+
+                {isLeadsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed border-border/60">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20 mb-4" />
+                    <p className="text-muted-foreground font-medium">Cargando prospectos...</p>
+                  </div>
+                ) : leads.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed border-border/60">
+                    <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
+                      <Users className="h-10 w-10 text-primary opacity-20" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground/60">No hay prospectos nuevos</h3>
+                    <p className="text-muted-foreground mt-1 max-w-xs text-center text-sm">
+                      Los pacientes que agenden desde tu portal web público aparecerán aquí.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {leads.map((lead) => (
+                      <Card key={lead.id} className="group relative overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center text-lg font-black shadow-inner", getAvatarTheme(lead.name))}>
+                              {getInitials(lead.name)}
+                            </div>
+                            <Badge className="bg-warning text-warning-foreground border-none">Nuevo</Badge>
+                          </div>
+                          
+                          <div className="space-y-1 mb-4">
+                            <h3 className="font-bold text-lg leading-tight truncate group-hover:text-primary transition-colors">{lead.name}</h3>
+                            {lead.age && <p className="text-xs text-muted-foreground">{lead.age} años</p>}
+                          </div>
+
+                          <div className="space-y-2.5 mb-6">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="h-4 w-4 text-primary/60 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="h-4 w-4 text-primary/60 shrink-0" />
+                              <span>{lead.phone}</span>
+                            </div>
+                            {lead.reason_for_consultation && (
+                              <div className="flex items-start gap-2 text-sm text-muted-foreground mt-2">
+                                <FileText className="h-4 w-4 text-primary/60 shrink-0 mt-0.5" />
+                                <span className="line-clamp-2 text-xs italic">"{lead.reason_for_consultation}"</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <Button 
+                            className="w-full font-bold shadow-md hover:shadow-lg transition-all"
+                            onClick={() => handleConvertLead(lead)}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" /> Convertir en Paciente
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
+        )}
         </div>
-      </Layout>
+      </div>
+    </Layout>
 
       {/* New Patient Dialog */}
       <NewPatientDialog

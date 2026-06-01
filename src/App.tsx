@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -37,6 +37,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const StripeCallback = lazy(() => import("./pages/StripeCallback"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 
 const queryClient = new QueryClient();
@@ -53,7 +54,8 @@ const PageLoader = () => (
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <PageLoader />;
@@ -61,6 +63,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Si el usuario existe pero no ha completado el onboarding, obligarlo a ir.
+  if (profile && profile.onboarding_completed === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -96,6 +103,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
                 </ProtectedRoute>
               }
             />
