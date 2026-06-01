@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import useDarkMode from "@/hooks/useDarkMode";
 
 // Eager imports — lightweight, needed on first load
 import Auth from "./pages/Auth";
@@ -65,8 +66,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const AppContent = () => {
+  useDarkMode(); // Ensure theme is applied globally, including on Auth pages
+  return (
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-right" />
@@ -207,6 +209,12 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppContent />
   </QueryClientProvider>
 );
 

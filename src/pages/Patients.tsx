@@ -88,6 +88,7 @@ const Patients = () => {
 
   // ── States ──────────────────────────────────────────────────────────────
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [activePatientTab, setActivePatientTab] = useState<string>('info');
   const [patients, setPatients] = useState<EnrichedPatient[]>([]);
   const [patientNotes, setPatientNotes] = useState<SessionNote[]>([]);
   const [patientTests, setPatientTests] = useState<PatientTest[]>([]);
@@ -624,7 +625,11 @@ const Patients = () => {
 
   return (
     <>
-      <Layout>
+      <Layout 
+        activePatient={selectedPatientData ? { id: selectedPatientData.id, name: selectedPatientData.name } : undefined} 
+        activePatientTab={activePatientTab} 
+        onPatientTabChange={setActivePatientTab}
+      >
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
           <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -705,74 +710,12 @@ const Patients = () => {
           {/* Full-Width Content Area */}
           <div className="w-full">
             {selectedPatientData ? (
-              <Tabs defaultValue="info" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                {/* Modern Floating Tabs List (Pill style like Settings) */}
-                <div className="flex w-full rounded-xl border border-border overflow-hidden bg-muted/30 p-0 h-auto">
-                  <TabsList className="flex w-full bg-transparent p-0 h-auto rounded-none border-none overflow-x-auto no-scrollbar">
-                    <TabsTrigger
-                      value="info"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <User className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">General</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="timeline"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <Activity className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Actividad 360°</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="evolution"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <TrendingUp className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Evolución</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="tests"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <Brain className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Pruebas</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="history"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Notas</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="economy"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <DollarSign className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Economía</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="documents"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none border-r border-border/50 last:border-r-0"
-                    >
-                      <Paperclip className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Docs</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="whatsapp"
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-success data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-none"
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">WhatsApp</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <Card variant="flat" className="min-h-[calc(100vh-280px)] overflow-hidden flex flex-col border-border/50 shadow-medium">
+              <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <Card variant="flat" className="min-h-[calc(100vh-220px)] overflow-hidden flex flex-col border-border/50 shadow-medium">
                   {/* Detailed Information Section */}
                   <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                     {/* Left: Basic Info (Compact Sidebar) */}
-                    <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-muted/30 p-4 sm:p-6 lg:p-8 flex-shrink-0">
+                    <div className="w-full lg:w-[340px] xl:w-[380px] border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-4 sm:p-6 flex-shrink-0 flex flex-col">
                       <div className="flex flex-col items-center text-center mb-8">
                         <div className="relative mb-4 group">
                           <div className={cn(
@@ -833,7 +776,9 @@ const Patients = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-2 mt-8">
+                      {/* Local TabsList removed. Navigation is now handled globally in the main Layout sidebar. */}
+
+                      <div className="mt-auto grid grid-cols-1 gap-2 lg:pt-6 lg:border-t border-border/50">
                         <Button 
                           variant="zen" 
                           size="sm" 

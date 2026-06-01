@@ -72,6 +72,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AvatarUpload from '@/components/settings/AvatarUpload';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
+import useDarkMode from '@/hooks/useDarkMode';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -182,10 +183,11 @@ const DIAS_SEMANA = [
     { value: 6, label: 'Sáb' },
 ];
 
-type TabId = 'perfil' | 'horarios' | 'servicios' | 'preguntas' | 'plantillas' | 'seguridad' | 'organizacion' | 'suscripcion' | 'integraciones';
+type TabId = 'perfil' | 'horarios' | 'servicios' | 'preguntas' | 'plantillas' | 'seguridad' | 'organizacion' | 'suscripcion' | 'integraciones' | 'apariencia';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'perfil', label: 'Perfil Profesional', icon: User },
+    { id: 'apariencia', label: 'Apariencia', icon: Palette },
     { id: 'horarios', label: 'Horarios y Comisiones', icon: Clock },
     { id: 'servicios', label: 'Servicios de Agenda', icon: LayoutGrid },
     { id: 'preguntas', label: 'Preguntas de Reserva', icon: HelpCircle },
@@ -199,7 +201,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 const TAB_GROUPS = [
     {
         title: "Especialista",
-        tabs: ['perfil', 'horarios', 'seguridad']
+        tabs: ['perfil', 'apariencia', 'horarios', 'seguridad']
     },
     {
         title: "Herramientas Clínicas",
@@ -220,6 +222,7 @@ const Settings = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<TabId>('perfil');
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [hasGoogleCalendar, setHasGoogleCalendar] = useState(false);
     const [hasOutlookCalendar, setHasOutlookCalendar] = useState(false);
     const [hasZoom, setHasZoom] = useState(false);
@@ -1339,6 +1342,39 @@ const Settings = () => {
                             </div>
                         ) : (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* ── Tab: Apariencia ─────────────────────────── */}
+                        {activeTab === 'apariencia' && (
+                            <Card variant="flat" className="border border-border">
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                            <Palette className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg">Apariencia y Tema</CardTitle>
+                                            <CardDescription>
+                                                Personaliza los colores y el modo de visualización de tu cuenta.
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-center justify-between border rounded-lg p-4 bg-muted/20">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base font-medium">Modo Oscuro</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Cambia la interfaz a colores oscuros para reducir la fatiga visual.
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={isDarkMode}
+                                            onCheckedChange={toggleDarkMode}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* ── Tab: Perfil Profesional ─────────────────────────── */}
                         {activeTab === 'perfil' && (
                             <Card variant="flat" className="border border-border">
