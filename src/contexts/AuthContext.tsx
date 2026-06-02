@@ -207,6 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 name: orgName,
                 slug: orgSlug,
                 type: 'personal',
+                subscription_status: 'inactive',
             }).select().single();
 
             if (org && !orgErr) {
