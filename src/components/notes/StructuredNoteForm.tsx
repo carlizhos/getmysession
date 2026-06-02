@@ -219,10 +219,10 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-red-900">Sesión #</label>
                                 <Input
-                                    type="number"
-                                    value={sessionNumber}
-                                    onChange={(e) => setSessionNumber(e.target.value)}
-                                    className="bg-white/50 border-red-200 focus:border-red-400 focus:ring-red-400"
+                                    type="text"
+                                    value="Automático"
+                                    readOnly
+                                    className="bg-white/50 border-red-200 text-muted-foreground font-medium cursor-not-allowed"
                                 />
                             </div>
                         </div>
@@ -526,24 +526,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
 
             <div className="flex justify-end gap-3 pt-6 border-t border-border mt-8">
                 <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-                <Button variant="zen" onClick={() => onSave({
-                    patientId,
-                    patientName,
-                    sessionDate,
-                    sessionNumber,
-                    moodRating: moodRating[0],
-                    moodNotes,
-                    bridgeItems,
-                    bridgeNotes,
-                    agendaItems,
-                    coreBeliefs,
-                    alternativeBeliefs,
-                    actionPlanItems,
-                    cie10,
-                    diagnosticoPrincipal,
-                    dynamicFields,
-                    templateId
-                })} className="gap-2">
+                <Button variant="zen" onClick={handleSave} className="gap-2">
                     <Save className="h-4 w-4" /> Guardar Nota
                 </Button>
             </div>

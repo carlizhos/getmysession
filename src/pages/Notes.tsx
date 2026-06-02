@@ -189,7 +189,7 @@ const Notes = () => {
       patient_id: noteData.patientId || null,
       patient_name: noteData.patientName || 'Sin paciente',
       date: noteData.date,
-      session_number: parseInt(noteData.sessionNumber) || 1,
+      session_number: noteData.patientId ? notes.filter(n => n.patient_id === noteData.patientId).length + 1 : 1,
       mood: noteData.mood,
       bridge: noteData.bridge,
       agenda: noteData.agenda,
