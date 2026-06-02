@@ -30,7 +30,9 @@ import {
   Upload,
   File,
   Image,
-  Sparkles
+  Sparkles,
+  FolderOpen,
+  FileSignature
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -81,6 +83,33 @@ interface EnrichedPatient extends Patient {
     _next_appointment?: string | null;
     _last_appointment?: string | null;
 }
+
+const PATIENT_TABS = [
+    { id: 'info', label: 'Datos Personales', icon: User },
+    { id: 'timeline', label: 'Línea de Tiempo', icon: Clock },
+    { id: 'evolution', label: 'Evolución', icon: Activity },
+    { id: 'history', label: 'Historia Clínica', icon: ClipboardList },
+    { id: 'notes', label: 'Notas de Sesión', icon: FileText },
+    { id: 'tests', label: 'Pruebas', icon: Brain },
+    { id: 'documents', label: 'Documentos', icon: FolderOpen },
+    { id: 'whatsapp', label: 'Mensajes WA', icon: MessageCircle },
+    { id: 'economy', label: 'Finanzas', icon: DollarSign },
+];
+
+const TAB_GROUPS = [
+    {
+        title: 'CLÍNICO',
+        tabs: ['info', 'timeline', 'evolution', 'history']
+    },
+    {
+        title: 'HERRAMIENTAS',
+        tabs: ['notes', 'tests']
+    },
+    {
+        title: 'ADMINISTRACIÓN',
+        tabs: ['documents', 'whatsapp', 'economy']
+    }
+];
 
 const Patients = () => {
   const navigate = useNavigate();
@@ -797,6 +826,29 @@ const Patients = () => {
           <div className="w-full">
             {selectedPatientData ? (
               <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {/* Mobile Navigation (Swipeable horizontal pill tabs) */}
+                <TabsList className="lg:hidden w-full overflow-x-auto scrollbar-none flex justify-start gap-2 pb-4 px-1 mask-image-horizontal bg-transparent h-auto p-0 border-none">
+                    {PATIENT_TABS.map((tab) => {
+                        const Icon = tab.icon;
+                        const active = activePatientTab === tab.id;
+                        return (
+                            <TabsTrigger
+                                key={tab.id}
+                                value={tab.id}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all border data-[state=active]:shadow-sm",
+                                    active
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-white text-muted-foreground border-border hover:text-foreground hover:bg-white/80"
+                                )}
+                            >
+                                <Icon className="h-3.5 w-3.5" />
+                                <span>{tab.label}</span>
+                            </TabsTrigger>
+                        );
+                    })}
+                </TabsList>
+
                 <Card variant="flat" className="min-h-[calc(100vh-220px)] overflow-hidden flex flex-col border-border/50 shadow-medium">
                   {/* Detailed Information Section */}
                   <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -862,7 +914,41 @@ const Patients = () => {
                         )}
                       </div>
 
-                      {/* Local TabsList removed. Navigation is now handled globally in the main Layout sidebar. */}
+                      {/* Desktop Sidebar Navigation */}
+                      <TabsList className="hidden lg:flex flex-col items-stretch justify-start gap-6 w-full pt-6 border-t border-border/50 mt-2 mb-4 bg-transparent h-auto p-0 border-none">
+                          {TAB_GROUPS.map((group) => (
+                              <div key={group.title} className="space-y-2.5">
+                                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-3">{group.title}</h3>
+                                  <div className="space-y-1">
+                                      {group.tabs.map((tabId) => {
+                                          const tab = PATIENT_TABS.find(t => t.id === tabId);
+                                          if (!tab) return null;
+                                          const Icon = tab.icon;
+                                          const active = activePatientTab === tab.id;
+                                          return (
+                                              <TabsTrigger
+                                                  key={tab.id}
+                                                  value={tab.id}
+                                                  className={cn(
+                                                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative overflow-hidden group/btn text-left",
+                                                      active
+                                                          ? "bg-primary/10 text-primary"
+                                                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 data-[state=inactive]:bg-transparent data-[state=active]:shadow-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                                                  )}
+                                              >
+                                                  {/* Active indicator bar */}
+                                                  {active && (
+                                                      <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary rounded-full" />
+                                                  )}
+                                                  <Icon className={cn("h-4 w-4 shrink-0 transition-transform duration-200 group-hover/btn:scale-110", active ? "text-primary" : "text-muted-foreground")} />
+                                                  <span className="truncate">{tab.label}</span>
+                                              </TabsTrigger>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+                          ))}
+                      </TabsList>
 
                       <div className="mt-auto grid grid-cols-1 gap-2 lg:pt-6 lg:border-t border-border/50">
                         <Button 
