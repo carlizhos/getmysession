@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import SubscriptionBanner from '@/components/subscription/SubscriptionBanner';
 import {
   LayoutDashboard,
   Users,
@@ -495,6 +496,11 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           <UserMenu avatarUrl={avatarUrl} />
         </div>
       </header>
+
+      {/* Subscription Banner */}
+      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fixed top-14 lg:top-16 right-0 z-40', contentPl)}>
+        <SubscriptionBanner />
+      </div>
 
       {/* Main content — Glassmorphism card container */}
       <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>

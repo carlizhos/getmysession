@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -182,6 +183,7 @@ export default function TelehealthSession() {
   }
 
   return (
+    <FeatureGate feature="telehealth">
     <div className="h-screen w-full flex overflow-hidden bg-slate-100">
       
       {/* LEFT: Video Call (Jitsi iframe) */}
@@ -372,5 +374,6 @@ export default function TelehealthSession() {
 
       </div>
     </div>
+    </FeatureGate>
   );
 }

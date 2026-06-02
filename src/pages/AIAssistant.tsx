@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -583,6 +584,7 @@ const AIAssistant = () => {
 
   return (
     <Layout>
+      <FeatureGate feature="ai_assistant">
       <div className="space-y-6">
         {/* Header Section (Island Style) */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -1058,6 +1060,7 @@ const AIAssistant = () => {
           </div>
         </div>
       )}
+      </FeatureGate>
     </Layout>
   );
 };

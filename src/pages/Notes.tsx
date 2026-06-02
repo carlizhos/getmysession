@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { SessionNote } from '@/types';
 import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
+import FeatureGate from '@/components/subscription/FeatureGate';
 
 
 
@@ -262,6 +263,7 @@ const Notes = () => {
       return (
         <Layout>
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] py-12">
+            <FeatureGate feature="ai_voice">
             <AIVoiceRecorder 
               onCancel={() => setIsDictating(false)}
               onSuccess={async (mockText) => {
@@ -294,6 +296,7 @@ const Notes = () => {
                 }
               }}
             />
+            </FeatureGate>
           </div>
         </Layout>
       );
