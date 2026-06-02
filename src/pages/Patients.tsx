@@ -849,73 +849,68 @@ const Patients = () => {
                     })}
                 </TabsList>
 
-                <Card variant="flat" className="min-h-[calc(100vh-220px)] overflow-hidden flex flex-col border-border/50 shadow-medium">
-                  {/* Detailed Information Section */}
-                  <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-                    {/* Left: Basic Info (Compact Sidebar) */}
-                    <div className="w-full lg:w-[340px] xl:w-[380px] border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-4 sm:p-6 flex-shrink-0 flex flex-col">
-                      <div className="flex flex-col items-center text-center mb-8">
-                        <div className="relative mb-4 group">
+                {/* Header Section (Island Style) */}
+                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft mb-6">
+                    <div className="flex items-center gap-4 w-full lg:w-auto">
+                        <div className="relative group shrink-0">
                           <div className={cn(
-                            "h-24 w-24 rounded-full flex items-center justify-center text-4xl font-bold border-2 border-primary/20 transition-all",
+                            "h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold border-2 border-primary/20 transition-all",
                             getAvatarTheme(selectedPatientData.name)
                           )}>
                             {getInitials(selectedPatientData.name)}
                           </div>
-                          <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5 whitespace-nowrap shadow-sm">
-                            {selectedPatientData.status === 'activo' ? 'Activo' : 
-                             selectedPatientData.status === 'primer_contacto' ? 'Primer Contacto' : 
-                             selectedPatientData.status === 'seguimiento' ? 'Seguimiento' : 
-                             selectedPatientData.status === 'alta' ? 'Alta Clínica' : 
-                             selectedPatientData.status?.replace(/_/g, ' ')}
-                          </Badge>
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{selectedPatientData.name}</h2>
-                        <p className="text-sm text-muted-foreground mt-0.5 truncate max-w-full italic">ID: {selectedPatientData.id.slice(0,8)}</p>
-                      </div>
-
-                      <div className="space-y-5">
-                        <div className="p-3 rounded-lg bg-white/50 border border-border/50 hover:bg-white transition-colors">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Contacto</p>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
+                        <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-xl font-black tracking-tight text-foreground">{selectedPatientData.name}</h1>
+                                <Badge className="bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5 whitespace-nowrap shadow-sm">
+                                  {selectedPatientData.status === 'activo' ? 'Activo' : 
+                                   selectedPatientData.status === 'primer_contacto' ? 'Primer Contacto' : 
+                                   selectedPatientData.status === 'seguimiento' ? 'Seguimiento' : 
+                                   selectedPatientData.status === 'alta' ? 'Alta Clínica' : 
+                                   selectedPatientData.status?.replace(/_/g, ' ')}
+                                </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">ID: {selectedPatientData.id.slice(0,8)}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        {/* Contact Info Pills */}
+                        {selectedPatientData.phone && (
+                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
                                 <Phone className="h-3.5 w-3.5 text-primary" />
-                                <span>{selectedPatientData.phone || 'N/A'}</span>
-                              </div>
-                              {selectedPatientData.phone && (
+                                <span>{selectedPatientData.phone}</span>
                                 <a
                                   href={`https://wa.me/${selectedPatientData.phone.replace(/[^0-9]/g, '')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="p-1 px-2 rounded-md hover:bg-success/10 text-success transition-all flex items-center gap-1.5"
+                                  className="ml-1 p-1 rounded hover:bg-success/10 text-success transition-all"
                                   title="Enviar WhatsApp"
                                 >
                                   <MessageCircle className="h-3.5 w-3.5" />
-                                  <span className="text-[10px] font-bold uppercase">WA</span>
                                 </a>
-                              )}
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Mail className="h-3.5 w-3.5 text-primary" />
-                              <span className="truncate">{selectedPatientData.email || 'N/A'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {selectedPatientData.last_session && (
-                          <div className="p-3 rounded-lg bg-white/50 border border-border/50">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Última Visita</p>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="h-3.5 w-3.5 text-primary" />
-                              <span>{format(new Date(selectedPatientData.last_session), 'd MMMM, yyyy', { locale: es })}</span>
-                            </div>
-                          </div>
                         )}
-                      </div>
+                        {selectedPatientData.email && (
+                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
+                                <Mail className="h-3.5 w-3.5 text-primary" />
+                                <span className="truncate max-w-[150px]">{selectedPatientData.email}</span>
+                            </div>
+                        )}
+                        {selectedPatientData.last_session && (
+                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
+                                <Calendar className="h-3.5 w-3.5 text-primary" />
+                                <span className="text-xs">Última: {format(new Date(selectedPatientData.last_session), 'd MMM', { locale: es })}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                      {/* Desktop Sidebar Navigation */}
-                      <TabsList className="hidden lg:flex flex-col items-stretch justify-start gap-6 w-full pt-6 border-t border-border/50 mt-2 mb-4 bg-transparent h-auto p-0 border-none">
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start w-full">
+                    {/* Desktop Sidebar Navigation */}
+                    <div className="hidden lg:flex flex-col bg-card border border-border p-5 rounded-2xl shadow-soft shrink-0 w-full animate-in fade-in duration-500">
+                      <TabsList className="flex flex-col items-stretch justify-start gap-6 w-full bg-transparent h-auto p-0 border-none">
                           {TAB_GROUPS.map((group) => (
                               <div key={group.title} className="space-y-2.5">
                                   <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-3">{group.title}</h3>
@@ -936,7 +931,6 @@ const Patients = () => {
                                                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50 data-[state=inactive]:bg-transparent data-[state=active]:shadow-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                                                   )}
                                               >
-                                                  {/* Active indicator bar */}
                                                   {active && (
                                                       <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary rounded-full" />
                                                   )}
@@ -950,50 +944,50 @@ const Patients = () => {
                           ))}
                       </TabsList>
 
-                      <div className="mt-auto grid grid-cols-1 gap-2 lg:pt-6 lg:border-t border-border/50">
+                      <div className="mt-8 pt-6 border-t border-border/50 grid grid-cols-1 gap-2">
                         <Button 
                           variant="zen" 
                           size="sm" 
-                          className="w-full h-11 shadow-lg shadow-primary/10 mb-2 gap-2"
+                          className="w-full h-10 shadow-sm mb-2 gap-2 text-xs"
                           onClick={handleExportPDF}
                           disabled={isExportingPDF}
                         >
                           {isExportingPDF ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <Download className="h-4 w-4" />
+                            <Download className="h-3.5 w-3.5" />
                           )}
                           Exportar Expediente
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="w-full h-10 border-primary/20 hover:bg-primary/5"
+                          className="w-full h-9 border-primary/20 hover:bg-primary/5 text-xs"
                           onClick={() => {
                             setEditingPatient(selectedPatientData);
                             setIsNewPatientOpen(true);
                           }}
                         >
-                          <Pencil className="h-4 w-4 mr-2" /> Editar Perfil
+                          <Pencil className="h-3 w-3 mr-1.5" /> Editar Perfil
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="w-full h-10 text-destructive hover:bg-destructive/10 border-destructive/20"
+                          className="w-full h-9 text-destructive hover:bg-destructive/10 border-destructive/20 text-xs"
                           onClick={() => {
                             if (window.confirm('¿Estás seguro de que deseas eliminar este expediente? Esta acción lo archivará según la NOM-024.')) {
                               handleDeletePatient();
                             }
                           }}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                          <Trash2 className="h-3 w-3 mr-1.5" /> Eliminar
                         </Button>
                       </div>
                     </div>
 
-                    {/* Right: Modern Tabbed Layout */}
-                    <div className="flex-1 flex flex-col overflow-hidden bg-white">
-                      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-zen">
+                    {/* Right: Modern Tabbed Layout Content */}
+                    <div className="w-full min-w-0 bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+                      <div className="p-4 sm:p-8 min-h-[500px]">
                           <TabsContent value="info" className="m-0 space-y-6 animate-in fade-in duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <section className="space-y-4">
@@ -1604,7 +1598,6 @@ const Patients = () => {
                         </div>
                       </div>
                     </div>
-                  </Card>
                 </Tabs>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">

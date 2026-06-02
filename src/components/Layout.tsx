@@ -336,44 +336,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                         )}
                       </NavLink>
 
-                      {/* PATIENT SUBMENU (Accordion) */}
-                      {item.name === 'Pacientes' && activePatient && onPatientTabChange && (
-                        <div className={cn(
-                          "overflow-hidden transition-all duration-500 ease-in-out",
-                          collapsed ? "h-0 opacity-0" : "mt-2 mb-4 ml-4 pl-2 border-l border-border/50"
-                        )}>
-                          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 mt-1 truncate">
-                            {activePatient.name}
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            {[
-                              { id: 'info', label: 'General', icon: User },
-                              { id: 'timeline', label: 'Actividad 360°', icon: Activity },
-                              { id: 'evolution', label: 'Evolución', icon: TrendingUp },
-                              { id: 'tests', label: 'Pruebas', icon: Brain },
-                              { id: 'history', label: 'Notas', icon: FileText },
-                              { id: 'economy', label: 'Economía', icon: DollarSign },
-                              { id: 'documents', label: 'Docs', icon: Paperclip },
-                              { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle }
-                            ].map((tab) => (
-                              <button
-                                key={tab.id}
-                                onClick={() => onPatientTabChange(tab.id)}
-                                className={cn(
-                                  "flex items-center gap-2.5 px-3 py-2 w-full text-left rounded-lg transition-all text-[13px] font-medium",
-                                  activePatientTab === tab.id
-                                    ? "bg-primary/10 text-primary shadow-sm"
-                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                                  tab.id === 'whatsapp' && activePatientTab === tab.id && "bg-success/10 text-success"
-                                )}
-                              >
-                                <tab.icon className="h-3.5 w-3.5" />
-                                <span className="truncate">{tab.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+
 
                       {/* Tooltip in collapsed mode */}
                       {collapsed && (
