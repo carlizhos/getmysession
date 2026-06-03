@@ -416,7 +416,10 @@ const NewAppointmentDialog = ({
 
             // sessionUser is already fetched at the top of the try block
 
+            const appointmentId = isEditing && editingAppointment ? editingAppointment.id : crypto.randomUUID();
+
             const payload = {
+                id: appointmentId,
                 patient_id: formData.patientId || null,
                 patient_name: formData.patientName,
                 start_time: startDateTime.toISOString(),
@@ -441,6 +444,10 @@ const NewAppointmentDialog = ({
             };
 
             let finalMeetingLink = formData.meetingLink;
+
+            if (formData.meetingPlatform === 'saudade' && !finalMeetingLink) {
+                finalMeetingLink = `${window.location.origin}/join/${appointmentId}`;
+            }
 
             // --- External Calendar / Meeting Sync (Google, Microsoft, or Zoom) ---
             const isMeetSelected = formData.meetingPlatform === 'meet';
@@ -664,13 +671,19 @@ const NewAppointmentDialog = ({
                     for (let i = 0; i < formData.recurrenceWeeks; i++) {
                         const currentStart = new Date(startDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
                         const currentEnd = new Date(endDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+                        const sessionAptId = crypto.randomUUID();
+                        let sessionMeetingLink = finalMeetingLink;
+                        if (payload.meeting_platform === 'saudade') {
+                            sessionMeetingLink = `${window.location.origin}/join/${sessionAptId}`;
+                        }
 
                         sessions.push({
                             ...payload,
+                            id: sessionAptId,
                             start_time: currentStart.toISOString(),
                             end_time: currentEnd.toISOString(),
                             recurrence_id: recurrenceId,
-                            meeting_link: finalMeetingLink,
+                            meeting_link: sessionMeetingLink,
                             status: formData.status || 'scheduled',
                             payment_status: 'pending',
                         });
@@ -1009,7 +1022,7 @@ const NewAppointmentDialog = ({
                                     if (isReadOnly) return;
                                     const updates: any = { modality: value };
                                     if (value === 'online' && !formData.meetingPlatform) {
-                                        updates.meetingPlatform = 'meet';
+                                        updates.meetingPlatform = 'saudade';
                                     }
                                     setFormData({ ...formData, ...updates });
                                 }}
@@ -1119,9 +1132,11 @@ const NewAppointmentDialog = ({
                                             <SelectValue placeholder="Selecciona la plataforma" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="saudade">Videollamada Saudade (Consultorio Virtual)</SelectItem>
                                             <SelectItem value="meet">Google Meet</SelectItem>
                                             <SelectItem value="zoom">Zoom</SelectItem>
-                                            <SelectItem value="other">Otra</SelectItem>
+                                            <SelectItem value="teams">Microsoft Teams</SelectItem>
+                                            <SelectItem value="other">Otra plataforma / Presencial</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

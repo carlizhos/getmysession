@@ -322,6 +322,7 @@ const BookingPage = () => {
       // Sincronizar hacia Google Calendar a través de la Edge Function (y generar Meet si aplica)
       let finalMeetLink = null;
       let finalPlatform = null;
+      const appointmentId = crypto.randomUUID();
 
       if (modality === 'Videollamada') {
         finalPlatform = 'meet';
@@ -343,6 +344,12 @@ const BookingPage = () => {
           }
         } catch (err) {
           console.error("Error sincronizando y creando Meet:", err);
+        }
+
+        // Si no se generó enlace de Meet (por ejemplo, Google Calendar no conectado), usar Saudade integrado
+        if (!finalMeetLink) {
+          finalPlatform = 'saudade';
+          finalMeetLink = `${window.location.origin}/join/${appointmentId}`;
         }
       } else {
         // Presencial: sincronizamos asíncronamente en el fondo sin esperar
@@ -380,6 +387,7 @@ const BookingPage = () => {
       const { error: aptError } = await supabase
         .from('appointments')
         .insert({
+          id: appointmentId,
           user_id: profile.id,
           patient_name: patientInfo.name, 
           start_time: startTime.toISOString(),

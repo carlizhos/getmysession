@@ -383,14 +383,26 @@ const Notes = () => {
               initialPatientName={selectedPatientName || undefined}
               onCancel={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}
               onSave={async (noteData) => {
+                const { data: { user } } = await supabase.auth.getUser();
                 const { error } = await supabase
                   .from('session_notes')
                   .insert({
-                    patient_id: noteData.patientId,
-                    date: noteData.sessionDate,
+                    user_id: user?.id,
+                    patient_id: noteData.patientId || null,
+                    patient_name: noteData.patientName || 'Sin paciente',
+                    date: noteData.date,
+                    session_number: parseInt(noteData.sessionNumber) || 1,
+                    mood: noteData.mood,
+                    bridge: noteData.bridge,
+                    agenda: noteData.agenda,
+                    beliefs: noteData.beliefs,
+                    action_plan: noteData.actionPlan,
+                    cie10_code: noteData.cie10Code || null,
+                    cie10_description: noteData.cie10Description || null,
+                    diagnostico_principal: noteData.diagnosticoPrincipal || null,
                     content: noteData,
                     organization_id: organization?.id,
-                    template_id: noteData.templateId
+                    template_id: selectedTemplateId
                   });
                 if (error) {
                   toast.error('Error al guardar: ' + error.message);

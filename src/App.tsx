@@ -28,6 +28,7 @@ const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Consents = lazy(() => import("./pages/Consents"));
 const TelehealthSession = lazy(() => import("./pages/TelehealthSession"));
+const JoinSession = lazy(() => import("./pages/JoinSession"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
@@ -217,6 +218,7 @@ const AppContent = () => {
             <Route path="/t/:token" element={<PatientTestView />} />
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route path="/portal" element={<Portal />} />
+            <Route path="/join/:id" element={<JoinSession />} />
 
             {/* Public Info Routes */}
             <Route path="/politicas" element={<PrivacyPolicy />} />

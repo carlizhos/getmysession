@@ -747,7 +747,8 @@ const Patients = () => {
       >
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+          {!selectedPatientData && (
+            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
             <div className="flex items-center gap-4 w-full lg:w-auto">
               <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
                 <Users className="h-6 w-6 text-white" />
@@ -821,13 +822,14 @@ const Patients = () => {
               </Button>
             </div>
           </div>
-
-          {/* Full-Width Content Area */}
+          )}
+{/* Full-Width Content Area */}
           <div className="w-full">
             {selectedPatientData ? (
-              <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-                {/* Mobile Navigation (Swipeable horizontal pill tabs) */}
-                <TabsList className="lg:hidden w-full overflow-x-auto scrollbar-none flex justify-start gap-2 pb-4 px-1 mask-image-horizontal bg-transparent h-auto p-0 border-none">
+              <>
+                <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  {/* Mobile Navigation (Swipeable horizontal pill tabs) */}
+                  <TabsList className="lg:hidden w-full overflow-x-auto scrollbar-none flex justify-start gap-2 pb-4 px-1 mask-image-horizontal bg-transparent h-auto p-0 border-none">
                     {PATIENT_TABS.map((tab) => {
                         const Icon = tab.icon;
                         const active = activePatientTab === tab.id;
@@ -852,6 +854,15 @@ const Patients = () => {
                 {/* Header Section (Island Style) */}
                 <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft mb-6">
                     <div className="flex items-center gap-4 w-full lg:w-auto">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 -ml-2 hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
+                          onClick={() => setSelectedPatient(null)}
+                          title="Volver a lista de pacientes"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
                         <div className="relative group shrink-0">
                           <div className={cn(
                             "h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold border-2 border-primary/20 transition-all",
@@ -925,9 +936,9 @@ const Patients = () => {
                                                   key={tab.id}
                                                   value={tab.id}
                                                   className={cn(
-                                                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative overflow-hidden group/btn text-left",
+                                                      "w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative overflow-hidden group/btn text-left",
                                                       active
-                                                          ? "bg-primary/10 text-primary"
+                                                          ? "bg-primary/10 text-primary !shadow-none data-[state=active]:shadow-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                                                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50 data-[state=inactive]:bg-transparent data-[state=active]:shadow-none data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                                                   )}
                                               >
@@ -986,8 +997,9 @@ const Patients = () => {
                     </div>
 
                     {/* Right: Modern Tabbed Layout Content */}
-                    <div className="w-full min-w-0 bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
-                      <div className="p-4 sm:p-8 min-h-[500px]">
+                    <div className="w-full min-w-0 bg-card rounded-2xl shadow-soft border border-border overflow-hidden relative min-h-[500px]">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+                      <div className="relative z-10 h-full p-6 sm:p-8">
                           <TabsContent value="info" className="m-0 space-y-6 animate-in fade-in duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <section className="space-y-4">
@@ -1599,6 +1611,7 @@ const Patients = () => {
                       </div>
                     </div>
                 </Tabs>
+              </>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">
                 <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">

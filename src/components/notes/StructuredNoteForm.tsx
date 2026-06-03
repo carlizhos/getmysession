@@ -39,6 +39,34 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
     const [sessionNumber, setSessionNumber] = useState('1');
 
+    // Fetch consecutive session number when patient changes
+    useEffect(() => {
+        const fetchSessionNumber = async () => {
+            if (!patientId) {
+                setSessionNumber('1');
+                return;
+            }
+            try {
+                const { count, error } = await supabase
+                    .from('session_notes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('patient_id', patientId)
+                    .is('deleted_at', null);
+
+                if (!error && count !== null) {
+                    setSessionNumber((count + 1).toString());
+                } else {
+                    setSessionNumber('1');
+                }
+            } catch (err) {
+                console.error('Error fetching notes count:', err);
+                setSessionNumber('1');
+            }
+        };
+
+        fetchSessionNumber();
+    }, [patientId]);
+
     // Mood
     const [moodRating, setMoodRating] = useState([50]);
     const [moodNotes, setMoodNotes] = useState('');
@@ -220,7 +248,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                                 <label className="text-sm font-medium text-red-900">Sesión #</label>
                                 <Input
                                     type="text"
-                                    value="Automático"
+                                    value={sessionNumber}
                                     readOnly
                                     className="bg-white/50 border-red-200 text-muted-foreground font-medium cursor-not-allowed"
                                 />

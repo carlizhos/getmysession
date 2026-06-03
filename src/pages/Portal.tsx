@@ -20,7 +20,8 @@ import {
   FileText, 
   Check,
   FileSignature,
-  Download
+  Download,
+  Video
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { psychometricTests } from '@/lib/psychometricTests';
@@ -529,16 +530,31 @@ export default function Portal() {
                     </CardContent>
                     
                     {apt.status !== 'cancelled' && !isPast && (
-                      <CardFooter className="p-4 bg-muted/10 border-t border-border/40">
+                      <CardFooter className="p-4 bg-muted/10 border-t border-border/40 flex flex-col gap-2">
+                        {apt.meeting_link && (
+                          <Button
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 text-xs h-9 rounded-lg shadow-sm"
+                            onClick={() => {
+                              if (apt.meeting_link.startsWith('http')) {
+                                window.open(apt.meeting_link, '_blank');
+                              } else {
+                                window.open(`${window.location.origin}${apt.meeting_link}`, '_blank');
+                              }
+                            }}
+                          >
+                            <Video className="w-4 h-4" />
+                            Unirse a Videollamada
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 text-xs h-9 rounded-lg"
                           onClick={() => handleCancelAppointment(apt.id, apt.management_token)}
                           disabled={isExpired || cancelingId === apt.id}
                         >
                           {cancelingId === apt.id ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin animate-spin" />
                           ) : (
                             <XCircle className="w-4 h-4 mr-2" />
                           )}
