@@ -33,7 +33,8 @@ import {
   Sparkles,
   FolderOpen,
   FileSignature,
-  Edit3
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -77,6 +78,14 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
 import { decryptText } from '@/lib/encryption';
 
@@ -835,27 +844,67 @@ const Patients = () => {
             {selectedPatientData ? (
               <>
                 <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  {/* Mobile Navigation (Swipeable horizontal pill tabs) */}
-                  <TabsList className="lg:hidden w-full overflow-x-auto scrollbar-none flex justify-start gap-2 pb-4 px-1 mask-image-horizontal bg-transparent h-auto p-0 border-none">
-                    {PATIENT_TABS.map((tab) => {
-                        const Icon = tab.icon;
-                        const active = activePatientTab === tab.id;
-                        return (
-                            <TabsTrigger
-                                key={tab.id}
-                                value={tab.id}
-                                className={cn(
-                                    "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all border data-[state=active]:shadow-sm",
+                  {/* Mobile Navigation (iOS-Style Bottom Sheet Selector) */}
+                  <div className="lg:hidden w-full mb-4">
+                    <Drawer>
+                      <DrawerTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-between rounded-2xl h-11 border-border shadow-soft bg-white text-xs font-bold px-4 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const activeTabObj = PATIENT_TABS.find(t => t.id === activePatientTab);
+                              const Icon = activeTabObj?.icon || User;
+                              return (
+                                <>
+                                  <Icon className="h-4 w-4 text-primary" />
+                                  <span>{activeTabObj?.label || 'Seleccionar sección'}</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-slate-400" />
+                        </Button>
+                      </DrawerTrigger>
+                      <DrawerContent className="p-6 pb-8 bg-background border-t border-border">
+                        <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-300 mb-6" />
+                        <DrawerHeader className="p-0 pb-3 text-left">
+                          <DrawerTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
+                            Secciones del Expediente
+                          </DrawerTitle>
+                        </DrawerHeader>
+                        <div className="grid grid-cols-1 gap-1.5 max-h-[60vh] overflow-y-auto pr-1 scrollbar-zen">
+                          {PATIENT_TABS.map((tab) => {
+                            const Icon = tab.icon;
+                            const active = activePatientTab === tab.id;
+                            return (
+                              <DrawerClose asChild key={tab.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => setActivePatientTab(tab.id)}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all text-left",
                                     active
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "bg-white text-muted-foreground border-border hover:text-foreground hover:bg-white/80"
-                                )}
-                            >
-                                <Icon className="h-3.5 w-3.5" />
-                                <span>{tab.label}</span>
-                            </TabsTrigger>
-                        );
-                    })}
+                                      ? "bg-primary/10 text-primary font-bold shadow-sm"
+                                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                                  )}
+                                >
+                                  <Icon className={cn("h-4 w-4", active ? "text-primary animate-pulse" : "text-slate-400")} />
+                                  <span>{tab.label}</span>
+                                </button>
+                              </DrawerClose>
+                            );
+                          })}
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </div>
+
+                <TabsList className="hidden">
+                    {PATIENT_TABS.map(tab => (
+                        <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
+                    ))}
                 </TabsList>
 
                 {/* Header Section (Island Style) */}
@@ -1246,7 +1295,7 @@ const Patients = () => {
                               </div>
                               <div className="space-y-4">
                                   {patientNotes.map((note) => (
-                                    <div key={note.id} className="p-5 rounded-2xl border border-border bg-white shadow-soft transition-all hover:shadow-medium">
+                                    <div key={note.id} className="p-6 rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/30 shadow-sm transition-all duration-300 hover:shadow-medium hover:border-slate-200/50">
                                       <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-3">
                                           <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -1257,9 +1306,9 @@ const Patients = () => {
                                             <p className="text-sm font-bold">{format(new Date(note.date), 'd MMMM, yyyy', { locale: es })}</p>
                                           </div>
                                         </div>
-                                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest">{note.session_number}</Badge>
+                                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest bg-primary/10 text-primary border-primary/20 rounded-md px-2.5 py-0.5">{note.session_number}</Badge>
                                       </div>
-                                      <div className="line-clamp-3 text-sm text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl italic">
+                                      <div className="line-clamp-3 text-sm text-slate-600 leading-relaxed border-l-2 border-primary/30 bg-primary/5 pl-4 py-3 pr-4 rounded-r-xl italic">
                                         "{Array.isArray(note.agenda) ? note.agenda.map(a => a.topic).join(', ') : 'Resumen de sesión'}"
                                       </div>
                                       <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/60">
