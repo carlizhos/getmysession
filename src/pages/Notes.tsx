@@ -35,7 +35,8 @@ import { SessionNote } from '@/types';
 import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
 import FeatureGate from '@/components/subscription/FeatureGate';
-
+import MiniEditor from '@/components/ui/MiniEditor';
+import DOMPurify from 'dompurify';
 
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -708,16 +709,20 @@ const Notes = () => {
                         <Brain className="h-4 w-4" /> Reporte Clínico Estructurado
                       </h4>
                       {isEditing ? (
-                        <textarea
-                          className="w-full min-h-[350px] text-[15px] bg-muted/40 rounded-[1.5rem] p-6 whitespace-pre-wrap leading-relaxed border-2 border-primary/10 focus:border-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none"
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="text-[15px] bg-muted/30 rounded-[1.5rem] p-8 whitespace-pre-wrap leading-relaxed border border-border/40 text-slate-700 shadow-inner italic">
-                          {selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.'}
+                        <div className="bg-white rounded-[1.5rem] p-1 border-2 border-primary/20 shadow-sm">
+                          <MiniEditor
+                            content={editingText}
+                            onChange={(html) => setEditingText(html)}
+                            className="border-none"
+                          />
                         </div>
+                      ) : (
+                        <div 
+                          className="text-[15px] bg-muted/30 rounded-[1.5rem] p-8 whitespace-pre-wrap leading-relaxed border border-border/40 text-slate-700 shadow-inner prose prose-sm max-w-none prose-headings:text-primary prose-a:text-primary"
+                          dangerouslySetInnerHTML={{ 
+                            __html: DOMPurify.sanitize(selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.') 
+                          }}
+                        />
                       )}
                     </div>
 
