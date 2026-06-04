@@ -78,21 +78,30 @@ serve(async (req) => {
       // Create Checkout Session for Subscription
       // Map plan_id to Stripe Price ID (In reality, these should be env vars or DB lookups)
       let priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
+      let matchedPrice: Stripe.Price | null = null;
       
       if (!priceId) {
         // Fallback: query active prices from Stripe dashboard dynamically
         const pricesList = await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] });
-        const matchedPrice = pricesList.data.find(p => {
+        matchedPrice = pricesList.data.find(p => {
           const prod = p.product as any;
           const name = prod?.name?.toLowerCase() || '';
           const nickname = p.nickname?.toLowerCase() || '';
           return name.includes(plan_id) || nickname.includes(plan_id) || name.includes('full') || name.includes('pro');
-        });
+        }) || null;
 
         if (matchedPrice) {
           priceId = matchedPrice.id;
         } else if (pricesList.data.length > 0) {
-          priceId = pricesList.data[0].id;
+          matchedPrice = pricesList.data[0];
+          priceId = matchedPrice.id;
+        }
+      } else {
+        // Retrieve price details from Stripe to verify type
+        try {
+          matchedPrice = await stripe.prices.retrieve(priceId);
+        } catch (err) {
+          console.error('Error retrieving price details from Stripe:', err);
         }
       }
 
@@ -100,21 +109,28 @@ serve(async (req) => {
         throw new Error(`Invalid plan_id or price not configured in dashboard (${plan_id})`);
       }
 
-      const session = await stripe.checkout.sessions.create({
+      const isRecurring = matchedPrice?.type === 'recurring' || !matchedPrice;
+
+      const sessionOpts: any = {
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
-        mode: 'subscription',
-        subscription_data: {
+        mode: isRecurring ? 'subscription' : 'payment',
+        success_url: `${return_url || req.headers.get('origin')}/settings?success=true`,
+        cancel_url: `${return_url || req.headers.get('origin')}/settings?canceled=true`,
+        metadata: { organization_id }
+      };
+
+      if (isRecurring) {
+        sessionOpts.subscription_data = {
           trial_period_days: 30,
           metadata: { 
             organization_id,
             plan_id // passing the slug (pro/clinic)
           }
-        },
-        success_url: `${return_url || req.headers.get('origin')}/settings?success=true`,
-        cancel_url: `${return_url || req.headers.get('origin')}/settings?canceled=true`,
-        metadata: { organization_id }
-      });
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionOpts);
       sessionUrl = session.url!;
     } else {
       // Create Portal Session to manage existing subscription
@@ -131,7 +147,7 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('ST_ERR:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
