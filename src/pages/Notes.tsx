@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ import FeatureGate from '@/components/subscription/FeatureGate';
 // ── Componente ────────────────────────────────────────────────────────────────
 const Notes = () => {
   const { organization } = useOrganization();
+  const [searchParams] = useSearchParams();
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -57,7 +59,26 @@ const Notes = () => {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [isDictating, setIsDictating] = useState(false);
 
-
+  // Mount logic for search params
+  useEffect(() => {
+    const pId = searchParams.get('patientId');
+    const nId = searchParams.get('noteId');
+    if (pId) {
+      setSelectedPatient(pId);
+      // Fetch patient name
+      supabase
+        .from('patients')
+        .select('name')
+        .eq('id', pId)
+        .single()
+        .then(({ data }) => {
+          if (data) setSelectedPatientName(data.name);
+        });
+    }
+    if (nId) {
+      setSelectedNote(nId);
+    }
+  }, [searchParams]);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchNotes = useCallback(async () => {

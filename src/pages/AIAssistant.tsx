@@ -282,18 +282,27 @@ const AIAssistant = () => {
       // Fetch note details
       supabase
         .from('session_notes')
-        .select('cie10_code, diagnostico_principal, bridge, transcript_summary')
+        .select('cie10_code, diagnostico_principal, bridge, transcript_summary, agenda')
         .eq('id', noteId)
         .single()
         .then(({ data }) => {
           if (data) {
             if (data.cie10_code) setCie10Code(data.cie10_code);
             if (data.diagnostico_principal) setDiagnosticoPrincipal(data.diagnostico_principal);
-            if (data.bridge && typeof data.bridge === 'object') {
-              setBulletPoints((data.bridge as any).notes || '');
+            
+            // Populate bullet points from bridge or from the existing note text
+            if (data.bridge && typeof data.bridge === 'object' && (data.bridge as any).notes) {
+              setBulletPoints((data.bridge as any).notes);
+            } else if (data.agenda && Array.isArray(data.agenda) && data.agenda[0]?.thoughts) {
+              // If there are no bullet points, populate with the actual note text so they can ask the AI to rewrite it
+              setBulletPoints(data.agenda[0].thoughts.substring(0, 1000) + (data.agenda[0].thoughts.length > 1000 ? '...' : '')); 
             }
+
+            // Populate the generated report for editing
             if (data.transcript_summary) {
               setGeneratedReport(data.transcript_summary);
+            } else if (data.agenda && Array.isArray(data.agenda) && data.agenda[0]?.thoughts) {
+              setGeneratedReport(data.agenda[0].thoughts);
             }
           }
         });
