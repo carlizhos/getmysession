@@ -58,17 +58,45 @@ const Separator = () => (
 const MiniEditor = ({ content, onChange, className }: MiniEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
 
+  const getHtml = useCallback((text: string) => {
+    if (!text) return '';
+    if (text.startsWith('<')) return text; // Already HTML
+    return text
+      .split('\n\n')
+      .map((paragraph) => {
+        const lines = paragraph.split('\n').join('<br>');
+        return `<p>${lines}</p>`;
+      })
+      .join('');
+  }, []);
+
+  const [initialHtml] = useState(() => DOMPurify.sanitize(getHtml(content)));
+  const lastHtmlRef = useRef(content);
+
+  useEffect(() => {
+    if (editorRef.current && content !== lastHtmlRef.current) {
+      const html = DOMPurify.sanitize(getHtml(content));
+      if (editorRef.current.innerHTML !== html) {
+        editorRef.current.innerHTML = html;
+      }
+      lastHtmlRef.current = content;
+    }
+  }, [content, getHtml]);
+
   const exec = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
-    // Sync state after command
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      lastHtmlRef.current = html;
+      onChange(html);
     }
   }, [onChange]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      lastHtmlRef.current = html;
+      onChange(html);
     }
   }, [onChange]);
 
@@ -77,18 +105,6 @@ const MiniEditor = ({ content, onChange, className }: MiniEditorProps) => {
     const text = e.clipboardData.getData('text/plain');
     document.execCommand('insertText', false, text);
   }, []);
-
-  // Convert plain text with newlines to basic HTML for initial load
-  const getInitialHtml = useCallback(() => {
-    if (content.startsWith('<')) return content; // Already HTML
-    return content
-      .split('\n\n')
-      .map((paragraph) => {
-        const lines = paragraph.split('\n').join('<br>');
-        return `<p>${lines}</p>`;
-      })
-      .join('');
-  }, [content]);
 
   return (
     <div className={cn('rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden', className)}>
@@ -151,7 +167,7 @@ const MiniEditor = ({ content, onChange, className }: MiniEditorProps) => {
         suppressContentEditableWarning
         onInput={handleInput}
         onPaste={handlePaste}
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getInitialHtml()) }}
+        dangerouslySetInnerHTML={{ __html: initialHtml }}
         className={cn(
           'min-h-[300px] max-h-[500px] overflow-y-auto p-4 text-sm outline-none',
           'bg-white dark:bg-slate-900/40',
