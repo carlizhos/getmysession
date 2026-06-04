@@ -39,7 +39,7 @@ serve(async (req) => {
 
     const { data: org } = await supabase
       .from('organizations')
-      .select('stripe_customer_id, name, billing_email')
+      .select('stripe_customer_id, name, billing_email, plan_id, subscription_status')
       .eq('id', organization_id)
       .single();
 
@@ -68,23 +68,13 @@ serve(async (req) => {
         .eq('id', organization_id);
     }
 
-    // Determine session type
-    const { data: activeSub } = await supabase
-      .from('organizations')
-      .select('subscription_status')
-      .eq('id', organization_id)
-      .single();
+    // We should create a checkout session if the user passes a plan_id AND their current plan is 'free' (or not subscribed yet)
+    // Otherwise, if they are already on a paid plan (pro or clinic), they should go to the billing portal to manage it.
+    const isSubscribedToPaidPlan = org?.plan_id && org.plan_id !== 'free' && ['active', 'past_due'].includes(org?.subscription_status || '');
 
     let sessionUrl: string;
 
-    if (['active', 'past_due', 'trialing'].includes(activeSub?.subscription_status || '')) {
-      // Create Portal Session
-      const session = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: return_url || `${req.headers.get('origin')}/settings`,
-      });
-      sessionUrl = session.url;
-    } else {
+    if (plan_id && !isSubscribedToPaidPlan) {
       // Create Checkout Session for Subscription
       // Map plan_id to Stripe Price ID (In reality, these should be env vars or DB lookups)
       const priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
@@ -107,6 +97,13 @@ serve(async (req) => {
         metadata: { organization_id }
       });
       sessionUrl = session.url!;
+    } else {
+      // Create Portal Session to manage existing subscription
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: return_url || `${req.headers.get('origin')}/settings`,
+      });
+      sessionUrl = session.url;
     }
 
     return new Response(JSON.stringify({ url: sessionUrl }), {
