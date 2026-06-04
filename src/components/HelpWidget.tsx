@@ -136,7 +136,7 @@ const HelpWidget = () => {
             {/* ── Chat Panel ─────────────────────────────────────────────── */}
             <div
                 className={cn(
-                    'fixed z-[60] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                    'floating-widget fixed z-[60] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
                     // Mobile: full screen | Desktop: floating card
                     'bottom-0 right-0 sm:bottom-24 sm:right-4',
                     'w-full sm:w-[400px] sm:max-w-[calc(100vw-2rem)]',
@@ -348,7 +348,7 @@ const HelpWidget = () => {
             <button
                 onClick={() => setIsOpen(prev => !prev)}
                 className={cn(
-                    'fixed z-[61] bottom-5 right-5 flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                    'floating-widget fixed z-[61] bottom-5 right-5 flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
                     'h-14 w-14 rounded-2xl shadow-2xl',
                     'bg-gradient-to-br from-primary to-primary/80 text-white',
                     'hover:scale-110 hover:shadow-primary/30 active:scale-95',

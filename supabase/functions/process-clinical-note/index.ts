@@ -39,6 +39,21 @@ Deno.serve(async (req) => {
       }`;
       
       userPrompt = `Genera un reporte SOAP profesional basado en los siguientes puntos de la sesión:\n\n${text}`;
+    } else if (action === 'refine_note') {
+      systemPrompt = `Eres un asistente de psicología clínica experto en redacción de reportes clínicos y la NOM-024.
+      Tu objetivo es refinar, corregir o modificar el texto de un reporte clínico basándote en una instrucción específica del terapeuta, manteniendo la estructura HTML del texto.
+      
+      REGLAS DE FORMATO MUY IMPORTANTES:
+      1. Mantén o genera la estructura utilizando ÚNICAMENTE etiquetas HTML básicas: <h3>, <strong>, <p>, <ul>, <li>, <br>.
+      2. NO uses sintaxis Markdown (prohibido usar asteriscos ** o corchetes [] o paréntesis () para nombres de secciones).
+      3. Mantén el tono clínico, profesional e impecable.
+      
+      Formato de salida esperado (JSON):
+      {
+        "report": "Texto completo refinado y formateado con HTML básico"
+      }`;
+      
+      userPrompt = `Modifica el siguiente reporte clínico basándote en esta instrucción:\nINSTRUCCIÓN: ${text}\n\nREPORTE ORIGINAL:\n${patient_context || ''}`;
     } else if (action === 'chat') {
       systemPrompt = `Eres un asistente de psicología clínica inteligente. 
       Utilizas el contexto del expediente del paciente para responder dudas del terapeuta.
@@ -68,7 +83,7 @@ Deno.serve(async (req) => {
         ],
         temperature: 0.1,
         max_tokens: 2048,
-        response_format: action === 'generate_soap' ? { type: 'json_object' } : undefined,
+        response_format: (action === 'generate_soap' || action === 'refine_note') ? { type: 'json_object' } : undefined,
       }),
     });
 
@@ -82,7 +97,7 @@ Deno.serve(async (req) => {
     const content = aiData.choices[0].message.content;
     
     let result;
-    if (action === 'generate_soap') {
+    if (action === 'generate_soap' || action === 'refine_note') {
       result = JSON.parse(content);
     } else {
       result = { reply: content };

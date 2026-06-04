@@ -158,7 +158,7 @@ const SystemAgentWidget = () => {
             {/* ── Chat Panel ─────────────────────────────────────────────── */}
             <div
                 className={cn(
-                    'fixed z-[60] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                    'floating-widget fixed z-[60] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
                     // Mobile: full screen | Desktop: floating card (left of help widget)
                     'bottom-0 right-0 sm:bottom-24 sm:right-4',
                     'w-full sm:w-[420px] sm:max-w-[calc(100vw-2rem)]',
@@ -366,7 +366,7 @@ const SystemAgentWidget = () => {
             <button
                 onClick={() => setIsOpen(prev => !prev)}
                 className={cn(
-                    'fixed z-[61] bottom-5 right-[5.5rem] flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                    'floating-widget fixed z-[61] bottom-5 right-[5.5rem] flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
                     'h-14 w-14 rounded-2xl shadow-2xl',
                     'bg-gradient-to-br from-violet-500 to-indigo-500 text-white',
                     'hover:scale-110 hover:shadow-violet-500/30 active:scale-95',

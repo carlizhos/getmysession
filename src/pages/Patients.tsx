@@ -75,6 +75,7 @@ import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
+import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
 import { decryptText } from '@/lib/encryption';
@@ -147,6 +148,11 @@ const Patients = () => {
   
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
+
+  // Note editing sheet states
+  const [isNoteSheetOpen, setIsNoteSheetOpen] = useState(false);
+  const [editingNoteData, setEditingNoteData] = useState<SessionNote | null>(null);
+  const [noteSheetMode, setNoteSheetMode] = useState<'manual' | 'ai'>('manual');
 
   // Document upload states
   const [isUploading, setIsUploading] = useState(false);
@@ -322,7 +328,7 @@ const Patients = () => {
       // 1. Fetch Clinical Notes
       const { data: notesData, error: notesErr } = await supabase
         .from('session_notes')
-        .select('id, date, session_number, agenda, mood, created_at')
+        .select('id, date, session_number, agenda, mood, created_at, cie10_code, cie10_description, diagnostico_principal, bridge, transcript_summary')
         .eq('patient_id', patientId)
         .eq('organization_id', organization?.id)
         .is('deleted_at', null)
@@ -1221,7 +1227,22 @@ const Patients = () => {
                             <div className="space-y-6">
                               <div className="flex items-center justify-between">
                                 <h3 className="text-xl font-bold">Cronología de Sesiones</h3>
-                                <Button size="sm" variant="outline" className="text-xs h-8 border-primary/20 text-primary">Exportar Historial</Button>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="zen"
+                                    className="text-xs h-8 gap-1.5 shadow-sm font-bold"
+                                    onClick={() => {
+                                      setEditingNoteData(null);
+                                      setNoteSheetMode('manual');
+                                      setIsNoteSheetOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Nueva Nota
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="text-xs h-8 border-primary/20 text-primary">Exportar Historial</Button>
+                                </div>
                               </div>
                               <div className="space-y-4">
                                   {patientNotes.map((note) => (
@@ -1246,7 +1267,11 @@ const Patients = () => {
                                           size="sm"
                                           variant="ghost"
                                           className="h-8 text-xs gap-1.5 hover:bg-muted"
-                                          onClick={() => navigate(`/notes?patientId=${selectedPatientData?.id}&noteId=${note.id}`)}
+                                          onClick={() => {
+                                            setEditingNoteData(note);
+                                            setNoteSheetMode('manual');
+                                            setIsNoteSheetOpen(true);
+                                          }}
                                         >
                                           <Edit3 className="h-3.5 w-3.5" />
                                           Editar
@@ -1255,7 +1280,11 @@ const Patients = () => {
                                           size="sm"
                                           variant="outline"
                                           className="h-8 text-xs gap-1.5 hover:bg-primary/5 hover:text-primary transition-colors border-primary/20"
-                                          onClick={() => navigate(`/ai-assistant?patientId=${selectedPatientData?.id}&noteId=${note.id}`)}
+                                          onClick={() => {
+                                            setEditingNoteData(note);
+                                            setNoteSheetMode('ai');
+                                            setIsNoteSheetOpen(true);
+                                          }}
                                         >
                                           <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                                           Editar en IA
@@ -2043,6 +2072,24 @@ const Patients = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <NoteEditorSheet
+        isOpen={isNoteSheetOpen}
+        onClose={() => {
+          setIsNoteSheetOpen(false);
+          setEditingNoteData(null);
+        }}
+        note={editingNoteData}
+        patientId={selectedPatientData?.id || ''}
+        patientName={selectedPatientData?.name || ''}
+        patientDOB={selectedPatientData?.date_of_birth || selectedPatientData?.birth_date}
+        initialMode={noteSheetMode}
+        onNoteUpdated={() => {
+          if (selectedPatientData?.id) {
+            fetchPatientDetails(selectedPatientData.id);
+          }
+        }}
+      />
 
     </>
   );

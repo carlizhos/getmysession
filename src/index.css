@@ -411,4 +411,12 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+
+  /* Hide floating widgets when a dialog/modal/sheet is open */
+  body:has([role="dialog"]) .floating-widget {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(20px) !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
 }
