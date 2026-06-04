@@ -80,6 +80,41 @@ serve(async (req) => {
       let priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
       let matchedPrice: Stripe.Price | null = null;
       
+      // Auto-create or fetch 749 MXN/month plan for Pro
+      if (plan_id === 'pro' && !priceId) {
+        try {
+          const pricesList = await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] });
+          matchedPrice = pricesList.data.find(p => {
+            const prod = p.product as any;
+            const name = prod?.name?.toLowerCase() || '';
+            return (name.includes('saudade pro') || name.includes('pro')) && p.recurring?.interval === 'month' && p.unit_amount === 74900;
+          }) || null;
+
+          if (matchedPrice) {
+            priceId = matchedPrice.id;
+          } else {
+            // Auto-create product and price on Stripe
+            const product = await stripe.products.create({
+              name: 'Saudade Pro',
+              description: 'Plan Pro de Saudade - Práctica Independiente',
+              metadata: { plan_id: 'pro' }
+            });
+            const price = await stripe.prices.create({
+              product: product.id,
+              unit_amount: 74900, // 749 MXN
+              currency: 'mxn',
+              recurring: { interval: 'month' },
+              metadata: { plan_id: 'pro' }
+            });
+            priceId = price.id;
+            matchedPrice = price;
+            console.log('Successfully auto-created Saudade Pro plan on Stripe:', priceId);
+          }
+        } catch (err) {
+          console.error('Error auto-configuring Pro price on Stripe:', err);
+        }
+      }
+
       if (!priceId) {
         // Fallback: query active prices from Stripe dashboard dynamically
         const pricesList = await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] });
@@ -96,7 +131,7 @@ serve(async (req) => {
           matchedPrice = pricesList.data[0];
           priceId = matchedPrice.id;
         }
-      } else {
+      } else if (!matchedPrice) {
         // Retrieve price details from Stripe to verify type
         try {
           matchedPrice = await stripe.prices.retrieve(priceId);
