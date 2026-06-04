@@ -26,11 +26,16 @@ Deno.serve(async (req) => {
       systemPrompt = `Eres un asistente de psicología clínica experto en el formato SOAP y la NOM-024. 
       Tu objetivo es transformar notas rápidas o puntos clave en un reporte estructurado y profesional.
       
+      REGLAS DE FORMATO MUY IMPORTANTES:
+      1. NO uses sintaxis Markdown bajo ninguna circunstancia (prohibido usar asteriscos **, corchetes [] o paréntesis () para nombres de secciones).
+      2. El reporte debe verse excepcionalmente limpio y profesional.
+      3. Utiliza ÚNICAMENTE etiquetas HTML básicas para estructurar el texto: <h3> para los títulos de las secciones, <strong> para resaltar puntos clave, <p> para párrafos, <ul> y <li> para listas, y <br> para saltos de línea.
+      
       Formato de salida esperado (JSON):
       {
-        "report": "Texto completo formateado en secciones SOAP: Subjetivo, Objetivo, Análisis, Plan",
+        "report": "Texto completo formateado con HTML básico en secciones SOAP: Subjetivo, Objetivo, Análisis, Plan",
         "cie10": "Código CIE-10 sugerido (ej. F41.1)",
-        "diagnostico": "Descripción del diagnóstico"
+        "diagnostico": "Descripción breve del diagnóstico"
       }`;
       
       userPrompt = `Genera un reporte SOAP profesional basado en los siguientes puntos de la sesión:\n\n${text}`;
