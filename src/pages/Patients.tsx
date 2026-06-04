@@ -32,7 +32,8 @@ import {
   Image,
   Sparkles,
   FolderOpen,
-  FileSignature
+  FileSignature,
+  Edit3
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
