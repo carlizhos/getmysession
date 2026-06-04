@@ -23,6 +23,11 @@ export default function TelehealthSession() {
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
 
+  // Jitsi Meet API states
+  const [jitsiApi, setJitsiApi] = useState<any>(null);
+  const [callEnded, setCallEnded] = useState(false);
+  const jitsiContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // Initialize SpeechRecognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -47,6 +52,75 @@ export default function TelehealthSession() {
       recognitionRef.current = recognition;
     }
   }, []);
+
+  // Load Jitsi Meet External API Script and initialize conference
+  useEffect(() => {
+    if (!appointment || loading) return;
+
+    let api: any = null;
+    const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
+
+    const initConference = () => {
+      if (jitsiContainerRef.current && !callEnded) {
+        const roomName = `Saudade_Consulta_${appointment.id.replace(/-/g, '')}`;
+        const domain = 'meet.jit.si';
+        const options = {
+          roomName: roomName,
+          width: '100%',
+          height: '100%',
+          parentNode: jitsiContainerRef.current,
+          configOverwrite: {
+            prejoinPageEnabled: false,
+            disableDeepLinking: true,
+            closePageEnabled: false,
+            enableClosePage: false
+          },
+          interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+            DEFAULT_LOGO_URL: ""
+          }
+        };
+
+        try {
+          api = new (window as any).JitsiMeetExternalAPI(domain, options);
+          
+          api.addEventListener('readyToClose', () => {
+            setCallEnded(true);
+            api.dispose();
+          });
+
+          api.addEventListener('videoConferenceLeft', () => {
+            setCallEnded(true);
+            api.dispose();
+          });
+
+          setJitsiApi(api);
+        } catch (e) {
+          console.error("Error launching Jitsi Meet API", e);
+        }
+      }
+    };
+
+    if (existingScript) {
+      initConference();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://meet.jit.si/external_api.js';
+      script.async = true;
+      script.onload = () => {
+        initConference();
+      };
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      if (api) {
+        api.dispose();
+      }
+    };
+  }, [appointment, loading, callEnded]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -186,25 +260,33 @@ export default function TelehealthSession() {
     <FeatureGate feature="telehealth">
     <div className="h-screen w-full flex overflow-hidden bg-slate-100">
       
-      {/* LEFT: Video Call (Jitsi iframe) */}
+      {/* LEFT: Video Call (Jitsi API Container or Call Ended screen) */}
       <div className="w-1/2 lg:w-[60%] h-full relative bg-slate-900 border-r border-border shadow-2xl flex flex-col">
         {/* Overlay para tapar el logo de Jitsi e inyectar marca Saudade */}
-        <div className="absolute top-4 left-4 z-10 flex gap-2">
-           <div className="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-white/90 text-sm font-bold shadow-lg shadow-black/50">
-             <div className="bg-primary/20 p-1.5 rounded-lg">
-               <Brain className="w-4 h-4 text-emerald-400" />
+        {!callEnded && (
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
+             <div className="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-white/90 text-sm font-bold shadow-lg shadow-black/50">
+               <div className="bg-primary/20 p-1.5 rounded-lg">
+                 <Brain className="w-4 h-4 text-emerald-400" />
+               </div>
+               Saudade Telehealth
              </div>
-             Saudade Telehealth
-           </div>
-        </div>
+          </div>
+        )}
         
-        {/* Iframe replacing the whole left side */}
-        <iframe
-          src={jitsiUrl}
-          allow="camera; microphone; fullscreen; display-capture; autoplay"
-          className="w-full h-full border-0"
-          style={{ backgroundColor: '#0f172a' }}
-        />
+        {callEnded ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-white p-8 text-center animate-in fade-in duration-500">
+            <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+              <Video className="h-8 w-8 text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-bold tracking-tight mb-2">Consulta finalizada</h3>
+            <p className="text-slate-400 text-sm max-w-sm">
+              La llamada de video se ha cerrado correctamente. Puedes completar el reporte de la sesión a la derecha.
+            </p>
+          </div>
+        ) : (
+          <div ref={jitsiContainerRef} className="w-full h-full" style={{ backgroundColor: '#0f172a' }} />
+        )}
       </div>
 
       {/* RIGHT: SOAP Note Editor */}

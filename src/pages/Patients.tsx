@@ -14,6 +14,7 @@ import {
   Loader2,
   Clock,
   Pencil,
+  Save,
   Trash2,
   Users,
   Download,
@@ -38,12 +39,13 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -96,12 +98,12 @@ interface EnrichedPatient extends Patient {
 }
 
 const PATIENT_TABS = [
-    { id: 'info', label: 'Datos Personales', icon: User },
     { id: 'timeline', label: 'Línea de Tiempo', icon: Clock },
     { id: 'evolution', label: 'Evolución', icon: Activity },
     { id: 'history', label: 'Historia Clínica', icon: ClipboardList },
     { id: 'notes', label: 'Notas de Sesión', icon: FileText },
     { id: 'tests', label: 'Pruebas', icon: Brain },
+    { id: 'info', label: 'Datos Personales', icon: User },
     { id: 'documents', label: 'Documentos', icon: FolderOpen },
     { id: 'whatsapp', label: 'Mensajes WA', icon: MessageCircle },
     { id: 'economy', label: 'Finanzas', icon: DollarSign },
@@ -110,20 +112,205 @@ const PATIENT_TABS = [
 const TAB_GROUPS = [
     {
         title: 'CLÍNICO',
-        tabs: ['info', 'timeline', 'evolution', 'history']
+        tabs: ['timeline', 'evolution', 'history']
     },
     {
-        title: 'HERRAMIENTAS',
+        title: 'SESIONES Y HERRAMIENTAS',
         tabs: ['notes', 'tests']
     },
     {
-        title: 'ADMINISTRACIÓN',
-        tabs: ['documents', 'whatsapp', 'economy']
+        title: 'GESTIÓN',
+        tabs: ['info', 'documents', 'economy', 'whatsapp']
     }
 ];
 
+// Swipeable Patient Card for Mobile Swipe-to-Action
+interface SwipeablePatientCardProps {
+  patient: EnrichedPatient;
+  onSelect: (id: string) => void;
+  swipedPatientId: string | null;
+  setSwipedPatientId: (id: string | null) => void;
+}
+
+const SwipeablePatientCard = ({ patient, onSelect, swipedPatientId, setSwipedPatientId }: SwipeablePatientCardProps) => {
+  const [startX, setStartX] = useState<number | null>(null);
+  const [startY, setStartY] = useState<number | null>(null);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const isSwiped = swipedPatientId === patient.id;
+
+  // Sync state if another card is swiped
+  useEffect(() => {
+    if (!isSwiped) {
+      setCurrentOffset(0);
+    } else {
+      setCurrentOffset(150); // 150px reveals three 50px buttons
+    }
+  }, [isSwiped]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setStartY(e.touches[0].clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX === null || startY === null) return;
+    const diffX = startX - e.touches[0].clientX;
+    const diffY = startY - e.touches[0].clientY;
+
+    // Ignore if vertical scroll is dominant
+    if (Math.abs(diffY) > Math.abs(diffX)) return;
+
+    // We only care about swipe left (diffX > 0)
+    if (diffX > 0) {
+      const offset = isSwiped ? 150 + diffX : diffX;
+      setCurrentOffset(Math.min(offset, 180));
+    } else {
+      // Swiping back to close
+      const offset = isSwiped ? 150 + diffX : 0;
+      setCurrentOffset(Math.max(offset, 0));
+    }
+  };
+
+  const onTouchEnd = () => {
+    setStartX(null);
+    setStartY(null);
+    if (currentOffset > 75) {
+      setSwipedPatientId(patient.id);
+      setCurrentOffset(150);
+    } else {
+      setSwipedPatientId(null);
+      setCurrentOffset(0);
+    }
+  };
+
+  const handleSelect = (e: React.MouseEvent) => {
+    // If swiped, click closes it
+    if (isSwiped || currentOffset > 10) {
+      e.stopPropagation();
+      setSwipedPatientId(null);
+      setCurrentOffset(0);
+    } else {
+      onSelect(patient.id);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl w-full select-none touch-pan-y">
+      {/* Quick Action Buttons (Behind the card) */}
+      <div className="absolute inset-y-0 right-0 w-[150px] flex items-center justify-end z-0 pr-1">
+        {/* Action: WhatsApp */}
+        <a
+          href={patient.phone ? `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}` : '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="h-full w-[50px] bg-success hover:bg-success/90 text-white flex flex-col items-center justify-center transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSwipedPatientId(null);
+          }}
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span className="text-[8px] font-bold mt-1 uppercase">WhatsApp</span>
+        </a>
+
+        {/* Action: Agenda / Cita */}
+        <button
+          type="button"
+          className="h-full w-[50px] bg-secondary hover:bg-secondary/90 text-white flex flex-col items-center justify-center transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSwipedPatientId(null);
+            toast.info(`Programar cita para ${patient.name}`);
+          }}
+        >
+          <Calendar className="h-5 w-5" />
+          <span className="text-[8px] font-bold mt-1 uppercase">Cita</span>
+        </button>
+
+        {/* Action: Ver Expediente */}
+        <button
+          type="button"
+          className="h-full w-[50px] bg-primary hover:bg-primary/95 text-white flex flex-col items-center justify-center transition-colors rounded-r-2xl"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSwipedPatientId(null);
+            onSelect(patient.id);
+          }}
+        >
+          <ExternalLink className="h-5 w-5" />
+          <span className="text-[8px] font-bold mt-1 uppercase">Ficha</span>
+        </button>
+      </div>
+
+      {/* Main Card Element */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={handleSelect}
+        style={{
+          transform: `translateX(-${currentOffset}px)`,
+          transition: startX === null ? 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
+        }}
+        className="w-full z-10 relative"
+      >
+        <Card className="group border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className={cn(
+                "h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3",
+                getAvatarTheme(patient.name)
+              )}>
+                {getInitials(patient.name)}
+              </div>
+              <Badge variant="outline" className="text-[9px] uppercase tracking-tighter opacity-60">
+                {patient.status?.replace(/_/g, ' ') || 'Activo'}
+              </Badge>
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors truncate">
+                {patient.name}
+              </h3>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">
+                  {patient.last_session 
+                    ? `Última: ${format(new Date(patient.last_session), 'd MMM, yyyy', { locale: es })}`
+                    : 'Sin sesiones registradas'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between pt-4 border-t border-border/40">
+              <div className="flex -space-x-2">
+                {patient._next_appointment ? (
+                  <div className="h-6 w-6 rounded-full bg-success/10 border-2 border-background flex items-center justify-center" title="Próxima cita programada">
+                    <Clock className="h-3 w-3 text-success" />
+                  </div>
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-muted/20 border-2 border-background flex items-center justify-center" title="Sin citas pendientes">
+                    <Clock className="h-3 w-3 text-muted-foreground opacity-40" />
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1.5 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                <span className="text-[9px] font-black uppercase tracking-widest">Ver Expediente</span>
+                <ExternalLink className="h-3 w-3" />
+              </div>
+            </div>
+          </CardContent>
+          <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-primary/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 const Patients = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { organization } = useOrganization();
 
   // ── States ──────────────────────────────────────────────────────────────
@@ -157,6 +344,7 @@ const Patients = () => {
   
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
+  const [swipedPatientId, setSwipedPatientId] = useState<string | null>(null);
 
   // Note editing sheet states
   const [isNoteSheetOpen, setIsNoteSheetOpen] = useState(false);
@@ -329,6 +517,14 @@ const Patients = () => {
     fetchLeads();
   }, [fetchPatients, fetchLeads]);
 
+  useEffect(() => {
+    if (location.state?.selectPatientId) {
+      setSelectedPatient(location.state.selectPatientId);
+      // Clean up location state to avoid re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   const fetchPatientDetails = useCallback(async (patientId: string) => {
     if (!organization?.id) return;
     setDataLoading(true);
@@ -414,6 +610,11 @@ const Patients = () => {
       setPatientDocuments([]);
     }
   }, [selectedPatient, fetchPatientDetails]);
+
+  // Reset scroll to top when selecting/deselecting a patient to avoid layout cutoff on mobile
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [selectedPatient]);
 
   const handleExportPDF = async () => {
     if (!selectedPatientData) return;
@@ -502,6 +703,39 @@ const Patients = () => {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
+
+  const [generalNotes, setGeneralNotes] = useState('');
+  const [isSavingGeneralNotes, setIsSavingGeneralNotes] = useState(false);
+
+  useEffect(() => {
+    if (selectedPatientData) {
+      setGeneralNotes(selectedPatientData.notes || '');
+    }
+  }, [selectedPatientData]);
+
+  const handleSaveGeneralNotes = async () => {
+    if (!selectedPatientData || !organization?.id) return;
+    setIsSavingGeneralNotes(true);
+    try {
+      const { error } = await supabase
+        .from('patient_clinical_data')
+        .upsert({
+          patient_id: selectedPatientData.id,
+          organization_id: organization.id,
+          notes: generalNotes,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'patient_id' });
+
+      if (error) throw error;
+      toast.success('Resumen clínico general actualizado.');
+      fetchPatients();
+    } catch (err: any) {
+      console.error('Error saving clinical notes:', err);
+      toast.error('Error al guardar resumen clínico: ' + err.message);
+    } finally {
+      setIsSavingGeneralNotes(false);
+    }
+  };
 
   const filteredPatientsList = patients
     .filter(p => {
@@ -844,63 +1078,6 @@ const Patients = () => {
             {selectedPatientData ? (
               <>
                 <Tabs value={activePatientTab} onValueChange={setActivePatientTab} className="h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  {/* Mobile Navigation (iOS-Style Bottom Sheet Selector) */}
-                  <div className="lg:hidden w-full mb-4">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          className="w-full justify-between rounded-2xl h-11 border-border shadow-soft bg-white text-xs font-bold px-4 hover:bg-slate-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const activeTabObj = PATIENT_TABS.find(t => t.id === activePatientTab);
-                              const Icon = activeTabObj?.icon || User;
-                              return (
-                                <>
-                                  <Icon className="h-4 w-4 text-primary" />
-                                  <span>{activeTabObj?.label || 'Seleccionar sección'}</span>
-                                </>
-                              );
-                            })()}
-                          </div>
-                          <ChevronDown className="h-4 w-4 text-slate-400" />
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent className="p-6 pb-8 bg-background border-t border-border">
-                        <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-300 mb-6" />
-                        <DrawerHeader className="p-0 pb-3 text-left">
-                          <DrawerTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
-                            Secciones del Expediente
-                          </DrawerTitle>
-                        </DrawerHeader>
-                        <div className="grid grid-cols-1 gap-1.5 max-h-[60vh] overflow-y-auto pr-1 scrollbar-zen">
-                          {PATIENT_TABS.map((tab) => {
-                            const Icon = tab.icon;
-                            const active = activePatientTab === tab.id;
-                            return (
-                              <DrawerClose asChild key={tab.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => setActivePatientTab(tab.id)}
-                                  className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all text-left",
-                                    active
-                                      ? "bg-primary/10 text-primary font-bold shadow-sm"
-                                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
-                                  )}
-                                >
-                                  <Icon className={cn("h-4 w-4", active ? "text-primary animate-pulse" : "text-slate-400")} />
-                                  <span>{tab.label}</span>
-                                </button>
-                              </DrawerClose>
-                            );
-                          })}
-                        </div>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-
                 <TabsList className="hidden">
                     {PATIENT_TABS.map(tab => (
                         <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
@@ -972,6 +1149,74 @@ const Patients = () => {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Mobile Navigation (iOS-Style Bottom Sheet Selector) - Moved below Patient Header Card */}
+                <div className="lg:hidden w-full mb-6">
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between rounded-2xl h-11 border-border dark:border-slate-800 shadow-soft bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-bold px-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const activeTabObj = PATIENT_TABS.find(t => t.id === activePatientTab);
+                            const Icon = activeTabObj?.icon || User;
+                            return (
+                              <>
+                                <Icon className="h-4 w-4 text-primary" />
+                                <span>{activeTabObj?.label || 'Seleccionar sección'}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      </Button>
+                    </DrawerTrigger>
+                    <DrawerContent className="p-6 pb-8 bg-background border-t border-border">
+                      <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-300 mb-6" />
+                      <DrawerHeader className="p-0 pb-3 text-left">
+                        <DrawerTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
+                          Secciones del Expediente
+                        </DrawerTitle>
+                      </DrawerHeader>
+                      <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto pr-1 scrollbar-zen">
+                        {TAB_GROUPS.map((group) => (
+                          <div key={group.title} className="space-y-1">
+                            <h4 className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-widest px-4 py-1">
+                              {group.title}
+                            </h4>
+                            <div className="grid grid-cols-1 gap-1">
+                              {group.tabs.map((tabId) => {
+                                const tab = PATIENT_TABS.find(t => t.id === tabId);
+                                if (!tab) return null;
+                                const Icon = tab.icon;
+                                const active = activePatientTab === tab.id;
+                                return (
+                                  <DrawerClose asChild key={tab.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setActivePatientTab(tab.id)}
+                                      className={cn(
+                                        "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all text-left",
+                                        active
+                                          ? "bg-primary/10 text-primary font-bold shadow-sm"
+                                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100"
+                                      )}
+                                    >
+                                      <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-slate-400")} />
+                                      <span>{tab.label}</span>
+                                    </button>
+                                  </DrawerClose>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </DrawerContent>
+                  </Drawer>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start w-full">
@@ -1272,7 +1517,7 @@ const Patients = () => {
                             </div>
                           </TabsContent>
 
-                          <TabsContent value="history" className="m-0 animate-in fade-in duration-500">
+                          <TabsContent value="notes" className="m-0 animate-in fade-in duration-500">
                             <div className="space-y-6">
                               <div className="flex items-center justify-between">
                                 <h3 className="text-xl font-bold">Cronología de Sesiones</h3>
@@ -1294,7 +1539,13 @@ const Patients = () => {
                                 </div>
                               </div>
                               <div className="space-y-4">
-                                  {patientNotes.map((note) => (
+                                {patientNotes.length === 0 ? (
+                                  <div className="text-center p-12 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
+                                    <FileText className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-4" />
+                                    <p className="text-muted-foreground font-medium">No hay notas de sesión registradas aún.</p>
+                                  </div>
+                                ) : (
+                                  patientNotes.map((note) => (
                                     <div key={note.id} className="p-6 rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/30 shadow-sm transition-all duration-300 hover:shadow-medium hover:border-slate-200/50">
                                       <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-3">
@@ -1355,7 +1606,144 @@ const Patients = () => {
                                       </div>
 
                                     </div>
-                                  ))}
+                                  ))
+                                 )}
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="history" className="m-0 animate-in fade-in duration-500">
+                            <div className="space-y-6">
+                              <div>
+                                <h3 className="text-xl font-bold">Historia Clínica</h3>
+                                <p className="text-sm text-muted-foreground">Información diagnóstica y resumen clínico acumulado del paciente.</p>
+                              </div>
+
+                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                {/* Resumen clínico (editable) */}
+                                <div className="lg:col-span-7 space-y-4">
+                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
+                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                                      <h4 className="font-bold text-sm uppercase tracking-wide text-primary">Resumen Clínico General</h4>
+                                      <ClipboardList className="h-4 w-4 text-primary opacity-40" />
+                                    </div>
+                                    <div className="space-y-4">
+                                      <Textarea
+                                        value={generalNotes}
+                                        onChange={(e) => setGeneralNotes(e.target.value)}
+                                        placeholder="Ingresa antecedentes heredofamiliares, patológicos, evolución general, diagnóstico presuntivo o notas de seguimiento a largo plazo..."
+                                        className="min-h-[280px] bg-white border border-border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all leading-relaxed resize-none"
+                                      />
+                                      <div className="flex justify-end">
+                                        <Button
+                                          size="sm"
+                                          variant="zen"
+                                          disabled={isSavingGeneralNotes}
+                                          onClick={handleSaveGeneralNotes}
+                                          className="h-9 px-4 rounded-xl text-xs font-bold gap-2 shadow-sm"
+                                        >
+                                          {isSavingGeneralNotes ? (
+                                            <>
+                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                              Guardando...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Save className="h-3.5 w-3.5" />
+                                              Guardar Cambios
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                </div>
+
+                                {/* Diagnósticos y estadísticas */}
+                                <div className="lg:col-span-5 space-y-6">
+                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
+                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                                      <h4 className="font-bold text-sm uppercase tracking-wide text-secondary">Diagnósticos Registrados</h4>
+                                      <Brain className="h-4 w-4 text-secondary opacity-40" />
+                                    </div>
+                                    <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 scrollbar-zen">
+                                      {(() => {
+                                        const activeDiagnoses = Array.isArray(patientNotes) 
+                                          ? patientNotes
+                                              .filter(n => n.cie10_code || n.diagnostico_principal)
+                                              .reduce((acc: any[], current) => {
+                                                const code = current.cie10_code || 'S/C';
+                                                const desc = current.cie10_description || 'Diagnóstico principal';
+                                                const principal = current.diagnostico_principal || '';
+                                                const exists = acc.find(item => item.code === code && item.principal === principal);
+                                                if (!exists) {
+                                                  acc.push({
+                                                    code,
+                                                    description: desc,
+                                                    principal,
+                                                    date: current.date,
+                                                    sessionNumber: current.session_number
+                                                  });
+                                                }
+                                                return acc;
+                                              }, [])
+                                          : [];
+                                        
+                                        if (activeDiagnoses.length === 0) {
+                                          return (
+                                            <p className="text-xs text-muted-foreground text-center py-6">
+                                              No hay diagnósticos CIE-10 registrados en las sesiones.
+                                            </p>
+                                          );
+                                        }
+
+                                        return activeDiagnoses.map((diag, index) => (
+                                          <div key={index} className="p-3 bg-slate-50/50 hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <Badge className="bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/15 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5">
+                                                {diag.code}
+                                              </Badge>
+                                              <span className="text-[10px] text-muted-foreground">Sesión {diag.sessionNumber} ({format(new Date(diag.date), 'dd/MM/yy')})</span>
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-800">{diag.description}</p>
+                                            {diag.principal && (
+                                              <p className="text-[11px] text-slate-500 mt-0.5 italic">"{diag.principal}"</p>
+                                            )}
+                                          </div>
+                                        ));
+                                      })()}
+                                    </div>
+                                  </Card>
+
+                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
+                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                                      <h4 className="font-bold text-sm uppercase tracking-wide text-slate-700">Resumen del Expediente</h4>
+                                      <Clock className="h-4 w-4 text-slate-500 opacity-40" />
+                                    </div>
+                                    <div className="space-y-3.5 text-xs">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground font-medium">Total de Consultas:</span>
+                                        <span className="font-bold text-slate-800">{patientNotes.length} sesiones</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground font-medium">Primera Sesión:</span>
+                                        <span className="font-semibold text-slate-700">
+                                          {patientNotes.length > 0 
+                                            ? format(new Date(patientNotes[patientNotes.length - 1].date), "d 'de' MMMM, yyyy", { locale: es }) 
+                                            : 'Sin registro'}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground font-medium">Última Sesión:</span>
+                                        <span className="font-semibold text-slate-700">
+                                          {patientNotes.length > 0 
+                                            ? format(new Date(patientNotes[0].date), "d 'de' MMMM, yyyy", { locale: es }) 
+                                            : 'Sin registro'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                </div>
                               </div>
                             </div>
                           </TabsContent>
@@ -1821,62 +2209,13 @@ const Patients = () => {
                 ) : viewMode === 'mosaic' ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredPatientsList.map((patient) => (
-                      <Card 
-                        key={patient.id} 
-                        className="group relative overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer"
-                        onClick={() => selectPatient(patient.id)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className={cn(
-                              "h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3",
-                              getAvatarTheme(patient.name)
-                            )}>
-                              {getInitials(patient.name)}
-                            </div>
-                            <Badge variant="outline" className="text-[9px] uppercase tracking-tighter opacity-60">
-                              {patient.status?.replace(/_/g, ' ') || 'Activo'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors truncate">
-                              {patient.name}
-                            </h3>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              <span className="text-[10px] font-medium uppercase tracking-wide">
-                                {patient.last_session 
-                                  ? `Última: ${format(new Date(patient.last_session), 'd MMM, yyyy', { locale: es })}`
-                                  : 'Sin sesiones registradas'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-6 flex items-center justify-between pt-4 border-t border-border/40">
-                            <div className="flex -space-x-2">
-                                {/* Next Appointment Indicator */}
-                                {patient._next_appointment ? (
-                                    <div className="h-6 w-6 rounded-full bg-success/10 border-2 border-white flex items-center justify-center" title="Próxima cita programada">
-                                        <Clock className="h-3 w-3 text-success" />
-                                    </div>
-                                ) : (
-                                    <div className="h-6 w-6 rounded-full bg-muted/20 border-2 border-white flex items-center justify-center" title="Sin citas pendientes">
-                                        <Clock className="h-3 w-3 text-muted-foreground opacity-40" />
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex items-center gap-1.5 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
-                                <span className="text-[9px] font-black uppercase tracking-widest">Ver Expediente</span>
-                                <ExternalLink className="h-3 w-3" />
-                            </div>
-                          </div>
-                        </CardContent>
-                        
-                        {/* Subtle background pattern */}
-                        <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-primary/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Card>
+                      <SwipeablePatientCard
+                        key={patient.id}
+                        patient={patient}
+                        onSelect={selectPatient}
+                        swipedPatientId={swipedPatientId}
+                        setSwipedPatientId={setSwipedPatientId}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -2139,6 +2478,38 @@ const Patients = () => {
           }
         }}
       />
+
+      {/* Mobile Floating Action Button (FAB) for Patients List */}
+      {!selectedPatient && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 lg:hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <Button
+            variant="zen"
+            className="rounded-full shadow-lg shadow-primary/30 h-12 px-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-primary text-white border border-primary/10 transition-transform active:scale-95"
+            onClick={() => setIsNewPatientOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo Paciente
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile Floating Action Button (FAB) for Patient Record */}
+      {selectedPatientData && ['timeline', 'notes', 'history', 'evolution'].includes(activePatientTab) && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 lg:hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <Button
+            variant="zen"
+            className="rounded-full shadow-lg shadow-primary/30 h-12 px-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-primary text-white border border-primary/10 transition-transform active:scale-95"
+            onClick={() => {
+              setEditingNoteData(null);
+              setNoteSheetMode('manual');
+              setIsNoteSheetOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Registrar Consulta
+          </Button>
+        </div>
+      )}
 
     </>
   );

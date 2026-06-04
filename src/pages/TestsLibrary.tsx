@@ -385,92 +385,90 @@ const TestsLibrary = () => {
       </Dialog>
 
       <Dialog open={!!viewingTest} onOpenChange={(open) => !open && setViewingTest(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-[700px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
-          <div className="flex flex-col h-full max-h-[90vh]">
-            {/* ── Header Section ────────────────────────────────────────── */}
-            <div className="shrink-0 px-6 sm:px-12 py-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-primary/10">
-                  <ClipboardList className="h-7 w-7 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate">
-                    {viewingTest ? psychometricTests[viewingTest.test_type]?.name : 'Detalles de la Prueba'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground truncate mt-0.5">
-                    Respuestas de <strong>{viewingTest?.patients?.name}</strong> • {viewingTest?.completed_at ? format(new Date(viewingTest.completed_at), "d 'de' MMMM, yyyy", { locale: es }) : ''}
-                  </p>
-                </div>
+        <DialogContent className="max-w-[95vw] sm:max-w-[700px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem] flex flex-col max-h-[90vh]">
+          {/* ── Header Section ────────────────────────────────────────── */}
+          <div className="shrink-0 px-6 sm:px-12 py-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-primary/10">
+                <ClipboardList className="h-7 w-7 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate">
+                  {viewingTest ? psychometricTests[viewingTest.test_type]?.name : 'Detalles de la Prueba'}
+                </h2>
+                <p className="text-sm text-muted-foreground truncate mt-0.5">
+                  Respuestas de <strong>{viewingTest?.patients?.name}</strong> • {viewingTest?.completed_at ? format(new Date(viewingTest.completed_at), "d 'de' MMMM, yyyy", { locale: es }) : ''}
+                </p>
               </div>
             </div>
-            
-            {/* ── Content Area (Scrollable) ──────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 space-y-10 scrollbar-hide">
-              {viewingTest && (
-                <div className="space-y-10">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Puntaje Total</p>
-                      <p className="text-4xl font-black text-primary">{viewingTest.score}</p>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Interpretación</p>
-                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{viewingTest.interpretation}</p>
-                    </div>
+          </div>
+          
+          {/* ── Content Area (Scrollable) ──────────────────────────────── */}
+          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 space-y-10 scrollbar-hide">
+            {viewingTest && (
+              <div className="space-y-10">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Puntaje Total</p>
+                    <p className="text-4xl font-black text-primary">{viewingTest.score}</p>
                   </div>
-
-                  {/* Detailed Answers */}
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                      <h4 className="font-black text-xs uppercase tracking-widest text-slate-400">Respuestas Detalladas</h4>
-                      <span className="text-[10px] text-muted-foreground font-medium italic">Sincronizado con expediente</span>
-                    </div>
-                    <div className="space-y-5">
-                      {psychometricTests[viewingTest.test_type]?.questions.map((q, idx) => {
-                        const patientAnswerValue = viewingTest.answers?.[q.id];
-                        const testOptions = psychometricTests[viewingTest.test_type]?.options || [];
-                        
-                        return (
-                          <div key={q.id} className="space-y-4 p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm">
-                            <p className="text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed">
-                              <span className="text-primary/40 mr-4 text-xs">{(idx + 1).toString().padStart(2, '0')}</span>
-                              {q.text}
-                            </p>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                              {testOptions.map((opt) => (
-                                <div 
-                                  key={opt.value}
-                                  className={cn(
-                                    "text-[10px] px-3 py-3 rounded-xl border text-center transition-all duration-200",
-                                    (viewingTest.answers as Record<string, any>)?.[q.id] === opt.value 
-                                      ? "bg-primary text-white border-primary font-black shadow-md scale-[1.02]"
-                                      : "bg-slate-50/50 dark:bg-slate-900/30 text-muted-foreground border-slate-100 dark:border-slate-800 opacity-60"
-                                  )}
-                                >
-                                  {opt.label}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Interpretación</p>
+                    <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{viewingTest.interpretation}</p>
                   </div>
                 </div>
-              )}
-            </div>
-            
-            {/* ── Footer Button ────────────────────────────────────────── */}
-            <div className="px-6 sm:px-12 pb-10 shrink-0">
-              <Button 
-                variant="zen" 
-                className="w-full py-8 rounded-3xl text-lg font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all"
-                onClick={() => setViewingTest(null)}
-              >
-                Cerrar resultados
-              </Button>
-            </div>
+
+                {/* Detailed Answers */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-400">Respuestas Detalladas</h4>
+                    <span className="text-[10px] text-muted-foreground font-medium italic">Sincronizado con expediente</span>
+                  </div>
+                  <div className="space-y-5">
+                    {psychometricTests[viewingTest.test_type]?.questions.map((q, idx) => {
+                      const patientAnswerValue = viewingTest.answers?.[q.id];
+                      const testOptions = psychometricTests[viewingTest.test_type]?.options || [];
+                      
+                      return (
+                        <div key={q.id} className="space-y-4 p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm">
+                          <p className="text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed">
+                            <span className="text-primary/40 mr-4 text-xs">{(idx + 1).toString().padStart(2, '0')}</span>
+                            {q.text}
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {testOptions.map((opt) => (
+                              <div 
+                                key={opt.value}
+                                className={cn(
+                                  "text-[10px] px-3 py-3 rounded-xl border text-center transition-all duration-200",
+                                  (viewingTest.answers as Record<string, any>)?.[q.id] === opt.value 
+                                    ? "bg-primary text-white border-primary font-black shadow-md scale-[1.02]"
+                                    : "bg-slate-50/50 dark:bg-slate-900/30 text-muted-foreground border-slate-100 dark:border-slate-800 opacity-60"
+                                )}
+                              >
+                                {opt.label}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* ── Footer Button ────────────────────────────────────────── */}
+          <div className="px-6 sm:px-12 pb-10 shrink-0">
+            <Button 
+              variant="zen" 
+              className="w-full py-4 rounded-2xl text-sm font-bold shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all"
+              onClick={() => setViewingTest(null)}
+            >
+              Cerrar resultados
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -487,104 +485,87 @@ const TestsLibrary = () => {
           }
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[600px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
-          <div className="flex flex-col h-full max-h-[90vh]">
-            {/* ── Header Section (Original Style) ────────────────────────── */}
-            <div className="shrink-0 bg-success/5 dark:bg-success/10 px-6 sm:px-12 py-10 flex flex-col items-center justify-center text-center border-b border-success/10">
-              <div className="h-20 w-20 bg-success/10 rounded-full flex items-center justify-center mb-4 animate-in fade-in zoom-in duration-500 border border-success/20 shadow-sm">
-                <CheckCircle2 className="h-10 w-10 text-success" />
-              </div>
-              <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
-              <p className="text-base text-slate-600 dark:text-slate-300 mt-2 mx-auto max-w-[450px]">
-                El test seleccionado ya está disponible en el expediente de <strong>{selectedPatientName}</strong> e integra los datos clínicos del paciente.
-              </p>
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px] p-0 overflow-hidden bg-white dark:bg-slate-950 border-none shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem] flex flex-col">
+          {/* ── Header Section (Redesigned Compact Style) ────────────────────────── */}
+          <div className="shrink-0 bg-success/5 dark:bg-success/10 px-6 py-6 flex flex-col items-center justify-center text-center border-b border-success/10">
+            <div className="h-12 w-12 bg-success/10 rounded-xl flex items-center justify-center mb-3 border border-success/20 shadow-sm animate-in fade-in zoom-in duration-500">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">¡Prueba Generada!</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 mx-auto max-w-[360px]">
+              El test ya está disponible en el expediente de <strong>{selectedPatientName}</strong>.
+            </p>
+          </div>
 
-            {/* ── Content Area (Scrollable) ──────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 space-y-10 scrollbar-hide">
-              {/* Link Box */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Enlace Público de Acceso</label>
-                  <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block italic">Link único para el paciente</span>
-                </div>
-                <div className="group relative flex items-center">
-                  <div className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 pl-5 pr-14 py-4 rounded-2xl text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-300 truncate shadow-inner">
-                    {`${window.location.origin}/t/${activeShareToken}`}
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-2 h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/t/${activeShareToken}`);
-                      toast.success('¡Copiado al portapapeles!');
-                    }}
-                  >
-                    <Copy className="h-5 w-5" />
-                  </Button>
-                </div>
+          {/* ── Content Area (Redesigned Compact Style) ──────────────────────────────── */}
+          <div className="px-6 py-6 space-y-5 flex flex-col">
+            {/* Link Box */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between px-1">
+                <label className="text-[10px] font-black uppercase tracking-wider text-primary/70">Enlace de Acceso para Paciente</label>
               </div>
-
-              {/* Sharing Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  className="group relative flex items-center gap-4 h-auto p-6 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-success/30 hover:bg-success/5 transition-all duration-300 text-left justify-start"
+              <div className="group relative flex items-center">
+                <div className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 pl-4 pr-12 py-3.5 rounded-xl text-xs font-mono text-slate-600 dark:text-slate-300 truncate shadow-inner">
+                  {`${window.location.origin}/t/${activeShareToken}`}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-1.5 h-9 w-9 rounded-lg hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
                   onClick={() => {
-                    const text = encodeURIComponent(`Hola ${selectedPatientName}, te envío el enlace para realizar la prueba psicométrica *${activeShareTestName}*:\n\n${window.location.origin}/t/${activeShareToken}`);
-                    window.open(`https://wa.me/?text=${text}`, '_blank');
+                    navigator.clipboard.writeText(`${window.location.origin}/t/${activeShareToken}`);
+                    toast.success('¡Copiado al portapapeles!');
                   }}
                 >
-                  <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center text-success group-hover:scale-110 transition-transform shrink-0">
-                    <MessageCircle className="h-6 w-6" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100">WhatsApp</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Envío directo</span>
-                  </div>
+                  <Copy className="h-4.5 w-4.5" />
                 </Button>
-
-                <Button
-                  variant="outline"
-                  className="group relative flex items-center gap-4 h-auto p-6 rounded-2xl border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-left justify-start"
-                  onClick={() => {
-                    const subject = encodeURIComponent(`Prueba Psicométrica: ${activeShareTestName}`);
-                    const body = encodeURIComponent(`Hola ${selectedPatientName},\n\nTe envío el enlace para realizar la prueba psicométrica "${activeShareTestName}":\n\n${window.location.origin}/t/${activeShareToken}\n\nQuedo a tu disposición si tienes alguna duda.`);
-                    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-                  }}
-                >
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
-                    <Mail className="h-6 w-6" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Correo Electrónico</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Usar plantilla</span>
-                  </div>
-                </Button>
-              </div>
-
-              {/* Info Tips */}
-              <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-[1.5rem] flex gap-4 items-center border border-slate-100 dark:border-slate-800/50">
-                <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0">
-                  <Share2 className="h-5 w-5 text-primary" />
-                </div>
-                <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                  El paciente puede abrir este link en cualquier dispositivo. Los resultados se sincronizarán con su expediente en tiempo real al finalizar.
-                </p>
               </div>
             </div>
 
-            {/* ── Footer Button ────────────────────────────────────────── */}
-            <div className="px-6 sm:px-12 pb-10 shrink-0">
-              <Button 
-                variant="zen" 
-                className="w-full py-8 rounded-3xl text-lg font-black shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all"
-                onClick={() => setShareModalOpen(false)}
+            {/* Sharing Grid (Compact side-by-side action pills) */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                className="flex items-center justify-center gap-2 h-11 rounded-xl border-slate-200 dark:border-slate-800 hover:border-success/30 hover:bg-success/5 transition-all text-xs font-bold text-slate-700 dark:text-slate-300"
+                onClick={() => {
+                  const text = encodeURIComponent(`Hola ${selectedPatientName}, te envío el enlace para realizar la prueba psicométrica *${activeShareTestName}*:\n\n${window.location.origin}/t/${activeShareToken}`);
+                  window.open(`https://wa.me/?text=${text}`, '_blank');
+                }}
               >
-                Entendido, ir al historial
+                <MessageCircle className="h-4 w-4 text-success" />
+                <span>WhatsApp</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex items-center justify-center gap-2 h-11 rounded-xl border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-primary/5 transition-all text-xs font-bold text-slate-700 dark:text-slate-300"
+                onClick={() => {
+                  const subject = encodeURIComponent(`Prueba Psicométrica: ${activeShareTestName}`);
+                  const body = encodeURIComponent(`Hola ${selectedPatientName},\n\nTe envío el enlace para realizar la prueba psicométrica "${activeShareTestName}":\n\n${window.location.origin}/t/${activeShareToken}\n\nQuedo a tu disposición si tienes alguna duda.`);
+                  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                }}
+              >
+                <Mail className="h-4 w-4 text-primary" />
+                <span>Enviar Correo</span>
               </Button>
             </div>
+
+            {/* Caption Info Tip */}
+            <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground leading-normal text-center pt-1 border-t border-slate-100 dark:border-slate-900/50">
+              <Share2 className="h-3 w-3 text-primary shrink-0" />
+              <span>Resultados sincronizados en tiempo real al finalizar la prueba.</span>
+            </div>
+          </div>
+
+          {/* ── Footer Button ────────────────────────────────────────── */}
+          <div className="px-6 pb-6 shrink-0">
+            <Button 
+              variant="zen" 
+              className="w-full h-11 rounded-xl text-xs font-bold shadow-md hover:shadow-primary/10 hover:scale-[1.01] active:scale-95 transition-all"
+              onClick={() => setShareModalOpen(false)}
+            >
+              Entendido, ir al historial
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

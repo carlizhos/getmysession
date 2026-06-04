@@ -47,6 +47,7 @@ import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
 import SystemAgentWidget from '@/components/ai/SystemAgentWidget';
+import CommandPalette from '@/components/CommandPalette';
 
 const navigationGroups = [
   {
@@ -102,6 +103,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [badgesSettled, setBadgesSettled] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [canShowBadges, setCanShowBadges] = useState(false);
 
   // Synchronize badges: Start timers once on mount
@@ -120,6 +122,18 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       clearTimeout(showTimer);
       clearTimeout(settleTimer);
     };
+  }, []);
+
+  // ⌘K / Ctrl+K — Open Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Smart Header Logic: Hide on scroll down, show on scroll up
@@ -248,9 +262,9 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* ── Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-40 transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0',
+        'fixed z-50 transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:z-40 lg:translate-x-0',
         'backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 border border-white/20 dark:border-white/5 shadow-soft rounded-[24px]',
-        'top-14 bottom-0 left-0 lg:top-[5.25rem] lg:bottom-4 lg:left-4',
+        'top-[4.5rem] bottom-2 left-2 lg:top-[5.25rem] lg:bottom-4 lg:left-4',
         sidebarW,
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
@@ -427,26 +441,26 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           </Button>
         </div>
 
-        {/* Center: Search Bar (Hidden on mobile) */}
+        {/* Center: Search Trigger (Opens Command Palette) */}
         <div className="flex-1 hidden md:flex justify-center max-w-2xl">
-          <div className="relative w-full max-w-md group">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
+          <button
+            onClick={() => setCommandOpen(true)}
+            className={cn(
+              "relative w-full max-w-md h-10 pl-10 pr-4 rounded-xl border border-white/10 bg-white/10 backdrop-blur-md outline-none transition-all",
+              "hover:bg-white/20 hover:border-primary/20 focus:bg-white/20 focus:border-primary/30 focus:ring-4 focus:ring-primary/10",
+              "text-sm text-muted-foreground/60 text-left cursor-pointer group"
+            )}
+          >
+            <div className="absolute inset-y-0 left-3 flex items-center">
+              <Search className="h-4 w-4 text-muted-foreground/70 group-hover:text-primary transition-colors" />
             </div>
-            <input
-              type="text"
-              placeholder="Search..."
-              className={cn(
-                "w-full h-10 pl-10 pr-4 rounded-xl border border-white/10 bg-white/10 backdrop-blur-md outline-none transition-all",
-                "focus:bg-white/20 focus:border-primary/30 focus:ring-4 focus:ring-primary/10 text-sm placeholder:text-muted-foreground/60"
-              )}
-            />
-            <div className="absolute inset-y-0 right-3 hidden sm:flex items-center">
+            <span>Buscar...</span>
+            <div className="absolute inset-y-0 right-3 flex items-center">
               <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-muted-foreground/60 opacity-100">
                 <span className="text-xs">⌘</span>K
               </kbd>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Right: Actions */}
@@ -509,6 +523,9 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* Floating AI System Agent — available on every page */}
       <SystemAgentWidget />
+
+      {/* Global Command Palette (⌘K) */}
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 };

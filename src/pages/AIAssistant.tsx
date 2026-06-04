@@ -903,30 +903,7 @@ const AIAssistant = () => {
                   </CardContent>
                 </Card>
 
-                {/* Suggestions */}
-                {patientContext && (
-                  <Card variant="default">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Sugerencias de preguntas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {[
-                        '¿Cuál es el progreso clínico del paciente?',
-                        '¿Qué técnicas TCC recomiendas para la próxima sesión?',
-                        '¿Hay patrones recurrentes en las notas?',
-                        '¿Qué aspectos debo reforzar en el plan de tratamiento?',
-                      ].map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setChatInput(suggestion)}
-                          className="w-full text-left text-xs p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors text-muted-foreground hover:text-foreground"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
+
               </div>
 
               {/* Right: Chat */}

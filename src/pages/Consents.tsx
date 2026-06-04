@@ -18,6 +18,13 @@ import {
     LayoutTemplate,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
@@ -62,6 +69,9 @@ const Consents = () => {
     const [consents, setConsents] = useState<ConsentRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<string>('newest');
 
     const fetchConsents = useCallback(async () => {
         if (!user) return;
@@ -203,10 +213,27 @@ const Consents = () => {
         doc.save(`consentimiento_${consent.patient_name.replace(/\s+/g, '_')}_${consent.id.substring(0, 8)}.pdf`);
     };
 
-    const filtered = consents.filter(c =>
-        c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        FORM_TYPE_LABELS[c.form_type]?.toLowerCase().includes(search.toLowerCase()),
-    );
+    const filtered = consents.filter(c => {
+        const matchesSearch = c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
+            FORM_TYPE_LABELS[c.form_type]?.toLowerCase().includes(search.toLowerCase());
+
+        const matchesType = typeFilter === 'all' || c.form_type === typeFilter;
+
+        let matchesStatus = true;
+        if (statusFilter === 'signed') {
+            matchesStatus = !!c.signed_at && c.is_valid;
+        } else if (statusFilter === 'pending') {
+            matchesStatus = !c.signed_at;
+        } else if (statusFilter === 'revoked') {
+            matchesStatus = !!c.signed_at && !c.is_valid;
+        }
+
+        return matchesSearch && matchesType && matchesStatus;
+    }).sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
 
     // ── Vista: Nuevo consentimiento ──────────────────────────────────────────
     if (isCreating) {
@@ -255,19 +282,7 @@ const Consents = () => {
                         </div>
                     </div>
 
-                    <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3">
-                        {activeTab === 'firmados' && (
-                            <div className="relative w-full sm:w-64 group">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <Input
-                                    placeholder="Buscar paciente..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 bg-muted/30 border-transparent focus:bg-background transition-all"
-                                />
-                            </div>
-                        )}
-                        
+                    <div className="w-full lg:w-auto flex justify-end">
                         {activeTab === 'firmados' && (
                             <Button 
                                 variant="zen" 
@@ -281,31 +296,87 @@ const Consents = () => {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-1 p-1 rounded-xl bg-muted/50 w-fit border border-border">
-                    {([
-                        { id: 'firmados', label: 'Firmados', icon: FileSignature },
-                        { id: 'plantillas', label: 'Plantillas', icon: LayoutTemplate },
-                    ] as { id: ActiveTab; label: string; icon: typeof FileSignature }[]).map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                                activeTab === tab.id
-                                    ? 'bg-background shadow-sm text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            )}
-                        >
-                            <tab.icon className="h-4 w-4" />
-                            {tab.label}
-                            {tab.id === 'firmados' && consents.length > 0 && (
-                                <span className="text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5 tabular-nums">
-                                    {consents.length}
-                                </span>
-                            )}
-                        </button>
-                    ))}
+                {/* Tabs & Filters Bar */}
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                    {/* Tabs */}
+                    <div className="flex gap-1 p-1 rounded-xl bg-muted/50 w-fit border border-border shrink-0">
+                        {([
+                            { id: 'firmados', label: 'Firmados', icon: FileSignature },
+                            { id: 'plantillas', label: 'Plantillas', icon: LayoutTemplate },
+                        ] as { id: ActiveTab; label: string; icon: typeof FileSignature }[]).map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                                    activeTab === tab.id
+                                        ? 'bg-background shadow-sm text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                )}
+                            >
+                                <tab.icon className="h-4 w-4" />
+                                {tab.label}
+                                {tab.id === 'firmados' && consents.length > 0 && (
+                                    <span className="text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5 tabular-nums">
+                                        {consents.length}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Filters & Sorting */}
+                    {activeTab === 'firmados' && (
+                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                            {/* Search Input */}
+                            <div className="relative w-full sm:w-48 group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                    placeholder="Buscar paciente..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9 h-9 bg-muted/30 border-transparent focus:bg-background transition-all text-sm rounded-xl"
+                                />
+                            </div>
+
+                            {/* Dropdown: Type of Consent */}
+                            <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <SelectTrigger className="h-9 bg-muted/30 border-transparent hover:bg-muted/50 rounded-xl text-sm px-3 min-w-[120px] w-full sm:w-auto text-left">
+                                    <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos los tipos</SelectItem>
+                                    <SelectItem value="general">Consentimiento General</SelectItem>
+                                    <SelectItem value="tratamiento">Tratamiento Psicológico</SelectItem>
+                                    <SelectItem value="datos_personales">Datos Personales</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {/* Dropdown: Status */}
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="h-9 bg-muted/30 border-transparent hover:bg-muted/50 rounded-xl text-sm px-3 min-w-[120px] w-full sm:w-auto text-left text-muted-foreground">
+                                    <SelectValue placeholder="Estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos los estados</SelectItem>
+                                    <SelectItem value="signed">Firmado (Válido)</SelectItem>
+                                    <SelectItem value="pending">Pendiente de firma</SelectItem>
+                                    <SelectItem value="revoked">Revocado</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {/* Dropdown: Sort Order */}
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="h-9 bg-muted/30 border-transparent hover:bg-muted/50 rounded-xl text-sm px-3 min-w-[140px] w-full sm:w-auto text-left">
+                                    <SelectValue placeholder="Ordenar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Más recientes primero</SelectItem>
+                                    <SelectItem value="oldest">Más antiguos primero</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Tab: Plantillas ──────────────────────────────────────── */}

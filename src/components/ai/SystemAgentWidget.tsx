@@ -12,16 +12,7 @@ import {
     RotateCcw,
     Minimize2,
     Zap,
-    CalendarPlus,
-    FileText,
-    BarChart3,
-    Search,
     BrainCircuit,
-    UserPlus,
-    DollarSign,
-    ClipboardList,
-    CalendarX,
-    Users,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -32,19 +23,7 @@ interface ChatMessage {
     timestamp: Date;
 }
 
-// ── Quick Action Chips ───────────────────────────────────────────────────────
-const QUICK_ACTIONS = [
-    { label: '📅 Agenda del día', prompt: '¿Qué tengo agendado para hoy?', icon: BarChart3 },
-    { label: '➕ Agendar cita', prompt: 'Quiero agendar una cita', icon: CalendarPlus },
-    { label: '🔍 Buscar paciente', prompt: 'Busca un paciente', icon: Search },
-    { label: '🧑‍⚕️ Nuevo paciente', prompt: 'Quiero registrar un nuevo paciente', icon: UserPlus },
-    { label: '💰 Registrar cobro', prompt: 'Quiero cobrar una sesión', icon: DollarSign },
-    { label: '🧾 Facturar pagos', prompt: '¿Qué pagos tengo disponibles para facturar?', icon: FileText },
-    { label: '📝 Crear nota clínica', prompt: 'Quiero crear una nota de sesión', icon: ClipboardList },
-    { label: '❌ Cancelar cita', prompt: 'Necesito cancelar una cita', icon: CalendarX },
-    { label: '💵 Resumen financiero', prompt: '¿Cuánto he ganado este mes?', icon: DollarSign },
-    { label: '👥 Ver prospectos', prompt: '¿Tengo prospectos web nuevos?', icon: Users },
-];
+// Quick Actions removed to promote a pure conversational LLM interface
 
 // ── Markdown-lite renderer ──────────────────────────────────────────────────
 const renderMarkdown = (text: string): string => {
@@ -184,7 +163,7 @@ const SystemAgentWidget = () => {
                         <div className="flex-1 min-w-0 relative">
                             <h3 className="font-bold text-sm tracking-tight">Saudade AI</h3>
                             <p className="text-xs text-muted-foreground">
-                                Agente inteligente · Ejecuta acciones
+                                Agente inteligente conversacional
                             </p>
                         </div>
                         <div className="flex items-center gap-1 relative">
@@ -213,39 +192,16 @@ const SystemAgentWidget = () => {
                     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth">
                         {messages.length === 0 ? (
                             /* Empty State */
-                            <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-fade-in">
-                                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500/15 to-indigo-500/10 flex items-center justify-center mb-5 shadow-lg shadow-violet-500/5">
-                                    <BrainCircuit className="h-8 w-8 text-violet-500" />
+                            <div className="flex flex-col items-center justify-center h-full text-center px-6 animate-fade-in">
+                                <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-violet-500/10 to-indigo-500/5 flex items-center justify-center mb-6 shadow-inner border border-violet-500/10">
+                                    <Sparkles className="h-10 w-10 text-violet-500/80" />
                                 </div>
-                                <h4 className="font-bold text-base mb-1.5">
-                                    ¡Hola! 🧠
+                                <h4 className="font-bold text-xl mb-3 tracking-tight text-foreground/90">
+                                    ¿En qué puedo ayudarte hoy?
                                 </h4>
-                                <p className="text-sm text-muted-foreground mb-6 max-w-[280px] leading-relaxed">
-                                    Soy tu mano derecha digital. Agendo citas, registro cobros, creo notas clínicas, facturo, asigno tests y mucho más. ¡Solo dime qué necesitas!
+                                <p className="text-sm text-muted-foreground max-w-[280px] leading-relaxed">
+                                    Escribe lo que necesites hacer con tu expediente, agenda o finanzas.
                                 </p>
-
-                                {/* Quick action chips */}
-                                <div className="w-full space-y-2">
-                                    <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
-                                        Acciones rápidas
-                                    </p>
-                                    {QUICK_ACTIONS.map((action, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => sendMessage(action.prompt)}
-                                            className={cn(
-                                                'w-full text-left text-sm px-4 py-2.5 rounded-xl',
-                                                'border border-border/60 bg-card/50 hover:bg-violet-500/5 hover:border-violet-500/20',
-                                                'text-foreground/80 hover:text-foreground',
-                                                'transition-all duration-200 group/q flex items-center gap-3'
-                                            )}
-                                            style={{ animationDelay: `${i * 80}ms` }}
-                                        >
-                                            <action.icon className="h-4 w-4 text-muted-foreground group-hover/q:text-violet-500 transition-colors flex-shrink-0" />
-                                            <span>{action.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
                             </div>
                         ) : (
                             /* Message bubbles */
