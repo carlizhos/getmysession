@@ -40,6 +40,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const StripeCallback = lazy(() => import("./pages/StripeCallback"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 
 
 const queryClient = new QueryClient();
@@ -210,6 +211,15 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <HelpCenter />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/subscription/success"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionSuccess />
                 </ProtectedRoute>
               }
             />

@@ -150,7 +150,7 @@ serve(async (req) => {
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: isRecurring ? 'subscription' : 'payment',
-        success_url: `${return_url || req.headers.get('origin')}/settings?success=true`,
+        success_url: `${return_url || req.headers.get('origin')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${return_url || req.headers.get('origin')}/settings?canceled=true`,
         metadata: { organization_id }
       };
