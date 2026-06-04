@@ -77,9 +77,28 @@ serve(async (req) => {
     if (plan_id && !isSubscribedToPaidPlan) {
       // Create Checkout Session for Subscription
       // Map plan_id to Stripe Price ID (In reality, these should be env vars or DB lookups)
-      const priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
+      let priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
       
-      if (!priceId) throw new Error(`Invalid plan_id or price not configured in dashboard (${plan_id})`);
+      if (!priceId) {
+        // Fallback: query active prices from Stripe dashboard dynamically
+        const pricesList = await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] });
+        const matchedPrice = pricesList.data.find(p => {
+          const prod = p.product as any;
+          const name = prod?.name?.toLowerCase() || '';
+          const nickname = p.nickname?.toLowerCase() || '';
+          return name.includes(plan_id) || nickname.includes(plan_id) || name.includes('full') || name.includes('pro');
+        });
+
+        if (matchedPrice) {
+          priceId = matchedPrice.id;
+        } else if (pricesList.data.length > 0) {
+          priceId = pricesList.data[0].id;
+        }
+      }
+
+      if (!priceId) {
+        throw new Error(`Invalid plan_id or price not configured in dashboard (${plan_id})`);
+      }
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
