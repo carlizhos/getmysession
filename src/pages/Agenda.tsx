@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -334,6 +335,7 @@ const AgendaPage = () => {
 
   return (
     <Layout>
+      <FeatureGate feature="core_agenda">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -771,6 +773,7 @@ const AgendaPage = () => {
           isReadOnly={isAppointmentPast(editingAppointment)}
         />
       </div>
+      </FeatureGate>
     </Layout>
   );
 };

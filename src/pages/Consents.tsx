@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -239,6 +240,7 @@ const Consents = () => {
     if (isCreating) {
         return (
             <Layout>
+                <FeatureGate feature="core_consents">
                 <div className="space-y-6 animate-fade-in">
                     {/* Header Section (Island Style) */}
                     <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -262,6 +264,7 @@ const Consents = () => {
                         onCancel={() => setIsCreating(false)}
                     />
                 </div>
+                </FeatureGate>
             </Layout>
         );
     }
@@ -269,6 +272,7 @@ const Consents = () => {
     // ── Vista principal con tabs ─────────────────────────────────────────────
     return (
         <Layout>
+            <FeatureGate feature="core_consents">
             <div className="space-y-6">
                 {/* Header Section (Island Style) */}
                 <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -520,6 +524,7 @@ const Consents = () => {
                     </>
                 )}
             </div>
+            </FeatureGate>
         </Layout>
     );
 };

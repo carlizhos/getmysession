@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -133,6 +134,7 @@ const TestsLibrary = () => {
 
   return (
     <Layout>
+      <FeatureGate feature="core_tests">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -569,6 +571,7 @@ const TestsLibrary = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </FeatureGate>
     </Layout>
   );
 };

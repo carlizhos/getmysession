@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -284,6 +285,7 @@ const Notes = () => {
     if (isDictating) {
       return (
         <Layout>
+          <FeatureGate feature="core_notes">
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] py-12">
             <FeatureGate feature="ai_voice">
             <AIVoiceRecorder 
@@ -320,12 +322,14 @@ const Notes = () => {
             />
             </FeatureGate>
           </div>
+          </FeatureGate>
         </Layout>
       );
     }
 
     return (
       <Layout>
+        <FeatureGate feature="core_notes">
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}>
@@ -438,6 +442,7 @@ const Notes = () => {
             />
           )}
         </div>
+        </FeatureGate>
       </Layout>
     );
   }
@@ -445,6 +450,7 @@ const Notes = () => {
   // ── Vista: Lista de notas ─────────────────────────────────────────────────
   return (
     <Layout>
+      <FeatureGate feature="core_notes">
       <div className="space-y-6">
         {/* Unified Header: Title, Search & Actions */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -775,6 +781,7 @@ const Notes = () => {
           </div>
         )}
       </div>
+      </FeatureGate>
     </Layout>
   );
 };

@@ -37,6 +37,30 @@ const FEATURE_LABELS: Record<PremiumFeature, { title: string; description: strin
     title: 'Facturación Electrónica',
     description: 'Genera facturas CFDI directamente desde la plataforma.',
   },
+  core_patients: {
+    title: 'Gestión de Pacientes',
+    description: 'Accede al CRM clínico para gestionar todos tus pacientes y expedientes.',
+  },
+  core_agenda: {
+    title: 'Agenda Clínica',
+    description: 'Organiza tus consultas, recordatorios automáticos y videollamadas.',
+  },
+  core_notes: {
+    title: 'Notas Clínicas',
+    description: 'Redacta y almacena notas de sesión de forma segura y estructurada.',
+  },
+  core_tests: {
+    title: 'Pruebas Psicométricas',
+    description: 'Asigna y evalúa cuestionarios clínicos (PHQ-9, GAD-7) de forma automática.',
+  },
+  core_consents: {
+    title: 'Consentimientos Informados',
+    description: 'Envía y recaba firmas electrónicas para tus documentos legales.',
+  },
+  core_finance: {
+    title: 'Control Financiero',
+    description: 'Administra tus cobros, facturación y reportes de ingresos.',
+  },
 };
 
 export default function FeatureGate({ feature, children, message, inline = false }: FeatureGateProps) {

@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import {
   ShieldCheck,
   Brain,
@@ -995,6 +996,7 @@ const Patients = () => {
         activePatientTab={activePatientTab} 
         onPatientTabChange={setActivePatientTab}
       >
+        <FeatureGate feature="core_patients">
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
           {!selectedPatientData && (
@@ -2376,6 +2378,7 @@ const Patients = () => {
         )}
         </div>
       </div>
+      </FeatureGate>
     </Layout>
 
       {/* New Patient Dialog */}

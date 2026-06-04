@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import FeatureGate from '@/components/subscription/FeatureGate';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -484,6 +485,7 @@ const Finance = () => {
 
   return (
     <Layout>
+      <FeatureGate feature="core_finance">
       <div className="space-y-6">
         {/* Header Section (Island Style) */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
@@ -1028,6 +1030,7 @@ const Finance = () => {
           </SortableContext>
         </DndContext>
       </div>
+      </FeatureGate>
 
       <PaymentModal
         open={!!payingAppointment}

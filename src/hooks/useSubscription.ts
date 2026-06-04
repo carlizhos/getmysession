@@ -9,7 +9,13 @@ export type PremiumFeature =
   | 'ai_voice'        // AI Voice Recorder in Notes
   | 'telehealth'      // Virtual Consultorio (Jitsi)
   | 'pdf_export'      // Export clinical notes as PDF
-  | 'invoicing';      // Electronic invoicing (SAT)
+  | 'invoicing'       // Electronic invoicing (SAT)
+  | 'core_patients'   // CRM
+  | 'core_agenda'     // Agenda
+  | 'core_notes'      // Clinical Notes Library
+  | 'core_tests'      // Psychometric Tests
+  | 'core_consents'   // Consents
+  | 'core_finance';   // Finance
 
 // Map features to minimum plan required
 const FEATURE_PLANS: Record<PremiumFeature, string[]> = {
@@ -19,6 +25,12 @@ const FEATURE_PLANS: Record<PremiumFeature, string[]> = {
   telehealth: ['pro', 'clinic'],
   pdf_export: ['pro', 'clinic'],
   invoicing: ['pro', 'clinic'],
+  core_patients: ['pro', 'clinic'],
+  core_agenda: ['pro', 'clinic'],
+  core_notes: ['pro', 'clinic'],
+  core_tests: ['pro', 'clinic'],
+  core_consents: ['pro', 'clinic'],
+  core_finance: ['pro', 'clinic'],
 };
 
 export function useSubscription() {
@@ -31,14 +43,6 @@ export function useSubscription() {
   const cancelAtPeriodEnd = organization?.cancel_at_period_end || false;
 
   const computed = useMemo(() => {
-    const isActive = status === 'active';
-    const isTrialing = status === 'trialing';
-    const isPastDue = status === 'past_due';
-    const isCanceled = status === 'canceled' || status === 'unpaid';
-    const isPro = planId === 'pro';
-    const isClinic = planId === 'clinic';
-    const hasAccess = isActive || isTrialing;
-
     // Calculate days remaining in trial or current period
     let daysRemaining = 0;
     if (periodEnd) {
@@ -46,6 +50,14 @@ export function useSubscription() {
       const now = new Date();
       daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
     }
+
+    const isActive = status === 'active';
+    const isTrialing = status === 'trialing' && daysRemaining > 0;
+    const isPastDue = status === 'past_due';
+    const isCanceled = status === 'canceled' || status === 'unpaid';
+    const isPro = planId === 'pro';
+    const isClinic = planId === 'clinic';
+    const hasAccess = isActive || isTrialing;
 
     const canUse = (feature: PremiumFeature): boolean => {
       if (!hasAccess) return false;
