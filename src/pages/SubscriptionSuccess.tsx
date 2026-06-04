@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import {
   Sparkles,
@@ -14,6 +16,7 @@ import {
   Users,
   Mic,
   Crown,
+  Loader2,
 } from 'lucide-react';
 
 /* ─────────── confetti particle ─────────── */
@@ -54,14 +57,52 @@ const FEATURE_LIST = [
 const SubscriptionSuccess = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { refresh: refreshOrg } = useOrganization();
   const [searchParams] = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
   const [showCTA, setShowCTA] = useState(false);
   const [countdown, setCountdown] = useState(15);
+  const [verifying, setVerifying] = useState(true);
+  const [verified, setVerified] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number>(0);
+  const verifiedRef = useRef(false);
+
+  /* ─── verify subscription with Stripe & update DB ─── */
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    if (!sessionId || verifiedRef.current) {
+      setVerifying(false);
+      return;
+    }
+
+    verifiedRef.current = true;
+
+    const verifySubscription = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('verify-subscription', {
+          body: { session_id: sessionId },
+        });
+
+        if (error) {
+          console.error('Verify subscription error:', error);
+        } else if (data?.verified) {
+          console.log('✅ Subscription verified:', data);
+          setVerified(true);
+          // Refresh the organization data in context so banner/plan info updates
+          await refreshOrg();
+        }
+      } catch (err) {
+        console.error('Error verifying subscription:', err);
+      } finally {
+        setVerifying(false);
+      }
+    };
+
+    verifySubscription();
+  }, [searchParams, refreshOrg]);
 
   /* ─── confetti canvas animation ─── */
   const createParticle = useCallback((x: number, y: number): Particle => {

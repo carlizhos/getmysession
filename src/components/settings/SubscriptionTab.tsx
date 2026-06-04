@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,10 +11,32 @@ import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 
 const SubscriptionTab = () => {
-    const { organization } = useOrganization();
+    const { organization, refresh: refreshOrg } = useOrganization();
     const { isTrialing, isActive, isPastDue, isCanceled, daysRemaining, hasAccess, cancelAtPeriodEnd } = useSubscription();
     const [isProcessing, setIsProcessing] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
+    const syncedRef = useRef(false);
+
+    // Auto-sync subscription data from Stripe on mount
+    useEffect(() => {
+        if (!organization?.stripe_customer_id || syncedRef.current) return;
+        syncedRef.current = true;
+
+        const syncFromStripe = async () => {
+            try {
+                const { data, error } = await supabase.functions.invoke('sync-subscription', {
+                    body: { organization_id: organization.id },
+                });
+                if (!error && data?.synced) {
+                    console.log('✅ Subscription synced from Stripe:', data);
+                    await refreshOrg();
+                }
+            } catch (err) {
+                console.error('Error syncing subscription:', err);
+            }
+        };
+        syncFromStripe();
+    }, [organization?.id, organization?.stripe_customer_id, refreshOrg]);
 
     // Handle Stripe redirect callbacks
     useEffect(() => {
