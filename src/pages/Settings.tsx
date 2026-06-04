@@ -73,6 +73,7 @@ import { cn } from '@/lib/utils';
 import AvatarUpload from '@/components/settings/AvatarUpload';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
 import useDarkMode from '@/hooks/useDarkMode';
+import { useSearchParams } from 'react-router-dom';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -221,7 +222,27 @@ const Settings = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<TabId>('perfil');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState<TabId>(() => {
+        const queryTab = searchParams.get('tab') as TabId;
+        if (queryTab && TABS.some(t => t.id === queryTab)) {
+            return queryTab;
+        }
+        return 'perfil';
+    });
+
+    useEffect(() => {
+        const queryTab = searchParams.get('tab') as TabId;
+        if (queryTab && TABS.some(t => t.id === queryTab) && queryTab !== activeTab) {
+            setActiveTab(queryTab);
+        }
+    }, [searchParams, activeTab]);
+
+    const handleTabChange = (tabId: TabId) => {
+        setActiveTab(tabId);
+        setSearchParams({ tab: tabId });
+    };
+
     const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [hasGoogleCalendar, setHasGoogleCalendar] = useState(false);
     const [hasOutlookCalendar, setHasOutlookCalendar] = useState(false);
@@ -1282,7 +1303,7 @@ const Settings = () => {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => handleTabChange(tab.id)}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all border",
                                     active
@@ -1312,7 +1333,7 @@ const Settings = () => {
                                         return (
                                             <button
                                                 key={tab.id}
-                                                onClick={() => setActiveTab(tab.id as TabId)}
+                                                onClick={() => handleTabChange(tab.id as TabId)}
                                                 className={cn(
                                                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative overflow-hidden group/btn text-left",
                                                     active

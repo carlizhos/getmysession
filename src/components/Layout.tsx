@@ -461,7 +461,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       </header>
 
       {/* Subscription Banner */}
-      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fixed top-14 lg:top-16 right-0 z-40', contentPl)}>
+      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fixed top-14 lg:top-16 left-0 right-0 z-40', contentPl)}>
         <SubscriptionBanner />
       </div>
 
