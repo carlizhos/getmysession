@@ -72,10 +72,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     const [moodNotes, setMoodNotes] = useState('');
 
     // Bridge
-    const [bridgeItems, setBridgeItems] = useState<{ text: string; completed: boolean }[]>([
-        { text: 'Higiene del sueño', completed: true },
-        { text: 'Lista de pensamientos automáticos', completed: true }
-    ]);
+    const [bridgeItems, setBridgeItems] = useState<{ text: string; completed: boolean }[]>([]);
     const [newBridgeItem, setNewBridgeItem] = useState('');
     const [bridgeNotes, setBridgeNotes] = useState('');
 
@@ -87,16 +84,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
         thoughts: string;
         emotions: string;
         interventions: string;
-    }[]>([
-        {
-            id: '1',
-            topic: 'Laboral',
-            situation: 'Jefe le pregunta como va "Tengo que terminar ya"',
-            thoughts: 'Estrés y agobio -> Procrastinar',
-            emotions: 'Ansiedad (8/10)',
-            interventions: 'Reestructuración cognitiva + Psicoeducación distorsiones + Técnica manejo estrés'
-        }
-    ]);
+    }[]>([]);
 
     // Beliefs
     const [coreBeliefs, setCoreBeliefs] = useState('');
