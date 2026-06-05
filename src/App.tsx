@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,6 +45,47 @@ const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 
 const queryClient = new QueryClient();
 
+class ChunkLoadErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const isChunkLoadFailed = /Loading chunk/i.test(error.message) || 
+                              /Failed to fetch dynamically imported module/i.test(error.message) ||
+                              /Importing a module script failed/i.test(error.message) ||
+                              /Failed to load module script/i.test(error.message) ||
+                              /Unexpected token/i.test(error.message);
+                              
+    if (isChunkLoadFailed) {
+      const reloadCount = parseInt(sessionStorage.getItem('chunk_reload_count') || '0', 10);
+      if (reloadCount < 3) {
+        sessionStorage.setItem('chunk_reload_count', (reloadCount + 1).toString());
+        window.location.reload();
+      }
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-sm text-muted-foreground animate-pulse">Actualizando la aplicación a la nueva versión...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Suspense fallback — minimal spinner
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -86,6 +127,7 @@ const AppContent = () => {
         <AuthProvider>
           <Analytics />
           <SpeedInsights />
+          <ChunkLoadErrorBoundary>
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -242,6 +284,7 @@ const AppContent = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ChunkLoadErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
