@@ -61,7 +61,7 @@ const navigationGroups = [
   {
     label: 'Clínica & IA',
     items: [
-      { name: 'IA Asistente', href: '/ai-assistant', icon: Brain },
+      { name: 'Asistente IA', href: '/ai-assistant', icon: Brain },
       { name: 'Notas Clínicas', href: '/notes', icon: FileText },
       { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
       { name: 'Consentimientos', href: '/consents', icon: FileSignature },
@@ -238,7 +238,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     if (!user) return;
     const PAGE_NAMES: Record<string, string> = {
       '/': 'Dashboard', '/patients': 'Pacientes', '/pipeline': 'Pipeline',
-      '/agenda': 'Agenda', '/ai-assistant': 'IA Asistente',
+      '/agenda': 'Agenda', '/ai-assistant': 'Asistente IA',
       '/notes': 'Notas Clínicas', '/finance': 'Finanzas', '/settings': 'Configuración',
     };
     supabase.from('page_views').insert({

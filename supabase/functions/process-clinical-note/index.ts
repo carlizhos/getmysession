@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
     let systemPrompt = '';
     let userPrompt = '';
 
+    let messagesToAI = [];
+
     if (action === 'generate_soap') {
       systemPrompt = `Eres un asistente de psicología clínica experto en el formato SOAP y la NOM-024. 
       Tu objetivo es transformar notas rápidas o puntos clave en un reporte estructurado y profesional.
@@ -39,6 +41,10 @@ Deno.serve(async (req) => {
       }`;
       
       userPrompt = `Genera un reporte SOAP profesional basado en los siguientes puntos de la sesión:\n\n${text}`;
+      messagesToAI = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ];
     } else if (action === 'refine_note') {
       systemPrompt = `Eres un asistente de psicología clínica experto en redacción de reportes clínicos y la NOM-024.
       Tu objetivo es refinar, corregir o modificar el texto de un reporte clínico basándote en una instrucción específica del terapeuta, manteniendo la estructura HTML del texto.
@@ -54,6 +60,10 @@ Deno.serve(async (req) => {
       }`;
       
       userPrompt = `Modifica el siguiente reporte clínico basándote en esta instrucción:\nINSTRUCCIÓN: ${text}\n\nREPORTE ORIGINAL:\n${patient_context || ''}`;
+      messagesToAI = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ];
     } else if (action === 'chat') {
       systemPrompt = `Eres un asistente de psicología clínica inteligente. 
       Utilizas el contexto del expediente del paciente para responder dudas del terapeuta.
@@ -62,9 +72,20 @@ Deno.serve(async (req) => {
       CONTEXTO DEL PACIENTE:
       ${patient_context || 'No hay contexto adicional disponible.'}`;
       
-      // En el chat, 'messages' ya vienen con el historial si se desea, 
-      // pero aquí simplificaremos o usaremos el último.
-      userPrompt = text;
+      if (Array.isArray(messages) && messages.length > 0) {
+        messagesToAI = [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: any) => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content || m.text || ''
+          }))
+        ];
+      } else {
+        messagesToAI = [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text || '' }
+        ];
+      }
     } else {
       throw new Error('Action not supported');
     }
@@ -76,11 +97,8 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        model: 'llama-3.3-70b-versatile',
+        messages: messagesToAI,
         temperature: 0.1,
         max_tokens: 2048,
         response_format: (action === 'generate_soap' || action === 'refine_note') ? { type: 'json_object' } : undefined,

@@ -378,7 +378,7 @@ export const navItems = [
   { icon: CalendarDays, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Pacientes', path: '/patients' },
   { icon: CalendarDays, label: 'Agenda', path: '/agenda' },
-  { icon: Brain, label: 'IA Asistente', path: '/ai-assistant' },
+  { icon: Brain, label: 'Asistente IA', path: '/ai-assistant' },
   { icon: FileText, label: 'Notas Clínicas', path: '/notes' },
   { icon: DollarSign, label: 'Finanzas', path: '/finance' },
 ];

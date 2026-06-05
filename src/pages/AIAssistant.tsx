@@ -602,7 +602,7 @@ const AIAssistant = () => {
               <Brain className="h-6 w-6 text-white" />
             </div>
             <div className="space-y-0.5">
-              <h1 className="text-2xl font-black tracking-tight text-foreground">IA Asistente</h1>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">Asistente IA</h1>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Potencia tu práctica clínica con IA</p>
             </div>
           </div>

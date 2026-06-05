@@ -51,7 +51,7 @@ const PAGES = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, keywords: 'inicio panel principal' },
   { name: 'Pacientes', href: '/patients', icon: Users, keywords: 'expedientes lista clientes' },
   { name: 'Agenda', href: '/agenda', icon: Calendar, keywords: 'calendario citas horario' },
-  { name: 'IA Asistente', href: '/ai-assistant', icon: Brain, keywords: 'inteligencia artificial chat gpt' },
+  { name: 'Asistente IA', href: '/ai-assistant', icon: Brain, keywords: 'inteligencia artificial chat gpt' },
   { name: 'Notas Clínicas', href: '/notes', icon: FileText, keywords: 'sesion apuntes registros' },
   { name: 'Pruebas Psicométricas', href: '/tests', icon: BrainCircuit, keywords: 'tests evaluacion cuestionario' },
   { name: 'Consentimientos', href: '/consents', icon: FileSignature, keywords: 'firmas informados documentos' },
