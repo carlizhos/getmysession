@@ -125,26 +125,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const orgName = `Consultorio de ${fullName}`;
                 const orgSlug = `org-${userId.slice(0, 8)}-${Date.now().toString().slice(-4)}`;
                 
-                const { data: org, error: orgErr } = await supabase.from('organizations').insert({
-                    name: orgName,
-                    slug: orgSlug,
-                    type: 'personal',
-                    subscription_status: 'inactive',
-                }).select().single();
+                const { data: org, error: orgErr } = await supabase.rpc('create_personal_organization', {
+                    p_name: orgName,
+                    p_slug: orgSlug,
+                    p_user_id: userId
+                });
 
                 if (org && !orgErr) {
-                    await supabase.from('organization_members').insert({
-                        organization_id: org.id,
-                        user_id: userId,
-                        role: 'owner',
-                    });
-
-                    await supabase.from('profiles').upsert({
-                        id: userId,
-                        full_name: fullName,
-                        current_organization_id: org.id,
-                    }, { onConflict: 'id' });
-                    
                     // Recursive call to load the newly created org properly
                     await fetchOrganization(userId);
                     return;
@@ -234,28 +221,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const orgName = `Consultorio de ${fullName}`;
             const orgSlug = `org-${data.user.id.slice(0, 8)}`;
             
-            const { data: org, error: orgErr } = await supabase.from('organizations').insert({
-                name: orgName,
-                slug: orgSlug,
-                type: 'personal',
-                subscription_status: 'inactive',
-            }).select().single();
+            const { data: org, error: orgErr } = await supabase.rpc('create_personal_organization', {
+                p_name: orgName,
+                p_slug: orgSlug,
+                p_user_id: data.user.id
+            });
 
             if (org && !orgErr) {
-                // 2. Add user as owner
-                await supabase.from('organization_members').insert({
-                    organization_id: org.id,
-                    user_id: data.user.id,
-                    role: 'owner',
-                });
-
-                // 3. Sincronizar perfil with current organization ID
-                await supabase.from('profiles').upsert({
-                    id: data.user.id,
-                    full_name: fullName,
-                    current_organization_id: org.id,
-                }, { onConflict: 'id' });
-                
+                // The RPC handles adding the member and updating the profile.
                 await fetchOrganization(data.user.id);
             } else {
                 // Fallback: sync profile without org if org creation fails
