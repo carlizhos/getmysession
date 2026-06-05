@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 `)
                 .eq('user_id', userId);
 
-            if (memberships) {
+            if (memberships && memberships.length > 0) {
                 const orgs = memberships.map(m => {
                     const org = m.organizations as unknown as Organization;
                     return {
@@ -120,8 +120,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setOrganization(null);
                 }
             } else {
-                setAvailableOrganizations([]);
-                setOrganization(null);
+                // Auto-create a default organization for legacy users or if missing
+                const fullName = profileData?.full_name || 'Usuario';
+                const orgName = `Consultorio de ${fullName}`;
+                const orgSlug = `org-${userId.slice(0, 8)}-${Date.now().toString().slice(-4)}`;
+                
+                const { data: org, error: orgErr } = await supabase.from('organizations').insert({
+                    name: orgName,
+                    slug: orgSlug,
+                    type: 'personal',
+                    subscription_status: 'inactive',
+                }).select().single();
+
+                if (org && !orgErr) {
+                    await supabase.from('organization_members').insert({
+                        organization_id: org.id,
+                        user_id: userId,
+                        role: 'owner',
+                    });
+
+                    await supabase.from('profiles').upsert({
+                        id: userId,
+                        full_name: fullName,
+                        current_organization_id: org.id,
+                    }, { onConflict: 'id' });
+                    
+                    // Recursive call to load the newly created org properly
+                    await fetchOrganization(userId);
+                    return;
+                } else {
+                    console.error('Failed to auto-create organization:', orgErr);
+                    setAvailableOrganizations([]);
+                    setOrganization(null);
+                }
             }
         } catch (err: unknown) {
             const error = err as Error;

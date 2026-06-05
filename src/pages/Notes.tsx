@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import FeatureGate from '@/components/subscription/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,6 +43,7 @@ import DOMPurify from 'dompurify';
 const Notes = () => {
   const { organization } = useOrganization();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -64,6 +65,7 @@ const Notes = () => {
   useEffect(() => {
     const pId = searchParams.get('patientId');
     const nId = searchParams.get('noteId');
+    const newNote = searchParams.get('newNote');
     if (pId) {
       setSelectedPatient(pId);
       // Fetch patient name
@@ -78,6 +80,9 @@ const Notes = () => {
     }
     if (nId) {
       setSelectedNote(nId);
+    }
+    if (newNote === 'true') {
+      setIsCreatingNote(true);
     }
   }, [searchParams]);
 
@@ -314,6 +319,9 @@ const Notes = () => {
                   setIsDictating(false);
                   setIsCreatingNote(false);
                   fetchNotes();
+                  if (searchParams.get('newNote') === 'true' && selectedPatient) {
+                    navigate('/patients', { state: { selectPatientId: selectedPatient } });
+                  }
                 } catch (err: any) {
                   toast.error('Error al guardar la nota: ' + err.message);
                 }
@@ -331,7 +339,13 @@ const Notes = () => {
         <FeatureGate feature="core_notes">
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}>
+            <Button variant="ghost" size="icon" onClick={() => {
+              setIsCreatingNote(false);
+              setSelectedTemplateId(null);
+              if (searchParams.get('newNote') === 'true' && selectedPatient) {
+                navigate('/patients', { state: { selectPatientId: selectedPatient } });
+              }
+            }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-black text-primary tracking-tight">Nueva Nota Clínica</h1>
@@ -406,7 +420,13 @@ const Notes = () => {
               templateId={selectedTemplateId}
               initialPatientId={selectedPatient || undefined}
               initialPatientName={selectedPatientName || undefined}
-              onCancel={() => { setIsCreatingNote(false); setSelectedTemplateId(null); }}
+              onCancel={() => {
+                setIsCreatingNote(false);
+                setSelectedTemplateId(null);
+                if (searchParams.get('newNote') === 'true' && selectedPatient) {
+                  navigate('/patients', { state: { selectPatientId: selectedPatient } });
+                }
+              }}
               onSave={async (noteData) => {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { error } = await supabase
@@ -436,6 +456,9 @@ const Notes = () => {
                   setIsCreatingNote(false);
                   setSelectedTemplateId(null);
                   fetchNotes();
+                  if (searchParams.get('newNote') === 'true' && selectedPatient) {
+                    navigate('/patients', { state: { selectPatientId: selectedPatient } });
+                  }
                 }
               }}
             />

@@ -1529,9 +1529,7 @@ const Patients = () => {
                                     variant="zen"
                                     className="text-xs h-8 gap-1.5 shadow-sm font-bold"
                                     onClick={() => {
-                                      setEditingNoteData(null);
-                                      setNoteSheetMode('manual');
-                                      setIsNoteSheetOpen(true);
+                                      navigate(`/notes?patientId=${selectedPatient}&newNote=true`);
                                     }}
                                   >
                                     <Plus className="h-3.5 w-3.5" />

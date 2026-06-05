@@ -54,7 +54,7 @@ const SubscriptionTab = () => {
 
     const handleManageBilling = async (planId?: string) => {
         if (!organization) {
-            toast.error('No se pudo encontrar la información de tu organización.');
+            toast.error('No se pudo encontrar la información de tu cuenta. Intenta recargar la página.');
             return;
         }
         setIsProcessing(true);
