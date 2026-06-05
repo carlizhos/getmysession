@@ -35,7 +35,6 @@ import { cn } from '@/lib/utils';
 import { SessionNote } from '@/types';
 import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
-import FeatureGate from '@/components/subscription/FeatureGate';
 import MiniEditor from '@/components/ui/MiniEditor';
 import DOMPurify from 'dompurify';
 
