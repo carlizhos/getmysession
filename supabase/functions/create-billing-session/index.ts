@@ -146,12 +146,15 @@ serve(async (req) => {
 
       const isRecurring = matchedPrice?.type === 'recurring' || !matchedPrice;
 
+      const baseUrl = return_url || req.headers.get('origin') || 'https://saudade.mx';
+      const originUrl = new URL(baseUrl).origin;
+
       const sessionOpts: any = {
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: isRecurring ? 'subscription' : 'payment',
-        success_url: `${return_url || req.headers.get('origin')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${return_url || req.headers.get('origin')}/settings?canceled=true`,
+        success_url: `${originUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${originUrl}/settings?canceled=true`,
         metadata: { organization_id }
       };
 
