@@ -1567,8 +1567,8 @@ const Patients = () => {
                                       <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/60">
                                         <Button
                                           size="sm"
-                                          variant="ghost"
-                                          className="h-8 text-xs gap-1.5 hover:bg-muted"
+                                          variant="outline"
+                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
                                           onClick={() => {
                                             setEditingNoteData(note);
                                             setNoteSheetMode('manual');
@@ -1577,19 +1577,6 @@ const Patients = () => {
                                         >
                                           <Edit3 className="h-3.5 w-3.5" />
                                           Editar
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 hover:text-primary transition-colors border-primary/20"
-                                          onClick={() => {
-                                            setEditingNoteData(note);
-                                            setNoteSheetMode('ai');
-                                            setIsNoteSheetOpen(true);
-                                          }}
-                                        >
-                                          <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                                          Editar en IA
                                         </Button>
                                         <Button
                                           size="sm"
