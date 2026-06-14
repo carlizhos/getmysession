@@ -161,11 +161,28 @@ serve(async (req) => {
             }
           }
 
-          let responseText = "Hola, he recibido tu mensaje. Tu psicólogo/a lo revisará muy pronto. Portal: " + portalUrl;
+          let psychologistName = "Tu especialista";
+          let allowPatientWhatsapp = true;
+
+          if (organizationId) {
+            const { data: orgProfile } = await supabaseClient
+              .from("profiles")
+              .select("full_name, notification_settings")
+              .eq("organization_id", organizationId)
+              .limit(1)
+              .maybeSingle();
+
+            if (orgProfile) {
+              psychologistName = orgProfile.full_name?.split(' ')[0] || "Tu especialista";
+              allowPatientWhatsapp = orgProfile.notification_settings?.paciente_whatsapp === true;
+            }
+          }
+
+          let responseText = `Hola, he recibido tu mensaje. ${psychologistName} lo revisará muy pronto. Portal: ${portalUrl}`;
           let isGeneralFallback = true;
 
           if (isJustLinked) {
-            responseText = `¡Listo, ${currentPatient?.name?.split(' ')[0] || ''}! Tu número ha sido vinculado exitosamente con tu especialista en Saudade. A partir de ahora recibirás tus recordatorios y notificaciones aquí.`;
+            responseText = `¡Listo, ${currentPatient?.name?.split(' ')[0] || ''}! Tu número ha sido vinculado exitosamente con ${psychologistName} en Saudade. A partir de ahora recibirás tus recordatorios y notificaciones aquí.`;
             isGeneralFallback = false;
           } else if (!patientId) {
             responseText = "Hola, este número no está registrado en Saudade. Por favor, solicita a tu especialista tu enlace de invitación.";
@@ -239,7 +256,7 @@ serve(async (req) => {
 
           // Send Auto-reply via Meta
           let metaMsgId = `AUTO_RESP_${Math.random().toString(36).substr(2, 9)}`;
-          if (!isMockMode && !skipAutoReply) {
+          if (!isMockMode && !skipAutoReply && allowPatientWhatsapp) {
             try {
               const metaResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
                 method: 'POST',
@@ -264,7 +281,7 @@ serve(async (req) => {
           }
 
           // Log outbound auto-reply message
-          if (organizationId && !skipAutoReply) {
+          if (organizationId && !skipAutoReply && allowPatientWhatsapp) {
             await supabaseClient.from("whatsapp_messages").insert({
               organization_id: organizationId,
               patient_id: patientId || null,
