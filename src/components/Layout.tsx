@@ -48,6 +48,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
 import SystemAgentWidget from '@/components/ai/SystemAgentWidget';
 import CommandPalette from '@/components/CommandPalette';
+import PricingModal from '@/components/subscription/PricingModal';
 
 const navigationGroups = [
   {
@@ -220,6 +221,30 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     };
     fetchUnread();
 
+    const playNotificationSound = () => {
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch (A5)
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+        
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) { console.warn("Audio error:", e) }
+    };
+
     const channel = supabase
       .channel('wa-unread-sidebar')
       .on('postgres_changes', {
@@ -227,7 +252,12 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         schema: 'public',
         table: 'whatsapp_messages',
         filter: `organization_id=eq.${organization.id}`,
-      }, () => { fetchUnread(); })
+      }, (payload: any) => { 
+        if (payload.eventType === 'INSERT' && payload.new?.direction === 'inbound') {
+          playNotificationSound();
+        }
+        fetchUnread(); 
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -465,7 +495,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
         {/* Right: Actions */}
         <div className="flex items-center gap-0.5 sm:gap-1 w-1/4 justify-end">
-          <MessageBell count={2} forceSettled={badgesSettled} canShow={canShowBadges} />
+          <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
           <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
           
           <div className="w-px h-6 bg-white/20 mx-1 lg:mx-2" />
@@ -526,6 +556,9 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* Global Command Palette (⌘K) */}
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+
+      {/* Global Pricing Modal */}
+      <PricingModal />
     </div>
   );
 };

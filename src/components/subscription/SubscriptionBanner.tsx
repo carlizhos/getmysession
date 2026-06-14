@@ -1,10 +1,11 @@
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription, usePricingModal } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Sparkles, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SubscriptionBanner() {
-  const { isPastDue, hasAccess, navigateToUpgrade } = useSubscription();
+  const { isPastDue, hasAccess } = useSubscription();
+  const { open: openModal } = usePricingModal();
 
   // Don't show banner if the user has access (active trial or active paid plan)
   if (hasAccess) return null;
@@ -59,7 +60,7 @@ export default function SubscriptionBanner() {
         <Button
           size="sm"
           variant={buttonVariant}
-          onClick={navigateToUpgrade}
+          onClick={openModal}
           className={cn("gap-1.5 rounded-xl font-bold shadow-sm shrink-0 text-xs px-4 py-1.5 transition-all duration-200 active:scale-95", buttonClass)}
         >
           <Sparkles className="h-3.5 w-3.5" />

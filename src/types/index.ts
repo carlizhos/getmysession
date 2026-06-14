@@ -35,6 +35,8 @@ export interface Patient {
     tags?: string[];
     curp?: string;
     status?: 'active' | 'archived' | 'inactive';
+    link_code?: string;
+    is_whatsapp_linked?: boolean;
     created_at?: string;
     deleted_at?: string | null;
     

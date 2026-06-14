@@ -56,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
+import PatientWhatsAppLink from '@/components/patients/PatientWhatsAppLink';
 import {
   LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer
@@ -78,6 +79,7 @@ import {
 import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useSubscription } from '@/hooks/useSubscription';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
@@ -310,9 +312,9 @@ const SwipeablePatientCard = ({ patient, onSelect, swipedPatientId, setSwipedPat
 };
 
 const Patients = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { organization } = useOrganization();
+  const { canUse, navigateToUpgrade } = useSubscription();
+  const navigate = useNavigate();
 
   // ── States ──────────────────────────────────────────────────────────────
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
@@ -404,8 +406,9 @@ const Patients = () => {
 
       const enriched: EnrichedPatient[] = (patientsData || []).map((p: Patient) => {
         // Map the array relationship if present (Supabase returns arrays for one-to-many/one-to-one joins)
-        const fiscalData = p.patient_fiscal_data?.[0] || {};
-        const clinicalData = p.patient_clinical_data?.[0] || {};
+        const getRelation = (data: any) => Array.isArray(data) ? data[0] : data;
+        const fiscalData = getRelation(p.patient_fiscal_data) || {};
+        const clinicalData = getRelation(p.patient_clinical_data) || {};
 
         return {
           ...p,
@@ -616,6 +619,27 @@ const Patients = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [selectedPatient]);
+
+  const handleIntegratedSend = async (phone: string, message: string, templateId: string) => {
+    if (!organization) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp', {
+        body: {
+          action: 'send',
+          phone,
+          body: message,
+          organization_id: organization.id,
+          patient_id: selectedPatientData?.id,
+          template_id: templateId
+        }
+      });
+      if (error) throw error;
+      toast.success('Mensaje enviado exitosamente');
+    } catch (err: any) {
+      console.error('Error enviando mensaje:', err);
+      toast.error('Error al enviar mensaje: ' + err.message);
+    }
+  };
 
   const handleExportPDF = async () => {
     if (!selectedPatientData) return;
@@ -996,7 +1020,21 @@ const Patients = () => {
         activePatientTab={activePatientTab} 
         onPatientTabChange={setActivePatientTab}
       >
-        <FeatureGate feature="core_patients">
+        {!canUse('core_patients') && (
+          <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top fade-in duration-500">
+            <div className="flex items-center gap-3 text-warning-foreground">
+              <Lock className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm">Modo de Solo Lectura</p>
+                <p className="text-xs opacity-90">Tu periodo de prueba ha expirado. Estás en modo de solo lectura. Para agregar pacientes o usar funciones avanzadas, necesitas un plan activo.</p>
+              </div>
+            </div>
+            <Button size="sm" onClick={navigateToUpgrade} className="shrink-0 bg-warning text-warning-foreground hover:bg-warning/90 font-bold shadow-sm">
+              <Sparkles className="h-3 w-3 mr-2" />
+              Actualizar Plan
+            </Button>
+          </div>
+        )}
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
           {!selectedPatientData && (
@@ -1068,10 +1106,12 @@ const Patients = () => {
                 <Download className="h-3.5 w-3.5 mr-2" />
                 Exportar
               </Button>
-              <Button variant="zen" size="sm" className="h-10 text-[10px] font-bold uppercase tracking-widest px-4 shadow-lg shadow-primary/20" onClick={() => setIsNewPatientOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-2" />
-                Nuevo Paciente
-              </Button>
+              <FeatureGate feature="core_patients" inline>
+                <Button variant="zen" size="sm" className="h-10 text-[10px] font-bold uppercase tracking-widest px-4 shadow-lg shadow-primary/20" onClick={() => setIsNewPatientOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-2" />
+                  Nuevo Paciente
+                </Button>
+              </FeatureGate>
             </div>
           </div>
           )}
@@ -1964,11 +2004,15 @@ const Patients = () => {
                                 )}
                               </div>
 
+                              <div className="mb-6 flex justify-center w-full">
+                                <PatientWhatsAppLink patient={selectedPatientData} />
+                              </div>
+
                               {!selectedPatientData.phone ? (
                                 <div className="text-center p-12 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
                                   <Phone className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-4" />
-                                  <p className="text-muted-foreground font-medium">Este paciente no tiene teléfono registrado.</p>
-                                  <p className="text-xs text-muted-foreground mt-1">Agrega un número en el perfil para habilitar WhatsApp.</p>
+                                  <p className="text-muted-foreground font-medium">Este paciente aún no tiene teléfono vinculado.</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Usa el enlace de invitación de arriba para que el paciente vincule su número automáticamente, o edita su perfil.</p>
                                 </div>
                               ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2363,7 +2407,6 @@ const Patients = () => {
         )}
         </div>
       </div>
-      </FeatureGate>
     </Layout>
 
       {/* New Patient Dialog */}
@@ -2470,14 +2513,16 @@ const Patients = () => {
       {/* Mobile Floating Action Button (FAB) for Patients List */}
       {!selectedPatient && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 lg:hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <Button
-            variant="zen"
-            className="rounded-full shadow-lg shadow-primary/30 h-12 px-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-primary text-white border border-primary/10 transition-transform active:scale-95"
-            onClick={() => setIsNewPatientOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Paciente
-          </Button>
+          <FeatureGate feature="core_patients" inline>
+            <Button
+              variant="zen"
+              className="rounded-full shadow-lg shadow-primary/30 h-12 px-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-primary text-white border border-primary/10 transition-transform active:scale-95"
+              onClick={() => setIsNewPatientOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Paciente
+            </Button>
+          </FeatureGate>
         </div>
       )}
 

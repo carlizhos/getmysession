@@ -68,7 +68,36 @@ serve(async (req) => {
       let organizationId = patient?.organization_id;
       let patientId = patient?.id;
 
-      // Si no encontramos al paciente, tratamos de sacar la organización del último mensaje saliente al mismo número
+      // --- MAGIC LINK / FLUJO DE VINCULACIÓN ---
+      let isJustLinked = false;
+      if (!patientId) {
+        const match = body.match(/C[oó]digo:\s*([A-Z0-9-]+)/i);
+        if (match) {
+          const linkCode = match[1].toUpperCase();
+          const { data: linkedPatient, error: linkErr } = await supabaseClient
+            .from("patients")
+            .select("id, organization_id, name")
+            .eq("link_code", linkCode)
+            .is("deleted_at", null)
+            .limit(1)
+            .maybeSingle();
+
+          if (linkedPatient && !linkErr) {
+            // Actualizar paciente con el nuevo número
+            await supabaseClient
+              .from("patients")
+              .update({ phone: cleanPhone, is_whatsapp_linked: true })
+              .eq("id", linkedPatient.id);
+            
+            patientId = linkedPatient.id;
+            organizationId = linkedPatient.organization_id;
+            patient = linkedPatient;
+            isJustLinked = true;
+          }
+        }
+      }
+
+      // Si no encontramos al paciente ni fue vinculado, tratamos de sacar la organización del último mensaje saliente al mismo número
       if (!organizationId) {
         const { data: lastMsg } = await supabaseClient
           .from("whatsapp_messages")
@@ -80,7 +109,7 @@ serve(async (req) => {
 
         if (lastMsg) {
           organizationId = lastMsg.organization_id;
-          patientId = lastMsg.patient_id;
+          patientId = lastMsg.patient_id || patientId;
         } else {
           // Organización fallback (primera en la BD) si es una conversación nueva no registrada
           const { data: orgs } = await supabaseClient.from("organizations").select("id").limit(1);
@@ -90,6 +119,14 @@ serve(async (req) => {
 
       let responseText = "Hola, he recibido tu mensaje. Tu psicólogo/a lo revisará muy pronto. Si necesitas gestionar tus citas, puedes ingresar a tu Portal del Paciente aquí: " + portalUrl;
       let handled = false;
+
+      if (isJustLinked) {
+        responseText = `¡Listo, ${patient?.name?.split(' ')[0] || ''}! Tu número ha sido vinculado exitosamente con tu especialista en Saudade. A partir de ahora recibirás tus recordatorios y notificaciones aquí.`;
+        handled = true;
+      } else if (!patientId) {
+        responseText = "Hola, este número no está registrado en Saudade. Por favor, solicita a tu especialista tu enlace de invitación.";
+        handled = true;
+      }
 
       // 1.2. Si hay paciente y organización, buscar cita próxima en las próximas 48 horas
       if (patientId && organizationId) {

@@ -79,7 +79,7 @@ const Messages = () => {
   const handleProcessReminders = async () => {
     setProcessingReminders(true);
     try {
-      const { data, error } = await supabase.functions.invoke('twilio-whatsapp', {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp', {
         body: { action: 'send-batch-reminders' },
       });
 
@@ -161,14 +161,23 @@ const Messages = () => {
     const channel = supabase
       .channel('wa-messages')
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: '*', // Listen to INSERT, UPDATE, DELETE
         schema: 'public',
         table: 'whatsapp_messages',
         filter: `organization_id=eq.${organization.id}`,
-      }, (payload: { new: WaMessage }) => {
-        const msg = payload.new;
-        setMessages(prev => [...prev, msg]);
-        fetchConversations();
+      }, (payload: any) => {
+        if (payload.eventType === 'INSERT') {
+          const msg = payload.new as WaMessage;
+          setMessages(prev => {
+            // Prevent duplicates
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          fetchConversations();
+        } else if (payload.eventType === 'UPDATE') {
+          const msg = payload.new as WaMessage;
+          setMessages(prev => prev.map(m => m.id === msg.id ? msg : m));
+        }
       })
       .subscribe();
 
@@ -215,7 +224,7 @@ const Messages = () => {
 
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('twilio-whatsapp', {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp', {
         body: {
           action: 'send',
           phone: selectedPhone,

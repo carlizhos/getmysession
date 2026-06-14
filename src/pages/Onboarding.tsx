@@ -23,12 +23,14 @@ import {
 } from 'lucide-react';
 import SignaturePad from '@/components/consent/SignaturePad';
 import { cn } from '@/lib/utils';
+import FreeTrialScreen from '@/components/subscription/FreeTrialScreen';
 
 const STEPS = [
   { id: 1, title: 'Identidad Clínica' },
   { id: 2, title: 'Primer Servicio' },
   { id: 3, title: 'Agenda y Horarios' },
-  { id: 4, title: 'Firma y Legal' }
+  { id: 4, title: 'Firma y Legal' },
+  { id: 5, title: 'Prueba Gratis' }
 ];
 
 const COMMON_TIMEZONES = [
@@ -142,7 +144,12 @@ export default function Onboarding() {
       toast.error('Tu firma digital es obligatoria para la validez legal de tus expedientes.');
       return;
     }
+    
+    // Instead of saving immediately, we move to the final checkout step
+    setCurrentStep(5);
+  };
 
+  const handleCheckout = async (planId: 'pro_monthly' | 'pro_annual') => {
     setIsSaving(true);
     try {
       // 1. Update Profile (Identity)
@@ -150,9 +157,8 @@ export default function Onboarding() {
         prefix,
         full_name: fullName,
         cedula_profesional: cedula,
-        specialty,
-        signature_data: signatureData,
-        onboarding_completed: true
+        especialidad: specialty,
+        signature_data: signatureData
       }).eq('id', user?.id);
 
       if (profileError) throw profileError;
@@ -198,7 +204,23 @@ export default function Onboarding() {
       toast.success('¡Configuración completada! Bienvenido a Saudade.', { icon: <CheckCircle2 className="h-5 w-5 text-primary" /> });
       await refreshProfile();
       await refreshOrganization();
-      navigate('/dashboard');
+      
+      // Now redirect to Stripe Checkout
+      const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-billing-session', {
+        body: { 
+          organization_id: orgId, 
+          plan_id: planId,
+          return_url: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (sessionError) throw sessionError;
+      if (sessionData?.url) {
+        window.location.href = sessionData.url;
+      } else {
+        throw new Error('No se pudo generar la sesión de pago');
+      }
+      
     } catch (err: any) {
       toast.error('Error al finalizar: ' + err.message);
       setIsSaving(false);
@@ -244,10 +266,14 @@ export default function Onboarding() {
           {currentStep === 2 && 'Necesitamos registrar al menos un servicio oficial en la base de datos para que la Agenda tenga algo que ofrecer y sepa cuánto cobrar a tus pacientes cuando reserven.'}
           {currentStep === 3 && 'Basado en estos horarios, el sistema bloqueará y abrirá espacios automáticamente en tu calendario, evitando que pacientes agenden citas cuando no estás disponible.'}
           {currentStep === 4 && 'La Norma Oficial Mexicana (NOM-024) exige tu firma para dar validez legal a tus recetas y expedientes. Además, podrás configurar pagos seguros con tarjeta.'}
+          {currentStep === 5 && 'Inicia tu prueba gratuita de 30 días con acceso ilimitado a todas las funciones Pro de Saudade.'}
         </p>
 
-        <div className="w-full bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.5rem] overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
-          <div className="p-5 md:p-8">
+        {currentStep === 5 ? (
+          <FreeTrialScreen onContinue={handleCheckout} isLoading={isSaving} />
+        ) : (
+          <div className="w-full bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.5rem] overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
+            <div className="p-5 md:p-8">
             
             {/* STEP 1: IDENTITY */}
             {currentStep === 1 && (
@@ -491,8 +517,10 @@ export default function Onboarding() {
 
           </div>
         </div>
+        )}
 
-        {/* Footer Navigation */}
+        {/* Footer Navigation - hidden on step 5 because FreeTrialScreen has its own button */}
+        {currentStep < 5 && (
         <div className="mt-6 flex justify-between w-full items-center animate-in fade-in duration-700 delay-700">
           
           {/* Left Action (Back) */}
@@ -554,6 +582,7 @@ export default function Onboarding() {
             )}
           </div>
         </div>
+        )}
 
       </div>
     </div>

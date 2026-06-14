@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useSubscription, PremiumFeature } from '@/hooks/useSubscription';
+import { useSubscription, PremiumFeature, usePricingModal } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Lock, Sparkles, ArrowRight } from 'lucide-react';
 
@@ -64,7 +64,8 @@ const FEATURE_LABELS: Record<PremiumFeature, { title: string; description: strin
 };
 
 export default function FeatureGate({ feature, children, message, inline = false }: FeatureGateProps) {
-  const { canUse, navigateToUpgrade } = useSubscription();
+  const { canUse } = useSubscription();
+  const { open: openModal } = usePricingModal();
 
   if (canUse(feature)) {
     return <>{children}</>;
@@ -75,7 +76,7 @@ export default function FeatureGate({ feature, children, message, inline = false
   if (inline) {
     return (
       <button
-        onClick={navigateToUpgrade}
+        onClick={openModal}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20 text-xs font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer"
       >
         <Lock className="h-3 w-3" />
@@ -103,7 +104,7 @@ export default function FeatureGate({ feature, children, message, inline = false
           {label.description}
         </p>
         <Button
-          onClick={navigateToUpgrade}
+          onClick={openModal}
           className="gap-2 rounded-xl font-bold bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white shadow-lg shadow-primary/25 px-6"
         >
           <Sparkles className="h-4 w-4" />

@@ -134,6 +134,12 @@ serve(async (req) => {
       throw new Error('Failed to update organization: ' + updateError.message);
     }
 
+    // Always ensure onboarding is marked as complete once they have a verified subscription
+    await supabaseAdmin
+      .from('profiles')
+      .update({ onboarding_completed: true })
+      .eq('id', user.id);
+
     console.log(`✅ Subscription verified for org ${orgId}: ${status} / ${planId}`);
 
     return new Response(JSON.stringify({ 

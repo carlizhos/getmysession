@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
+import { usePricingModal } from '@/hooks/useSubscription';
 
 const SubscriptionTab = () => {
     const { organization, refresh: refreshOrg } = useOrganization();
@@ -16,6 +17,7 @@ const SubscriptionTab = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const syncedRef = useRef(false);
+    const { open: openPricingModal } = usePricingModal();
 
     // Auto-sync subscription data from Stripe on mount
     useEffect(() => {
@@ -200,7 +202,7 @@ const SubscriptionTab = () => {
                             className="w-full mt-auto gap-2" 
                             variant={currentPlan === 'pro' ? 'ghost' : 'zen'}
                             disabled={currentPlan === 'pro' || isProcessing}
-                            onClick={() => handleManageBilling('pro')}
+                            onClick={() => currentPlan === 'pro' ? handleManageBilling() : openPricingModal()}
                         >
                             {isProcessing ? (
                                 <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
@@ -268,6 +270,9 @@ const SubscriptionTab = () => {
                     <p className="text-sm font-semibold">Seguridad y Privacidad</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                         Saudade no almacena tus datos bancarios. Todos los pagos son procesados de forma segura a través de <strong>Stripe</strong>, cumpliendo con los estándares PCI-DSS. Puedes cancelar o cambiar tu plan en cualquier momento desde el portal de facturación.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                        Todos los precios están en Pesos Mexicanos (MXN).
                     </p>
                 </div>
             </div>

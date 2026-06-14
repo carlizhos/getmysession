@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback, useSyncExternalStore } from 'react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,6 +33,42 @@ const FEATURE_PLANS: Record<PremiumFeature, string[]> = {
   core_finance: ['pro', 'clinic'],
 };
 
+// ── Global Pricing Modal State (singleton) ─────────────────────────────────
+// Uses useSyncExternalStore so any component can subscribe without Context
+let _pricingModalOpen = false;
+const _listeners = new Set<() => void>();
+
+function _emitChange() {
+  _listeners.forEach((l) => l());
+}
+
+export function openPricingModal() {
+  _pricingModalOpen = true;
+  _emitChange();
+}
+
+export function closePricingModal() {
+  _pricingModalOpen = false;
+  _emitChange();
+}
+
+function _subscribe(listener: () => void) {
+  _listeners.add(listener);
+  return () => _listeners.delete(listener);
+}
+
+function _getSnapshot() {
+  return _pricingModalOpen;
+}
+
+/** Hook to read/control the global pricing modal state */
+export function usePricingModal() {
+  const isOpen = useSyncExternalStore(_subscribe, _getSnapshot);
+  return { isOpen, open: openPricingModal, close: closePricingModal };
+}
+
+// ── Main Subscription Hook ─────────────────────────────────────────────────
+
 export function useSubscription() {
   const { organization } = useOrganization();
   const navigate = useNavigate();
@@ -45,8 +81,17 @@ export function useSubscription() {
   const computed = useMemo(() => {
     // Calculate days remaining in trial or current period
     let daysRemaining = 0;
-    if (periodEnd) {
-      const end = new Date(periodEnd);
+    
+    // If periodEnd is null but we are in trialing, fallback to created_at + 30 days
+    let effectiveEnd = periodEnd;
+    if (!effectiveEnd && status === 'trialing' && organization?.created_at) {
+      const createdDate = new Date(organization.created_at);
+      createdDate.setDate(createdDate.getDate() + 30);
+      effectiveEnd = createdDate.toISOString();
+    }
+
+    if (effectiveEnd) {
+      const end = new Date(effectiveEnd);
       const now = new Date();
       daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
     }
@@ -85,7 +130,7 @@ export function useSubscription() {
   }, [status, planId, periodEnd, cancelAtPeriodEnd]);
 
   const navigateToUpgrade = () => {
-    navigate('/settings?tab=suscripcion');
+    openPricingModal();
   };
 
   return {

@@ -76,18 +76,23 @@ serve(async (req) => {
 
     if (plan_id && !isSubscribedToPaidPlan) {
       // Create Checkout Session for Subscription
-      // Map plan_id to Stripe Price ID (In reality, these should be env vars or DB lookups)
-      let priceId = plan_id === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : Deno.env.get('STRIPE_PRICE_CLINIC');
+      // Handle Pro Monthly and Pro Annual dynamically
+      let priceId = null;
+      const isAnnual = plan_id === 'pro_annual';
+      const expectedAmount = isAnnual ? 749000 : 74900; // 7490 MXN/yr vs 749 MXN/mo
+      const interval = isAnnual ? 'year' : 'month';
       let matchedPrice: Stripe.Price | null = null;
       
-      // Auto-create or fetch 749 MXN/month plan for Pro
-      if (plan_id === 'pro' && !priceId) {
+      // Auto-create or fetch the right plan for Pro (Monthly/Annual)
+      if (plan_id === 'pro_monthly' || plan_id === 'pro_annual' || plan_id === 'pro') {
         try {
           const pricesList = await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] });
           matchedPrice = pricesList.data.find(p => {
             const prod = p.product as any;
             const name = prod?.name?.toLowerCase() || '';
-            return (name.includes('saudade pro') || name.includes('pro')) && p.recurring?.interval === 'month' && p.unit_amount === 74900;
+            return (name.includes('saudade pro') || name.includes('pro')) && 
+                   p.recurring?.interval === interval && 
+                   p.unit_amount === expectedAmount;
           }) || null;
 
           if (matchedPrice) {
@@ -101,14 +106,14 @@ serve(async (req) => {
             });
             const price = await stripe.prices.create({
               product: product.id,
-              unit_amount: 74900, // 749 MXN
+              unit_amount: expectedAmount,
               currency: 'mxn',
-              recurring: { interval: 'month' },
-              metadata: { plan_id: 'pro' }
+              recurring: { interval: interval },
+              metadata: { plan_id: plan_id }
             });
             priceId = price.id;
             matchedPrice = price;
-            console.log('Successfully auto-created Saudade Pro plan on Stripe:', priceId);
+            console.log(`Successfully auto-created Saudade Pro ${interval} plan on Stripe:`, priceId);
           }
         } catch (err) {
           console.error('Error auto-configuring Pro price on Stripe:', err);
