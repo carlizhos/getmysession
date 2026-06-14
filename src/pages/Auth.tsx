@@ -461,8 +461,16 @@ const Auth = () => {
                         )}
                     </form>
 
+                    {/* Legal Acceptance */}
+                    <div className="text-center text-[11px] text-muted-foreground px-4 mt-2">
+                        Al {isLogin ? 'iniciar sesión' : 'crear una cuenta'}, aceptas nuestros{' '}
+                        <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a>{' '}
+                        y{' '}
+                        <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a>.
+                    </div>
+
                     {/* Toggle Login/Register */}
-                    <div className="text-center text-sm">
+                    <div className="text-center text-sm mt-4">
                         <span className="text-muted-foreground">
                             {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
                         </span>
