@@ -97,6 +97,13 @@ const Auth = () => {
         // Reset loading state when returning to page (browser back button)
         setLoading(false);
         setGoogleLoading(false);
+
+        // Save plan selection from landing page
+        const params = new URLSearchParams(window.location.search);
+        const plan = params.get('plan');
+        if (plan === 'pro_monthly' || plan === 'pro_annual') {
+            localStorage.setItem('saudade_selected_plan', plan);
+        }
     }, []);
 
     // Handle the credential returned by Google GSI

@@ -15,7 +15,10 @@ const ANNUAL_SAVINGS = (MONTHLY_PRICE * 12) - ANNUAL_PRICE; // 1498
 const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100); // 16
 
 export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScreenProps) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(() => {
+    const savedPlan = localStorage.getItem('saudade_selected_plan');
+    return savedPlan === 'pro_annual' ? 'annual' : 'monthly';
+  });
 
   // Calculate dates
   const today = new Date();
