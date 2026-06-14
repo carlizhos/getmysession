@@ -520,7 +520,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
               <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
               <div className="flex items-center gap-6">
                 <a 
-                  href="/politicas" 
+                  href="https://saudade.mx/politicas" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors cursor-pointer"
@@ -528,7 +528,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   Políticas de uso
                 </a>
                 <a 
-                  href="/terminos" 
+                  href="https://saudade.mx/terminos" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors cursor-pointer"
