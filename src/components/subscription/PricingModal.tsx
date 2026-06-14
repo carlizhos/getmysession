@@ -321,8 +321,8 @@ export default function PricingModal() {
             <p className="text-[10px] text-slate-400 text-center leading-tight">
               Todos los precios están en Pesos Mexicanos (MXN). Tu suscripción se renueva automáticamente.
               Puedes cancelarla en cualquier momento desde tu configuración. Al continuar aceptas los{' '}
-              <a href="https://saudade.mx/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
-              <a href="https://saudade.mx/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a>.
+              <a href="/terminos" target="_blank" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
+              <a href="/politicas" target="_blank" className="underline hover:text-primary transition-colors">Política de privacidad</a>.
             </p>
           </div>
         </div>

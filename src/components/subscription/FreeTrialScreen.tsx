@@ -176,8 +176,8 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
             
             <p className="text-[10px] text-slate-400 text-center leading-tight mt-4">
               Todos los precios están en Pesos Mexicanos (MXN). Al continuar, aceptas los{' '}
-              <a href="https://saudade.mx/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
-              <a href="https://saudade.mx/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a> de Saudade.
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
+              <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a> de Saudade.
               Tu suscripción se renueva de forma automática con el método de pago que elegiste.
               Puedes cancelarla en cualquier momento desde tu configuración para evitar cargos.
             </p>
