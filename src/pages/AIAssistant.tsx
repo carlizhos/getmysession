@@ -478,7 +478,18 @@ const AIAssistant = () => {
   };
 
   const handleSave = useCallback(async () => {
-    if (!generatedReport || !selectedPatientId || !organization?.id) return;
+    if (!selectedPatientId) {
+      toast.warning("Por favor, selecciona un paciente en la parte superior antes de guardar la nota.");
+      return;
+    }
+    if (!generatedReport) {
+      toast.warning("Por favor, genera o edita un reporte antes de guardar.");
+      return;
+    }
+    if (!organization?.id) {
+      toast.error("Contexto de organización no disponible.");
+      return;
+    }
     
     setIsProcessing(true);
     setProcessingStep("Guardando en expediente...");
@@ -520,6 +531,7 @@ const AIAssistant = () => {
         const { error: noteError } = await supabase.from('session_notes').insert({
           user_id: user.id, 
           patient_id: selectedPatientId,
+          patient_name: selectedPatientName || 'Sin paciente',
           organization_id: organization.id,
           date: new Date().toISOString().split('T')[0],
           session_number: nextSession,

@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   MessageCircle, Send, Search, User, Phone, Check, CheckCheck,
-  Calendar, Brain, DollarSign, Activity, ClipboardList, Loader2, ArrowLeft
+  Calendar, Brain, DollarSign, Activity, ClipboardList, Loader2, ArrowLeft,
+  MapPin, Sparkles
 } from 'lucide-react';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,19 +38,25 @@ interface Conversation {
 }
 
 const MESSAGE_TEMPLATES = [
-  { id: 'reminder', label: '📅 Recordatorio', icon: Calendar, color: 'primary' },
-  { id: 'followup', label: '🧠 Seguimiento', icon: Brain, color: 'accent' },
-  { id: 'payment', label: '💰 Cobro', icon: DollarSign, color: 'warning' },
-  { id: 'reactivation', label: '🌿 Reactivación', icon: Activity, color: 'secondary' },
-  { id: 'test', label: '📋 Test', icon: ClipboardList, color: 'accent' },
+  { id: 'reminder_short', label: '📅 Recordatorio (Corto)', icon: Calendar, color: 'primary' },
+  { id: 'reminder_presential', label: '📍 Recordatorio Presencial', icon: MapPin, color: 'success' },
+  { id: 'payment_reminder', label: '💰 Recordatorio de Pago', icon: DollarSign, color: 'warning' },
+  { id: 'reactivation', label: '🌿 Reagendar', icon: Activity, color: 'secondary' },
+  { id: 'task_reminder', label: '📋 Recordatorio de Tarea', icon: ClipboardList, color: 'accent' },
+  { id: 'followup_short', label: '🧠 Seguimiento Post-Sesión', icon: Brain, color: 'accent' },
+  { id: 'birthday_congrats', label: '✨ Cumpleaños', icon: Sparkles, color: 'success' },
+  { id: 'test', label: '📋 Test Psicométrico', icon: ClipboardList, color: 'accent' },
 ];
 
 function getTemplateMessage(templateId: string, name: string): string {
   const templates: Record<string, string> = {
-    reminder: `Hola ${name}, te recuerdo que tienes una cita próximamente. ¿Confirmas asistencia? 😊`,
-    followup: `Hola ${name}, espero que estés teniendo una buena semana. Recuerda practicar los ejercicios que trabajamos. Si necesitas algo, escríbeme. 💙`,
-    payment: `Hola ${name}, te envío un recordatorio amable de tu saldo pendiente. Puedes realizarlo por transferencia o en tu próxima cita. ¡Gracias! 🙏`,
-    reactivation: `Hola ${name}, ha pasado un tiempo desde nuestra última sesión. Si deseas retomar el proceso terapéutico, con gusto agendamos. 🌿`,
+    reminder_short: `¡Hola, ${name}! ✨ Te esperamos el [Fecha] a las [Hora] para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`,
+    reminder_presential: `¡Hola, ${name}! ✨ Te esperamos el [Fecha] a las [Hora] en [Dirección/Lugar]. Puedes guiarte con este mapa: [Link de Google Maps]. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`,
+    payment_reminder: `¡Hola, ${name}! Un recordatorio amable: tu pago por sesión vence el [Fecha]. Si ya lo realizaste, ignora este mensaje. ¡Gracias por tu confianza!`,
+    reactivation: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: [Enlace]. ¡Será un gusto volver a coincidir!`,
+    task_reminder: `¡Hola, ${name}! Paso a recordarte que tienes pendiente completar: [Nombre de la tarea] para el [Fecha]. ¡Cada avance cuenta! Estamos aquí para cualquier duda.`,
+    followup_short: `¡Hola, ${name}! Esperamos que hayas disfrutado tu experiencia hoy. ¿Todo bien con tu sesión? Si tienes alguna duda o comentario, nos encantaría escucharte. ¡Gracias!`,
+    birthday_congrats: `¡Feliz cumpleaños, ${name}! ✨ Celebramos tu vida y nos da mucha alegría acompañarte. Que este año sea increíble y esté lleno de momentos bonitos. ¡Disfruta mucho tu día! 🎂🤍`,
     test: `Hola ${name}, te comparto el enlace para completar tu prueba psicológica. Es rápida y nos ayudará mucho en tu proceso. 📋`,
   };
   return templates[templateId] || '';

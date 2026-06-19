@@ -12,6 +12,7 @@ import {
   Calendar,
   User,
   MessageCircle,
+  MapPin,
   Loader2,
   Clock,
   Pencil,
@@ -97,6 +98,8 @@ import { decryptText } from '@/lib/encryption';
 // Enriched patient type with appointment metadata
 interface EnrichedPatient extends Patient {
     _next_appointment?: string | null;
+    _next_appointment_modality?: string | null;
+    _next_appointment_location?: string | null;
     _last_appointment?: string | null;
 }
 
@@ -386,19 +389,30 @@ const Patients = () => {
       // Traer citas
       const { data: aptsData } = await supabase
         .from('appointments')
-        .select('patient_id, start_time, status')
+        .select('patient_id, start_time, status, modality, location')
         .eq('organization_id', organization?.id)
         .neq('status', 'cancelled')
         .order('start_time', { ascending: true });
 
       const apts = aptsData || [];
-      const nextByPatient: Record<string, string> = {};
+      interface EnrichedApt {
+        start_time: string;
+        modality?: string | null;
+        location?: string | null;
+      }
+      const nextByPatient: Record<string, EnrichedApt> = {};
       const lastByPatient: Record<string, string> = {};
 
-      apts.forEach((apt: Appointment) => {
+      apts.forEach((apt: any) => {
         if (!apt.patient_id) return;
         if (apt.start_time >= now) {
-          if (!nextByPatient[apt.patient_id]) nextByPatient[apt.patient_id] = apt.start_time;
+          if (!nextByPatient[apt.patient_id]) {
+            nextByPatient[apt.patient_id] = {
+              start_time: apt.start_time,
+              modality: apt.modality,
+              location: apt.location
+            };
+          }
         } else {
           lastByPatient[apt.patient_id] = apt.start_time;
         }
@@ -419,7 +433,9 @@ const Patients = () => {
           tax_regime: fiscalData.tax_regime || undefined,
           cfdi_use: fiscalData.cfdi_use || undefined,
           notes: clinicalData.notes || undefined,
-          _next_appointment: nextByPatient[p.id] || null,
+          _next_appointment: nextByPatient[p.id] ? nextByPatient[p.id].start_time : null,
+          _next_appointment_modality: nextByPatient[p.id] ? nextByPatient[p.id].modality : null,
+          _next_appointment_location: nextByPatient[p.id] ? nextByPatient[p.id].location : null,
           _last_appointment: lastByPatient[p.id] || null,
         };
       });
@@ -2021,43 +2037,85 @@ const Patients = () => {
                                     const phone = selectedPatientData.phone.replace(/[^0-9]/g, '');
                                     const name = selectedPatientData.name?.split(' ')[0] || 'paciente';
                                     const nextApt = selectedPatientData._next_appointment;
+                                    const nextModality = selectedPatientData._next_appointment_modality;
+                                    const nextLocation = selectedPatientData._next_appointment_location;
+
+                                    let formattedDate = '[Fecha]';
+                                    let formattedTime = '[Hora]';
+                                    if (nextApt) {
+                                      const aptDateObj = parseISO(nextApt);
+                                      formattedDate = format(aptDateObj, "EEEE d 'de' MMMM", { locale: es });
+                                      formattedTime = format(aptDateObj, "HH:mm");
+                                    }
+
                                     const templates = [
                                       {
-                                        id: 'reminder',
-                                        title: 'Recordatorio de Cita',
-                                        description: nextApt ? `Próxima: ${format(parseISO(nextApt), "d MMM, HH:mm", { locale: es })}` : 'Sin cita próxima',
+                                        id: 'reminder_short',
+                                        title: 'Recordatorio (Corto)',
+                                        description: nextApt ? `Próxima: ${format(parseISO(nextApt), "d MMM, HH:mm", { locale: es })}` : 'Recordatorio corto de cita',
                                         icon: <Calendar className="h-5 w-5" />,
                                         color: 'primary',
-                                        message: nextApt
-                                          ? `Hola ${name}, te recuerdo tu cita el ${format(parseISO(nextApt), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}. ¿Confirmas asistencia? 😊`
-                                          : `Hola ${name}, ¿te gustaría agendar tu próxima cita? Quedo pendiente.`,
+                                        message: `¡Hola, ${name}! ✨ Te esperamos el ${formattedDate} a las ${formattedTime} para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`,
                                         disabled: false,
                                       },
                                       {
-                                        id: 'followup',
-                                        title: 'Seguimiento Terapéutico',
-                                        description: 'Mensaje de seguimiento post-sesión',
-                                        icon: <Brain className="h-5 w-5" />,
-                                        color: 'accent',
-                                        message: `Hola ${name}, espero que estés teniendo una buena semana. Recuerda practicar los ejercicios que trabajamos en tu última sesión. Si necesitas algo antes de nuestra próxima cita, no dudes en escribirme. 💙`,
+                                        id: 'reminder_presential',
+                                        title: 'Recordatorio Presencial',
+                                        description: nextLocation ? `Ubicación: ${nextLocation}` : 'Recordatorio con ubicación física',
+                                        icon: <MapPin className="h-5 w-5" />,
+                                        color: 'success',
+                                        message: (() => {
+                                          const loc = nextLocation || '[Dirección/Lugar]';
+                                          const mapLink = nextLocation 
+                                            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextLocation)}`
+                                            : '[Link de Google Maps]';
+                                          return `¡Hola, ${name}! ✨ Te esperamos el ${formattedDate} a las ${formattedTime} en ${loc}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`;
+                                        })(),
                                         disabled: false,
                                       },
                                       {
-                                        id: 'payment',
+                                        id: 'payment_reminder',
                                         title: 'Recordatorio de Pago',
-                                        description: 'Cobro pendiente cortés',
+                                        description: 'Aviso de vencimiento de pago',
                                         icon: <DollarSign className="h-5 w-5" />,
                                         color: 'warning',
-                                        message: `Hola ${name}, te envío un recordatorio amable de tu saldo pendiente de sesión. Puedes realizarlo por transferencia o en tu próxima cita. ¡Gracias! 🙏`,
+                                        message: `¡Hola, ${name}! Un recordatorio amable: tu pago por sesión vence el ${formattedDate !== '[Fecha]' ? formattedDate : '[Fecha]'}. Si ya lo realizaste, ignora este mensaje. ¡Gracias por tu confianza!`,
                                         disabled: false,
                                       },
                                       {
                                         id: 'reactivation',
-                                        title: 'Reactivación',
-                                        description: 'Paciente inactivo',
+                                        title: 'Reactivar / Reagendar',
+                                        description: 'Invitar a retomar su espacio',
                                         icon: <Activity className="h-5 w-5" />,
                                         color: 'secondary',
-                                        message: `Hola ${name}, ha pasado un tiempo desde nuestra última sesión y quería saber cómo te encuentras. Si deseas retomar el proceso terapéutico, con gusto agendamos una cita. Quedo a tus órdenes. 🌿`,
+                                        message: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: https://app.saudade.mx/reservar/${organization?.slug || 'psicologo'}. ¡Será un gusto volver a coincidir!`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'task_reminder',
+                                        title: 'Recordatorio de Tarea',
+                                        description: 'Notificar tarea pendiente',
+                                        icon: <ClipboardList className="h-5 w-5" />,
+                                        color: 'accent',
+                                        message: `¡Hola, ${name}! Paso a recordarte que tienes pendiente completar: [Nombre de la tarea] para el [Fecha]. ¡Cada avance cuenta! Estamos aquí para cualquier duda.`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'followup_short',
+                                        title: 'Seguimiento Post-Sesión',
+                                        description: 'Preguntar cómo se sintió hoy',
+                                        icon: <Brain className="h-5 w-5" />,
+                                        color: 'accent',
+                                        message: `¡Hola, ${name}! Esperamos que hayas disfrutado tu experiencia hoy. ¿Todo bien con tu sesión? Si tienes alguna duda o comentario, nos encantaría escucharte. ¡Gracias!`,
+                                        disabled: false,
+                                      },
+                                      {
+                                        id: 'birthday_congrats',
+                                        title: 'Cumpleaños',
+                                        description: 'Felicitación de cumpleaños',
+                                        icon: <Sparkles className="h-5 w-5" />,
+                                        color: 'success',
+                                        message: `¡Feliz cumpleaños, ${name}! ✨ Celebramos tu vida y nos da mucha alegría acompañarte. Que este año sea increíble y esté lleno de momentos bonitos. ¡Disfruta mucho tu día! 🎂🤍`,
                                         disabled: false,
                                       },
                                       {
@@ -2066,7 +2124,7 @@ const Patients = () => {
                                         description: 'Enviar link de test pendiente',
                                         icon: <ClipboardList className="h-5 w-5" />,
                                         color: 'accent',
-                                        message: `Hola ${name}, te comparto el enlace para completar tu prueba psicológica antes de nuestra próxima sesión. Es rápida y nos ayudará mucho en tu proceso. 📋`,
+                                        message: `Hola ${name}, te comparto el enlace para completar tu prueba psicológica. Es rápida y nos ayudará mucho en tu proceso. 📋`,
                                         disabled: false,
                                       },
                                       {

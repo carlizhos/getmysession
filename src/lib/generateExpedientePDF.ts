@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { format, differenceInYears } from 'date-fns';
+import { format, differenceInYears, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -24,12 +24,27 @@ export interface SessionNoteData {
     session_number: number;
     mood?: { rating?: number; notes?: string };
     bridge?: { homework_review?: string; notes?: string };
-    agenda?: { topic?: string; notes?: string; resolved?: boolean }[];
-    beliefs?: { belief?: string; evidence_for?: string; evidence_against?: string; alternative?: string };
+    agenda?: { 
+        topic?: string; 
+        notes?: string; 
+        resolved?: boolean; 
+        situation?: string; 
+        thoughts?: string; 
+        emotions?: string; 
+        interventions?: string; 
+    }[];
+    beliefs?: { 
+        belief?: string; 
+        evidence_for?: string; 
+        evidence_against?: string; 
+        alternative?: string; 
+        core?: string; 
+    };
     action_plan?: { task?: string; completed?: boolean }[];
     cie10_code?: string;
     cie10_description?: string;
     diagnostico_principal?: string;
+    transcript_summary?: string;
 }
 
 export interface ConsentData {
@@ -57,6 +72,59 @@ const GENDER_LABELS: Record<string, string> = {
     M: 'Masculino', F: 'Femenino', otro: 'No especificado',
 };
 
+function stripHtml(html: string): string {
+    if (!html) return '';
+    let text = html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<[^>]+>/g, ''); // strip all other tags
+    
+    text = text
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+
+    return text.trim();
+}
+
+function safeFormatDate(dateVal: any, formatStr: string, options?: any): string {
+    if (!dateVal) return '—';
+    try {
+        const d = typeof dateVal === 'string' ? parseISO(dateVal) : new Date(dateVal);
+        if (!isValid(d)) {
+            const d2 = new Date(dateVal);
+            if (!isValid(d2)) return '—';
+            return format(d2, formatStr, options);
+        }
+        return format(d, formatStr, options);
+    } catch (e) {
+        console.error('Error formatting date:', dateVal, e);
+        return '—';
+    }
+}
+
+function safeDifferenceInYears(dateLeft: any, dateRight: any): string {
+    if (!dateLeft || !dateRight) return '—';
+    try {
+        const dLeft = typeof dateLeft === 'string' ? parseISO(dateLeft) : new Date(dateLeft);
+        const dRight = typeof dateRight === 'string' ? parseISO(dateRight) : new Date(dateRight);
+        if (!isValid(dLeft) || !isValid(dRight)) {
+            const dLeft2 = new Date(dateLeft);
+            const dRight2 = new Date(dateRight);
+            if (!isValid(dLeft2) || !isValid(dRight2)) return '—';
+            return `${differenceInYears(dLeft2, dRight2)}`;
+        }
+        return `${differenceInYears(dLeft, dRight)}`;
+    } catch (e) {
+        console.error('Error calculating age difference:', e);
+        return '—';
+    }
+}
+
 function addWrappedText(
     doc: jsPDF,
     text: string,
@@ -67,10 +135,22 @@ function addWrappedText(
     pageHeight: number,
     margin: number,
     onNewPage: () => number,
+    fontName = 'helvetica',
+    fontStyle = 'normal',
+    fontSize = 9.5,
+    r = 50,
+    g = 50,
+    b = 50
 ): number {
-    const lines = doc.splitTextToSize(text || '—', maxWidth);
+    const cleanedText = stripHtml(text);
+    const lines = doc.splitTextToSize(cleanedText || '—', maxWidth);
     for (const line of lines) {
-        if (y > pageHeight - margin) y = onNewPage();
+        if (y > pageHeight - margin) {
+            y = onNewPage();
+            doc.setFont(fontName, fontStyle);
+            doc.setFontSize(fontSize);
+            doc.setTextColor(r, g, b);
+        }
         doc.text(line, x, y);
         y += lineHeight;
     }
@@ -155,13 +235,13 @@ export function generateExpedientePDF(
     y += 7;
 
     const age = patient.date_of_birth
-        ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} años`
+        ? `${safeDifferenceInYears(new Date(), patient.date_of_birth)} años`
         : '—';
 
     const infoRows = [
         ['Nombre completo', patient.name || '—'],
         ['Edad', age],
-        ['Fecha de nacimiento', patient.date_of_birth ? format(new Date(patient.date_of_birth), 'd MMM yyyy', { locale: es }) : '—'],
+        ['Fecha de nacimiento', safeFormatDate(patient.date_of_birth, 'd MMM yyyy', { locale: es })],
         ['CURP', patient.curp || '—'],
         ['Género', patient.gender ? (GENDER_LABELS[patient.gender] || patient.gender) : '—'],
         ['Ocupación', patient.occupation || '—'],
@@ -277,7 +357,7 @@ export function generateExpedientePDF(
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(60, 40, 120);
         doc.text(
-            `Sesión #${note.session_number}  ·  ${format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es })}`,
+            `Sesión #${note.session_number}  ·  ${safeFormatDate(note.date, "d 'de' MMMM yyyy", { locale: es })}`,
             margin + 3, y + 1,
         );
         y += 10;
@@ -318,17 +398,55 @@ export function generateExpedientePDF(
             doc.text('Temas trabajados:', margin + 3, y);
             y += 5;
             for (const item of note.agenda) {
-                if (!item.topic) continue;
+                if (!item.topic && !item.notes && !item.thoughts) continue;
                 if (y > pageH - margin) y = addPage();
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(40, 40, 40);
-                y = addWrappedText(doc, `• ${item.topic}`, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
-                if (item.notes) {
+                const topicTitle = item.topic ? `• ${item.topic}` : '• Desarrollo';
+                y = addWrappedText(doc, topicTitle, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
+
+                const details = [];
+                if (item.situation) details.push(`Situación: ${item.situation}`);
+                if (item.thoughts) details.push(`Pensamientos: ${item.thoughts}`);
+                if (item.emotions) details.push(`Emociones: ${item.emotions}`);
+                if (item.interventions) details.push(`Intervenciones: ${item.interventions}`);
+                if (item.notes) details.push(`Notas: ${item.notes}`);
+
+                if (details.length > 0) {
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(70, 70, 70);
-                    y = addWrappedText(doc, `  ${item.notes}`, margin + 9, y, contentW - 9, 5, pageH, margin, addPage);
+                    for (const detail of details) {
+                        if (y > pageH - margin) y = addPage();
+                        y = addWrappedText(doc, `  ${detail}`, margin + 9, y, contentW - 9, 5, pageH, margin, addPage);
+                    }
                 }
             }
+        }
+
+        // Reporte de sesión / Resumen IA
+        if (note.transcript_summary) {
+            if (y > pageH - margin) y = addPage();
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 100);
+            doc.text('Reporte de sesión / Resumen:', margin + 3, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(50, 50, 50);
+            y = addWrappedText(doc, note.transcript_summary, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
+        }
+
+        // Creencias / Ideas nucleares
+        if (note.beliefs?.core || note.beliefs?.belief) {
+            if (y > pageH - margin) y = addPage();
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 100);
+            doc.text('Creencias / Flexibilidad Cognitiva:', margin + 3, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(50, 50, 50);
+            const coreVal = note.beliefs.core || note.beliefs.belief || '';
+            const altVal = note.beliefs.alternative || '';
+            y = addWrappedText(doc, `Creencia nuclear: ${coreVal}${altVal ? `\nAlternativa: ${altVal}` : ''}`, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
         }
 
         // CIE-10 de esta sesión
@@ -341,6 +459,18 @@ export function generateExpedientePDF(
             doc.setTextColor(40, 40, 40);
             doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 42, y);
             y += 5.5;
+        }
+
+        // Impresión diagnóstica / Plan de tratamiento de esta sesión
+        if (note.diagnostico_principal) {
+            if (y > pageH - margin) y = addPage();
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 100);
+            doc.text('Impresión Diagnóstica / Plan:', margin + 3, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(50, 50, 50);
+            y = addWrappedText(doc, note.diagnostico_principal, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
         }
 
         // Plan de acción
@@ -509,7 +639,7 @@ export function generateSessionNotePDF(
     doc.text(`NOTA DE SESIÓN #${note.session_number}`, pageW / 2, 28, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha de sesión: ${format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es })}`, pageW / 2, 34, { align: 'center' });
+    doc.text(`Fecha de sesión: ${safeFormatDate(note.date, "d 'de' MMMM yyyy", { locale: es })}`, pageW / 2, 34, { align: 'center' });
 
     let y = 50;
 
@@ -523,11 +653,9 @@ export function generateSessionNotePDF(
 
     const dob = patient.date_of_birth;
     const age = dob
-        ? `${differenceInYears(new Date(), new Date(dob))} años`
+        ? `${safeDifferenceInYears(new Date(), dob)} años`
         : '—';
-    const dobFormatted = dob
-        ? format(new Date(dob), 'd MMM yyyy', { locale: es })
-        : '—';
+    const dobFormatted = safeFormatDate(dob, 'd MMM yyyy', { locale: es });
 
     doc.setFontSize(9);
 
@@ -560,7 +688,7 @@ export function generateSessionNotePDF(
     doc.text('Fecha Sesión:', margin + 105, y);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 30, 30);
-    doc.text(format(new Date(note.date), "d 'de' MMMM yyyy", { locale: es }), margin + 140, y);
+    doc.text(safeFormatDate(note.date, "d 'de' MMMM yyyy", { locale: es }), margin + 140, y);
     y += 6;
 
     // Fila 3: Número de Sesión y Diagnóstico
@@ -586,6 +714,8 @@ export function generateSessionNotePDF(
         { label: 'Estado de ánimo / Afecto', content: note.mood?.notes, rating: note.mood?.rating },
         { label: 'Revisión de temas / Tarea', content: note.bridge?.homework_review || note.bridge?.notes },
         { label: 'Agenda / Desarrollo de la sesión', isAgenda: true },
+        { label: 'Reporte Clínico de Sesión', content: note.transcript_summary },
+        { label: 'Creencias / Flexibilidad Cognitiva', content: note.beliefs?.core || note.beliefs?.belief ? `Creencia nuclear: ${note.beliefs.core || note.beliefs.belief}${note.beliefs.alternative ? `\nAlternativa: ${note.beliefs.alternative}` : ''}` : undefined },
         { label: 'Notas de diagnóstico / Plan de tratamiento', content: note.diagnostico_principal },
     ];
 
@@ -602,10 +732,23 @@ export function generateSessionNotePDF(
                     if (y > pageH - 20) y = addPage();
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(50, 50, 50);
-                    y = addWrappedText(doc, `• ${item.topic}`, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
-                    if (item.notes) {
+                    const topicTitle = item.topic ? `• ${item.topic}` : '• Desarrollo';
+                    y = addWrappedText(doc, topicTitle, margin + 4, y, contentW - 4, 5, pageH, margin, addPage, 'helvetica', 'bold', 9, 50, 50, 50);
+                    
+                    const details = [];
+                    if (item.situation) details.push(`Situación: ${item.situation}`);
+                    if (item.thoughts) details.push(`Pensamientos: ${item.thoughts}`);
+                    if (item.emotions) details.push(`Emociones: ${item.emotions}`);
+                    if (item.interventions) details.push(`Intervenciones: ${item.interventions}`);
+                    if (item.notes) details.push(`Notas: ${item.notes}`);
+
+                    if (details.length > 0) {
                         doc.setFont('helvetica', 'normal');
-                        y = addWrappedText(doc, `  ${item.notes}`, margin + 7, y, contentW - 7, 5, pageH, margin, addPage);
+                        doc.setTextColor(70, 70, 70);
+                        for (const detail of details) {
+                            if (y > pageH - 15) y = addPage();
+                            y = addWrappedText(doc, `  ${detail}`, margin + 7, y, contentW - 7, 5, pageH, margin, addPage, 'helvetica', 'normal', 9, 70, 70, 70);
+                        }
                     }
                 }
                 y += 4;
@@ -625,7 +768,7 @@ export function generateSessionNotePDF(
                 y += 5;
             }
             if (section.content) {
-                y = addWrappedText(doc, section.content, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
+                y = addWrappedText(doc, section.content, margin + 4, y, contentW - 4, 5, pageH, margin, addPage, 'helvetica', 'normal', 9, 50, 50, 50);
             }
             y += 4;
         }
@@ -642,7 +785,7 @@ export function generateSessionNotePDF(
         for (const task of note.action_plan) {
             if (y > pageH - 20) y = addPage();
             const checkbox = task.completed ? '[✓]' : '[ ]';
-            y = addWrappedText(doc, `${checkbox} ${task.task}`, margin + 4, y, contentW - 4, 5, pageH, margin, addPage);
+            y = addWrappedText(doc, `${checkbox} ${task.task}`, margin + 4, y, contentW - 4, 5, pageH, margin, addPage, 'helvetica', 'normal', 9, 50, 50, 50);
         }
     }
 
@@ -684,7 +827,7 @@ export function generateSessionNotePDF(
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFontSize(7);
-        doc.setTextColor(180);
+        doc.setTextColor(180, 180, 180);
         doc.text(`Documento de validez clínica. Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`, pageW / 2, pageH - 8, { align: 'center' });
     }
 

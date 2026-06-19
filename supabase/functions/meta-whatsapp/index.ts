@@ -385,7 +385,9 @@ serve(async (req) => {
             patient_id,
             patient_name,
             organization_id,
-            user_id
+            user_id,
+            modality,
+            location
           `)
           .in("status", ["scheduled", "pending"])
           .eq("whatsapp_reminder_sent", false)
@@ -430,7 +432,14 @@ serve(async (req) => {
           const dateStr = start.toLocaleDateString("es-MX", { weekday: 'long', day: 'numeric', month: 'long' });
           const timeStr = start.toLocaleTimeString("es-MX", { hour: '2-digit', minute: '2-digit' });
 
-          const body = `Hola ${apt.patient_name}, te recordamos tu cita de ${apt.type} con ${psychologist?.full_name || "tu especialista"} el ${dateStr} a las ${timeStr}. ¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar. O gestiónala desde tu Portal del Paciente aquí: ${portalUrl}`;
+          const nameOnly = apt.patient_name ? apt.patient_name.split(' ')[0] : 'paciente';
+          let body = "";
+          if (apt.modality === 'presencial' && apt.location) {
+            const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.location)}`;
+            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} en ${apt.location}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`;
+          } else {
+            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
+          }
 
           let metaMsgId = `MOCK_SID_REM_${Math.random().toString(36).substr(2, 9)}`;
           const cleanPhoneTo = phone.replace(/[^0-9]/g, "");
