@@ -9,16 +9,21 @@
 - **Fase 6: Infraestructura y Branding** — ✅ Completado
 
 ## 🎯 Próximos Pasos (Fase 5)
-- [ ] **Firma Digital de Consentimientos Integrada**
-    - [ ] Conectar `SignaturePad` al Portal de Pacientes para firmas remotas.
-- [ ] **Asistente de IA (Voz a Texto)**
-    - [ ] Implementar transcripción de audio para generar notas SOAP automáticamente.
-- [ ] **Paquetes de Sesiones y Créditos**
-    - [ ] Integrar venta de paquetes en Stripe y descuento de créditos al agendar.
-- [ ] **Diario Emocional y Tareas**
-    - [ ] Módulo en Portal de Pacientes para Mood Tracking y ejercicios.
-- [ ] **Recordatorios Automáticos**
-    - [ ] Configurar cron jobs/edge functions para avisos 24h antes.
+- [x] **Firma Digital de Consentimientos Integrada**
+    - [x] Conectar `SignaturePad` al Portal de Pacientes para firmas remotas.
+- [x] Install Playwright package and setup playwright.config.ts
+- [x] Create E2E test tests/critical-flow.spec.ts
+- [x] Add E2E scripts to package.json
+- [x] Create Vitest test src/test/whatsapp-webhooks.test.ts
+- [x] Run and verify all tests
+- [x] **Asistente de IA (Voz a Texto)**
+    - [x] Implementar transcripción de audio para generar notas SOAP automáticamente.
+- [x] **Paquetes de Sesiones y Créditos**
+    - [x] Integrar venta de paquetes en Stripe y descuento de créditos al agendar.
+- [x] **Diario Emocional y Tareas**
+    - [x] Módulo en Portal de Pacientes para Mood Tracking y ejercicios.
+- [x] **Recordatorios Automáticos**
+    - [x] Configurar cron jobs/edge functions para avisos 24h antes.
 
 ## 🛠️ Tareas Menores Pendientes
 - [ ] **Contexto de Paciente en IA**: Pasar historial del paciente al chat para respuestas personalizadas.

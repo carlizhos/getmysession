@@ -14,6 +14,7 @@ import {
   MessageCircle,
   MapPin,
   Loader2,
+  Lock,
   Clock,
   Pencil,
   Save,
