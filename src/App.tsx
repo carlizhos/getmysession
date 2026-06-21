@@ -14,6 +14,9 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Error401 from "./pages/Error401";
+import Error402 from "./pages/Error402";
+import Error403 from "./pages/Error403";
 
 // Lazy imports — each becomes its own chunk, loaded on demand
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -281,6 +284,10 @@ const AppContent = () => {
             <Route path="/auth/zoom/callback" element={<AuthCallback />} />
             <Route path="/auth/stripe/callback" element={<StripeCallback />} />
             <Route path="/auth/v1/verify" element={<Navigate to="/" replace />} />
+            <Route path="/401" element={<Error401 />} />
+            <Route path="/402" element={<Error402 />} />
+            <Route path="/403" element={<Error403 />} />
+            <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

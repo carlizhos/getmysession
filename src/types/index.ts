@@ -151,3 +151,21 @@ export interface AuditLog {
     details?: Record<string, any>;
     created_at: string;
 }
+
+// ── Async Clinical Tracking ─────────────────────────────────────────────
+
+export interface AsyncMessage {
+  id: string;
+  organization_id: string;
+  patient_id: string;
+  source_text: string;
+  source_type: 'whatsapp' | 'whatsapp_audio' | 'portal' | 'manual';
+  ai_summary: string | null;
+  ai_emotions: string[];
+  ai_key_points: string[];
+  ai_red_flag: boolean;
+  ai_red_flag_reason: string | null;
+  ai_approach_suggestion: string | null;
+  ai_processed_at: string | null;
+  created_at: string;
+}

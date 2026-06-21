@@ -254,6 +254,41 @@ serve(async (req) => {
             });
           }
 
+          // ── ASYNC CLINICAL TRACKING: Fire-and-forget AI analysis ──
+          if (patientId && organizationId && body && messageData.type === 'text' && !isJustLinked) {
+            const fnUrl = `${supabaseUrl}/functions/v1/process-async-message`;
+            fetch(fnUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceRole}`,
+              },
+              body: JSON.stringify({
+                source_text: body,
+                patient_id: patientId,
+                organization_id: organizationId,
+                source_type: 'whatsapp',
+              }),
+            }).catch((e) => console.error('⚠️ Async analysis trigger failed:', e.message));
+          }
+          // ── ASYNC CLINICAL TRACKING: Audio message placeholder ──
+          if (patientId && organizationId && messageData.type === 'audio') {
+            const fnUrl = `${supabaseUrl}/functions/v1/process-async-message`;
+            fetch(fnUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceRole}`,
+              },
+              body: JSON.stringify({
+                source_text: '[audio]',
+                patient_id: patientId,
+                organization_id: organizationId,
+                source_type: 'whatsapp_audio',
+              }),
+            }).catch((e) => console.error('⚠️ Async audio analysis trigger failed:', e.message));
+          }
+
           // Send Auto-reply via Meta
           let metaMsgId = `AUTO_RESP_${Math.random().toString(36).substr(2, 9)}`;
           if (!isMockMode && !skipAutoReply && allowPatientWhatsapp) {

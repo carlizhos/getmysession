@@ -84,6 +84,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { useSubscription } from '@/hooks/useSubscription';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
+import PatientAsyncInsights from '@/components/patients/PatientAsyncInsights';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
 import {
   Drawer,
@@ -108,6 +109,7 @@ const PATIENT_TABS = [
     { id: 'timeline', label: 'Línea de Tiempo', icon: Clock },
     { id: 'evolution', label: 'Evolución', icon: Activity },
     { id: 'history', label: 'Historia Clínica', icon: ClipboardList },
+    { id: 'async-insights', label: 'Seguimiento IA', icon: Sparkles },
     { id: 'notes', label: 'Notas de Sesión', icon: FileText },
     { id: 'tests', label: 'Pruebas', icon: Brain },
     { id: 'info', label: 'Datos Personales', icon: User },
@@ -119,7 +121,7 @@ const PATIENT_TABS = [
 const TAB_GROUPS = [
     {
         title: 'CLÍNICO',
-        tabs: ['timeline', 'evolution', 'history']
+        tabs: ['timeline', 'evolution', 'history', 'async-insights']
     },
     {
         title: 'SESIONES Y HERRAMIENTAS',
@@ -2173,6 +2175,9 @@ const Patients = () => {
                                 </div>
                               )}
                             </div>
+                          </TabsContent>
+                          <TabsContent value="async-insights" className="m-0 animate-in fade-in duration-500">
+                            <PatientAsyncInsights patientId={selectedPatientData.id} />
                           </TabsContent>
                         </div>
                       </div>
