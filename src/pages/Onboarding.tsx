@@ -168,7 +168,7 @@ export default function Onboarding() {
       if (orgId) {
         const orgSettings = {
           ...(organization?.settings as Record<string, any> || {}),
-          timezone: 'America/Los_Angeles', // Hardcoded to Pacific Time as requested
+          timezone: timezone, // Auto-detected from browser during onboarding
           workingDays: skipSchedule ? [1,2,3,4,5] : workingDays,
           workingHours: skipSchedule ? { start: '09:00', end: '18:00' } : { start: startTime, end: endTime },
           defaultSessionDuration: skipService ? 50 : parseInt(sessionDuration, 10),

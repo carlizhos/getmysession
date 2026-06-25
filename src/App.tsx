@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import * as Sentry from "@sentry/react";
 import useDarkMode from "@/hooks/useDarkMode";
 
 // Eager imports — lightweight, needed on first load
@@ -120,6 +121,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Inject user context into Sentry for better error reporting
+const SentryUserContext = () => {
+  const { user, profile } = useAuth();
+  
+  React.useEffect(() => {
+    if (user) {
+      Sentry.setUser({
+        id: user.id,
+        email: user.email,
+        username: profile?.full_name || undefined,
+      });
+      if (profile?.organization_id) {
+        Sentry.setTag("organization_id", profile.organization_id);
+      }
+      if (profile?.role) {
+        Sentry.setTag("role", profile.role);
+      }
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [user, profile]);
+
+  return null;
+};
+
+// Wrap Routes to extract parametrized routes for transactions (e.g., /reservar/:slug)
+const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
+
 const AppContent = () => {
   useDarkMode(); // Ensure theme is applied globally, including on Auth pages
   return (
@@ -128,11 +157,28 @@ const AppContent = () => {
       <Sonner position="top-right" />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
+          <SentryUserContext />
           <Analytics />
           <SpeedInsights />
           <ChunkLoadErrorBoundary>
+          <Sentry.ErrorBoundary fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+              <div className="flex flex-col items-center gap-3 max-w-md text-center p-6 bg-card rounded-xl border shadow-sm">
+                <h2 className="text-xl font-bold">Algo salió mal</h2>
+                <p className="text-sm text-muted-foreground">
+                  Ha ocurrido un error inesperado. Nuestro equipo técnico ha sido notificado automáticamente y ya está trabajando en solucionarlo.
+                </p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium"
+                >
+                  Recargar la página
+                </button>
+              </div>
+            </div>
+          }>
           <Suspense fallback={<PageLoader />}>
-          <Routes>
+          <SentryRoutes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -289,8 +335,9 @@ const AppContent = () => {
             <Route path="/403" element={<Error403 />} />
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+          </SentryRoutes>
           </Suspense>
+          </Sentry.ErrorBoundary>
           </ChunkLoadErrorBoundary>
         </AuthProvider>
       </BrowserRouter>

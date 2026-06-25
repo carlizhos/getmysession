@@ -59,6 +59,7 @@ export interface ProfessionalData {
     prefix?: string;
     cedulas?: { numero: string; tipo: string; institucion?: string }[];
     signature_data?: string | null;
+    logo_data?: string | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -186,8 +187,22 @@ export function generateExpedientePDF(
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 160);
         doc.setFont('helvetica', 'normal');
-        doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
-        doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+        
+        if (professional?.logo_data) {
+            try {
+                doc.addImage(professional.logo_data, 'PNG', pageW - margin - 22, 3.5, 22, 8);
+                doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+                doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin - 24, 10, { align: 'right' });
+            } catch (e) {
+                console.error("Error al renderizar logotipo en cabecera de PDF:", e);
+                doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+                doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+            }
+        } else {
+            doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+            doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+        }
+
         doc.setDrawColor(220, 220, 230);
         doc.line(margin, 13, pageW - margin, 13);
     };
@@ -616,8 +631,23 @@ export function generateSessionNotePDF(
     const renderHeader = () => {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 160);
-        doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
-        doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        
+        if (professional?.logo_data) {
+            try {
+                doc.addImage(professional.logo_data, 'PNG', pageW - margin - 22, 3.5, 22, 8);
+                doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+                doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin - 24, 10, { align: 'right' });
+            } catch (e) {
+                console.error("Error al renderizar logotipo en cabecera de PDF:", e);
+                doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+                doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+            }
+        } else {
+            doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+            doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
+        }
+
         doc.setDrawColor(220, 220, 230);
         doc.line(margin, 13, pageW - margin, 13);
     };

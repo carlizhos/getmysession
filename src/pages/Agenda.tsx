@@ -63,6 +63,7 @@ import { LayoutList, CalendarDays } from 'lucide-react';
 import DayView from '@/components/agenda/DayView';
 import MonthView from '@/components/agenda/MonthView';
 import { Appointment } from '@/types';
+import { getTimezoneFriendlyLabel } from '@/lib/timezone';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -455,7 +456,7 @@ const AgendaPage = () => {
                     <Badge variant="outline" className="text-[10px] font-bold px-1.5 h-5 border-[#5da05d]/30 text-[#5da05d] bg-[#5da05d]/5">HOY</Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Zona horaria: PST (UTC-8)</p>
+                <p className="text-xs text-muted-foreground mt-1">Zona horaria: {getTimezoneFriendlyLabel(organization?.settings?.timezone || 'America/Mexico_City')}</p>
               </div>
 
             </div>

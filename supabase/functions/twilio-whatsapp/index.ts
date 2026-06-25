@@ -12,6 +12,19 @@ function getCleanPhone(phoneStr: string): string {
   return cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
 }
 
+function getTimezoneFriendlyLabel(tz: string) {
+  try {
+    const parts = tz.split('/');
+    if (parts.length > 1) {
+      const city = parts[parts.length - 1].replace(/_/g, ' ');
+      return `(Hora de ${city})`;
+    }
+    return `(${tz})`;
+  } catch (e) {
+    return '';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -359,17 +372,30 @@ serve(async (req) => {
           continue;
         }
 
+        let timezone = 'America/Mexico_City';
+        if (apt.organization_id) {
+          const { data: orgData } = await supabaseClient
+            .from("organizations")
+            .select("settings")
+            .eq("id", apt.organization_id)
+            .maybeSingle();
+          if (orgData?.settings?.timezone) {
+            timezone = orgData.settings.timezone;
+          }
+        }
+
         // Formatear fecha y hora amigable
-        const dateStr = start.toLocaleDateString("es-MX", { weekday: 'long', day: 'numeric', month: 'long' });
-        const timeStr = start.toLocaleTimeString("es-MX", { hour: '2-digit', minute: '2-digit' });
+        const dateStr = start.toLocaleDateString("es-MX", { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone });
+        const timeStr = start.toLocaleTimeString("es-MX", { hour: '2-digit', minute: '2-digit', timeZone: timezone });
+        const tzLabel = getTimezoneFriendlyLabel(timezone);
 
         const nameOnly = apt.patient_name ? apt.patient_name.split(' ')[0] : 'paciente';
         let body = "";
         if (apt.modality === 'presencial' && apt.location) {
           const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.location)}`;
-          body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} en ${apt.location}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`;
+          body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} en ${apt.location}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`;
         } else {
-          body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
+          body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
         }
 
         let twilioMsgSid = `MOCK_SID_REM_${Math.random().toString(36).substr(2, 9)}`;

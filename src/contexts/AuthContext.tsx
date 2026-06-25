@@ -26,6 +26,8 @@ interface AuthContextType {
     sessionStartTime: Date | null;
     signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
     signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+    signInWithMagicLink: (email: string) => Promise<{ error: AuthError | null }>;
+    resendConfirmationEmail: (email: string) => Promise<{ error: AuthError | null }>;
     signInWithGoogle: () => Promise<{ error: AuthError | null }>;
     signInWithGoogleIdToken: (credential: string) => Promise<{ error: AuthError | null }>;
     signOut: (event?: 'logout' | 'timeout') => Promise<void>;
@@ -68,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
     const sessionStartRef = useRef<Date | null>(null);
 
-    const fetchOrganization = useCallback(async (userId: string) => {
+    const fetchOrganization = useCallback(async (userId: string, isRetry = false) => {
         try {
             // 1. Get current organization ID and profile from profile
             const { data: profileData } = await supabase
@@ -119,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 } else {
                     setOrganization(null);
                 }
-            } else {
+            } else if (!isRetry) {
                 // Auto-create a default organization for legacy users or if missing
                 const fullName = profileData?.full_name || 'Usuario';
                 const orgName = `Consultorio de ${fullName}`;
@@ -133,13 +135,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                 if (org && !orgErr) {
                     // Recursive call to load the newly created org properly
-                    await fetchOrganization(userId);
+                    await fetchOrganization(userId, true);
                     return;
                 } else {
                     console.error('Failed to auto-create organization:', orgErr);
                     setAvailableOrganizations([]);
                     setOrganization(null);
                 }
+            } else {
+                console.warn('Organization auto-created but not visible yet in memberships query.');
+                setAvailableOrganizations([]);
+                setOrganization(null);
             }
         } catch (err: unknown) {
             const error = err as Error;
@@ -242,6 +248,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
     };
 
+    const signInWithMagicLink = async (email: string) => {
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: `${window.location.origin}/`,
+            }
+        });
+        return { error };
+    };
+
+    const resendConfirmationEmail = async (email: string) => {
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email,
+        });
+        return { error };
+    };
+
     const signIn = async (email: string, password: string) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -311,6 +335,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             sessionStartTime, 
             signUp, 
             signIn, 
+            signInWithMagicLink,
+            resendConfirmationEmail,
             signInWithGoogle,
             signInWithGoogleIdToken,
             signOut, 

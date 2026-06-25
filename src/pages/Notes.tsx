@@ -146,7 +146,7 @@ const Notes = () => {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('full_name, prefix, cedulas, signature_data')
+        .select('full_name, prefix, cedulas, signature_data, logo_data')
         .eq('id', user.id)
         .single();
 
@@ -186,7 +186,7 @@ const Notes = () => {
     if (!user) return;
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, prefix, cedulas, signature_data')
+      .select('full_name, prefix, cedulas, signature_data, logo_data')
       .eq('id', user.id)
       .single();
     if (data) setProfessionalProfile(data);

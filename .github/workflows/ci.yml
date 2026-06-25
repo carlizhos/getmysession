@@ -1,0 +1,51 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Necesario para que Sentry pueda mapear qué commits causan qué errores
+          fetch-depth: 0 
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        # npm ci es más seguro para CI/CD que npm install porque respeta el package-lock.json
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        # Si esto falla, el código tiene errores de tipo y el pipeline se detendrá
+        run: npx tsc --noEmit
+
+      - name: Run Unit Tests
+        # Ejecuta Vitest en modo CI (no interactivo)
+        run: npm run test -- --run
+
+      - name: Build Production & Upload to Sentry
+        # Esto compila la app y el plugin de Sentry subirá los sourcemaps automáticamente
+        run: npm run build
+        env:
+          # Para que Sentry funcione en Github, debes agregar estos secretos en:
+          # Settings -> Secrets and variables -> Actions -> Repository secrets
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          
+      # Opcional: Despliegue automático
+      # Dependiendo de dónde alojes tu app (Vercel, Netlify, Supabase, etc), 
+      # aquí iría el comando para deployar a producción de forma automática
+      # solo si los tests y el build pasaron exitosamente.

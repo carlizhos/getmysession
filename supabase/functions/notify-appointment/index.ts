@@ -15,15 +15,44 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   follow_up: 'Seguimiento',
 }
 
-function formatDate(d: Date) {
-  return d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+function formatDate(d: Date, timeZone = 'America/Mexico_City') {
+  return d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone })
 }
-function formatTime(d: Date) {
-  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+function formatTime(d: Date, timeZone = 'America/Mexico_City') {
+  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone })
+}
+
+function getTimezoneCityName(tz: string) {
+  try {
+    const parts = tz.split('/');
+    if (parts.length > 1) {
+      return parts[parts.length - 1].replace(/_/g, ' ');
+    }
+    return tz;
+  } catch (e) {
+    return tz;
+  }
+}
+
+function getGmtOffset(date: Date, tz: string) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZoneName: 'shortOffset', timeZone: tz });
+    const parts = formatter.formatToParts(date);
+    const tzName = parts.find(p => p.type === 'timeZoneName')?.value;
+    return tzName || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function getTimezoneFriendlyLabel(tz: string, date: Date) {
+  const city = getTimezoneCityName(tz);
+  const offset = getGmtOffset(date, tz);
+  return `Hora de ${city}${offset ? `, ${offset}` : ''}`;
 }
 
 function buildPsychologistEmail({
-  psychologistName, patientName, dateStr, startStr, endStr,
+  psychologistName, patientName, dateStr, startStr, endStr, tzLabel,
   typeLabel, fee, meetingLink, meetingPlatform, notes, modality
 }: Record<string, any>) {
   const platformRow = meetingPlatform && meetingLink
@@ -52,7 +81,7 @@ function buildPsychologistEmail({
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Paciente</td><td style="padding:8px 0;font-size:15px;font-weight:600;color:#1f2937;">${patientName}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;color:#374151;">${dateStr}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr} (${tzLabel})</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tipo</td><td style="padding:8px 0;font-size:14px;color:#374151;">${typeLabel}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tarifa</td><td style="padding:8px 0;font-size:14px;color:#374151;">$${Number(fee || 0).toLocaleString('es-MX')}</td></tr>
               ${platformRow}
@@ -71,14 +100,25 @@ function buildPsychologistEmail({
 }
 
 function buildPatientEmail({
-  psychologistName, psychologistTitle, patientName, dateStr, startStr, endStr,
-  typeLabel, meetingLink, meetingPlatform,
+  psychologistName, psychologistTitle, patientName, dateStr, startStr, endStr, tzLabel,
+  typeLabel, meetingLink, meetingPlatform, utcStart, utcEnd, patientTz
 }: Record<string, any>) {
   const platformSection = meetingPlatform && meetingLink
     ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Videollamada</td><td style="padding:8px 0;font-size:14px;"><a href="${meetingLink}" style="color:#7c3aed;">${meetingPlatform.charAt(0).toUpperCase() + meetingPlatform.slice(1)} — Unirse a la sesión</a></td></tr>`
     : ''
 
   const titleDisplay = psychologistTitle ? `${psychologistTitle} ` : ''
+  const eventTitle = encodeURIComponent(`Cita con ${titleDisplay}${psychologistName}`);
+  const eventDetails = encodeURIComponent(`Cita de ${typeLabel}.\nEnlace: ${meetingLink || 'Pendiente'}`);
+  const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${utcStart}/${utcEnd}&ctz=${patientTz}&details=${eventDetails}`;
+  const outlookCalendarUrl = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${eventTitle}&startdt=${utcStart}&enddt=${utcEnd}&body=${eventDetails}`;
+
+  const calendarSection = `
+    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+      <a href="${googleCalendarUrl}" style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;border:1px solid #e5e7eb;">📅 Añadir a Google Calendar</a>
+      <a href="${outlookCalendarUrl}" style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;border:1px solid #e5e7eb;">📅 Añadir a Outlook</a>
+    </div>
+  `
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -99,10 +139,11 @@ function buildPatientEmail({
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Profesional</td><td style="padding:8px 0;font-size:15px;font-weight:600;color:#1f2937;">${titleDisplay}${psychologistName}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;color:#374151;">${dateStr}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr} (${tzLabel})</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tipo de sesión</td><td style="padding:8px 0;font-size:14px;color:#374151;">${typeLabel}</td></tr>
               ${platformSection}
             </table>
+            ${calendarSection}
           </div>
           <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:24px;">
             <p style="margin:0;font-size:13px;color:#92400e;">💡 <strong>Recuerda:</strong> Si necesitas cancelar o reprogramar, comunícate con tu psicólogo/a con anticipación.</p>
@@ -145,6 +186,7 @@ serve(async (req) => {
       meetingLink,
       meetingPlatform,
       notes,
+      patientTimezone,
     } = payload
 
     let psychEmail = '';
@@ -178,10 +220,22 @@ serve(async (req) => {
 
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('title_prefix, notification_settings')
+      .select('title_prefix, notification_settings, current_organization_id')
       .eq('id', psychIdToUse)
       .single()
     const psychologistTitle = profileData?.title_prefix || ''
+
+    let timezone = 'America/Mexico_City'
+    if (profileData?.current_organization_id) {
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('settings')
+        .eq('id', profileData.current_organization_id)
+        .single()
+      if (orgData?.settings?.timezone) {
+        timezone = orgData.settings.timezone
+      }
+    }
     
     const defaultSettings = { psychologist: ['email'], patient: ['email'] }
     const notificationSettings: any = profileData?.notification_settings || defaultSettings
@@ -192,10 +246,22 @@ serve(async (req) => {
 
     const start = new Date(startTime)
     const end = new Date(endTime)
-    const dateStr = formatDate(start)
-    const startStr = formatTime(start)
-    const endStr = formatTime(end)
+    const patientTz = patientTimezone || timezone;
+
     const typeLabel = SESSION_TYPE_LABELS[sessionType] || sessionType || 'Consulta'
+
+    const psychDateStr = formatDate(start, timezone)
+    const psychStartStr = formatTime(start, timezone)
+    const psychEndStr = formatTime(end, timezone)
+    const psychTzLabel = getTimezoneFriendlyLabel(timezone, start)
+
+    const patientDateStr = formatDate(start, patientTz)
+    const patientStartStr = formatTime(start, patientTz)
+    const patientEndStr = formatTime(end, patientTz)
+    const patientTzLabel = getTimezoneFriendlyLabel(patientTz, start)
+
+    const utcStart = start.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const utcEnd = end.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
     let patEmail = patientEmail;
     let patName = patientName;
@@ -212,7 +278,7 @@ serve(async (req) => {
       }
     }
 
-    const sharedVars = { psychologistName: psychName, psychologistTitle, patientName: patName, dateStr, startStr, endStr, typeLabel, meetingLink, meetingPlatform }
+    const sharedVarsBase = { psychologistName: psychName, psychologistTitle, patientName: patName, typeLabel, meetingLink, meetingPlatform, notes, fee }
 
     const results: any = {
       psychEmailSuccess: false,
@@ -222,14 +288,20 @@ serve(async (req) => {
     }
 
     if (psychChannels.includes('email')) {
-      const psychHtml = buildPsychologistEmail({ ...sharedVars, fee, notes })
+      const psychHtml = buildPsychologistEmail({ 
+        ...sharedVarsBase, 
+        dateStr: psychDateStr, 
+        startStr: psychStartStr, 
+        endStr: psychEndStr, 
+        tzLabel: psychTzLabel 
+      })
       const psychRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Saudade <onboarding@resend.dev>',
           to: [psychEmail],
-          subject: `📅 Nueva cita: ${patientName} — ${dateStr}`,
+          subject: `📅 Nueva cita: ${patientName} — ${psychDateStr}`,
           html: psychHtml,
         }),
       })
@@ -238,14 +310,23 @@ serve(async (req) => {
     }
 
     if (patientChannels.includes('email') && patEmail) {
-      const patientHtml = buildPatientEmail({ ...sharedVars })
+      const patientHtml = buildPatientEmail({ 
+        ...sharedVarsBase, 
+        dateStr: patientDateStr, 
+        startStr: patientStartStr, 
+        endStr: patientEndStr, 
+        tzLabel: patientTzLabel,
+        utcStart,
+        utcEnd,
+        patientTz
+      })
       const patRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Saudade <onboarding@resend.dev>',
           to: [patEmail],
-          subject: `✅ Confirmación de cita — ${dateStr}`,
+          subject: `✅ Confirmación de cita — ${patientDateStr}`,
           html: patientHtml,
         }),
       })

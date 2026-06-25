@@ -79,7 +79,18 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
     }, [user, formType]);
 
     // ── Generate PDF ─────────────────────────────────────────────────────────
-    const generatePDF = (sigDataUrl: string, consentId: string) => {
+    const generatePDF = async (sigDataUrl: string, consentId: string) => {
+        // Fetch professional logo for PDF header
+        let logoData: string | null = null;
+        if (user) {
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('logo_data')
+                .eq('id', user.id)
+                .single();
+            logoData = prof?.logo_data || null;
+        }
+
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
         const margin = 20;
         const pageW = doc.internal.pageSize.getWidth();
@@ -88,7 +99,18 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
         doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 15);
-        doc.text(`Folio: ${consentId.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+
+        // Render logo in top-right header if available
+        if (logoData) {
+            try {
+                doc.addImage(logoData, 'PNG', pageW - margin - 22, 3.5, 22, 8);
+                doc.text(`Folio: ${consentId.substring(0, 8).toUpperCase()}`, pageW - margin - 24, 15, { align: 'right' });
+            } catch (_) {
+                doc.text(`Folio: ${consentId.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+            }
+        } else {
+            doc.text(`Folio: ${consentId.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+        }
 
         doc.setDrawColor(200, 200, 220);
         doc.line(margin, 18, pageW - margin, 18);
@@ -186,7 +208,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
 
             toast.success('Consentimiento firmado y guardado');
             setSavedId(saved.id);
-            generatePDF(signatureDataUrl, saved.id);
+            await generatePDF(signatureDataUrl, saved.id);
             onSaved?.();
         } catch (err: any) {
             toast.error('Error al guardar: ' + err.message);
@@ -260,7 +282,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                 </p>
                 <div className="flex gap-3 pt-2">
                     {!isRemotePending && (
-                        <Button variant="outline" onClick={() => generatePDF(signatureDataUrl!, savedId)}>
+                        <Button variant="outline" onClick={() => { generatePDF(signatureDataUrl!, savedId); }}>
                             <Download className="h-4 w-4 mr-2" /> Descargar PDF de nuevo
                         </Button>
                     )}

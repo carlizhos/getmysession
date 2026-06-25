@@ -6,7 +6,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, isSameDay, addDays, startOfToday, parseISO, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, ArrowLeft, Clock, Calendar as CalendarIcon, User, CheckCircle2, LayoutGrid, DollarSign, BookOpen, ShieldCheck, Video, MapPin } from 'lucide-react';
+import { getVisitorTimezone, getTimezoneFriendlyLabel, buildUTCFromClinicTime } from '@/lib/timezone';
+import { Loader2, ArrowLeft, Clock, Calendar as CalendarIcon, User, CheckCircle2, LayoutGrid, DollarSign, BookOpen, ShieldCheck, Video, MapPin, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -58,7 +59,10 @@ const BookingPage = () => {
   // Booking state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<{clinic: string, local: string}[]>([]);
+  const [clinicTimezone, setClinicTimezone] = useState('America/Mexico_City');
+  const visitorTimezone = getVisitorTimezone();
+
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -96,6 +100,20 @@ const BookingPage = () => {
           setNotFound(true);
         } else {
           setProfile(data);
+          
+          if (data.current_organization_id) {
+            supabase
+              .from('organizations')
+              .select('settings')
+              .eq('id', data.current_organization_id)
+              .single()
+              .then(({ data: orgData }) => {
+                if (orgData?.settings?.timezone) {
+                  setClinicTimezone(orgData.settings.timezone);
+                }
+              });
+          }
+
           // Fetch services for this profile
           fetchServices(data.id);
           // Fetch booking questions
@@ -188,7 +206,9 @@ const BookingPage = () => {
         
         if (rpcError) console.error("Error fetching busy slots via RPC:", rpcError);
 
-        const busySlots = (apts || []).map((a: { start_time: string }) => format(parseISO(a.start_time), 'HH:mm'));
+        const busySlots = (apts || []).map((a: { start_time: string }) => {
+          return new Date(a.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: clinicTimezone });
+        });
         
         // Count non-cancelled appointments for capacity check
         const { count: nonCancelledCount } = await supabase
@@ -230,28 +250,32 @@ const BookingPage = () => {
         }
 
         // Generate slots based on selected service duration
-        const slots: string[] = [];
-        let current = parseISO(`${dateStr}T${configDia.inicio}`);
-        const end = parseISO(`${dateStr}T${configDia.fin}`);
+        const slots: {clinic: string, local: string}[] = [];
+        const startUTC = buildUTCFromClinicTime(selectedDate, configDia.inicio, clinicTimezone);
+        const endUTC = buildUTCFromClinicTime(selectedDate, configDia.fin, clinicTimezone);
+        let currentUTC = startUTC;
+        const nowUTC = new Date();
 
-        while (isBefore(current, end)) {
-          const timeStr = format(current, 'HH:mm');
+        while (currentUTC < endUTC) {
+          const timeStr = currentUTC.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: clinicTimezone });
           const duration = selectedService?.duration || 60;
-          const slotEnd = new Date(current.getTime() + duration * 60 * 1000);
+          const slotEndUTC = new Date(currentUTC.getTime() + duration * 60 * 1000);
           
-          // Verificar si el slot ya pasó (en el día actual)
-          const isPastSlot = isBefore(current, new Date());
+          // Verificar si el slot ya pasó (en UTC real)
+          const isPastSlot = currentUTC < nowUTC;
           
           // Verificar colisión con Google Calendar
           const hasGoogleCollision = gcalBusyRanges.some(busy => {
-            // Hay traslape si: inicio_slot < fin_busy Y fin_slot > inicio_busy
-            return current < busy.end && slotEnd > busy.start;
+            return currentUTC < busy.end && slotEndUTC > busy.start;
           });
 
           if (!busySlots.includes(timeStr) && !isPastSlot && !hasGoogleCollision) {
-            slots.push(timeStr);
+            slots.push({
+              clinic: timeStr,
+              local: currentUTC.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: visitorTimezone })
+            });
           }
-          current = slotEnd;
+          currentUTC = slotEndUTC;
         }
 
         setAvailableSlots(slots);
@@ -315,7 +339,7 @@ const BookingPage = () => {
         
       if (leadError) throw leadError;
 
-      const startTime = parseISO(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}`);
+      const startTime = buildUTCFromClinicTime(selectedDate, selectedTime, clinicTimezone);
       const duration = selectedService?.duration || 60;
       const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
@@ -424,7 +448,8 @@ const BookingPage = () => {
           fee: 0,
           meetingLink: finalMeetLink,
           meetingPlatform: finalPlatform,
-          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nEdad: ${patientInfo.age}\nMotivo: ${patientInfo.reason}\nModalidad: ${modality}`
+          notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nEdad: ${patientInfo.age}\nMotivo: ${patientInfo.reason}\nModalidad: ${modality}`,
+          patientTimezone: visitorTimezone
         }
       }).catch(err => console.error('Error enviando notificación:', err));
 
@@ -612,6 +637,13 @@ const BookingPage = () => {
                         {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                       </p>
                       
+                      {visitorTimezone !== clinicTimezone && (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-4 bg-muted/50 p-2 rounded-lg border">
+                          <Globe className="w-3 h-3" />
+                          <span>Horarios en <b>{getTimezoneFriendlyLabel(visitorTimezone)}</b></span>
+                        </div>
+                      )}
+                      
                       {loadingSlots ? (
                         <div className="flex justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -621,19 +653,22 @@ const BookingPage = () => {
                           <p className="text-sm text-muted-foreground">No hay horas disponibles este día.</p>
                         </div>
                       ) : (
-                        availableSlots.map(time => (
-                          <div key={time} className="flex gap-2 w-full animate-fade-in">
+                        availableSlots.map(slot => (
+                          <div key={slot.clinic} className="flex gap-2 w-full animate-fade-in">
                             <Button
-                              variant={selectedTime === time ? "default" : "outline"}
+                              variant={selectedTime === slot.clinic ? "default" : "outline"}
                               className={cn(
-                                "w-full transition-all duration-200", 
-                                selectedTime === time ? "w-1/2 bg-primary hover:bg-primary/90" : ""
+                                "w-full transition-all duration-200 flex flex-col items-center justify-center py-2 h-auto", 
+                                selectedTime === slot.clinic ? "w-1/2 bg-primary hover:bg-primary/90" : ""
                               )}
-                              onClick={() => setSelectedTime(time)}
+                              onClick={() => setSelectedTime(slot.clinic)}
                             >
-                              {time}
+                              <span className="font-semibold text-base">{slot.local}</span>
+                              {visitorTimezone !== clinicTimezone && selectedTime !== slot.clinic && (
+                                <span className="text-[10px] opacity-70 mt-0.5">{slot.clinic} {getTimezoneFriendlyLabel(clinicTimezone).split(' ')[0]}</span>
+                              )}
                             </Button>
-                            {selectedTime === time && (
+                            {selectedTime === slot.clinic && (
                               <Button 
                                 variant="zen" 
                                 className="w-1/2 animate-fade-in px-2"
@@ -907,7 +942,7 @@ const BookingPage = () => {
                   <p className="text-sm text-muted-foreground mb-1">Cuándo</p>
                   <p className="font-semibold mb-3">
                     {format(selectedDate!, "EEEE, d 'de' MMMM, yyyy", { locale: es })} <br/>
-                    {selectedTime}
+                    {availableSlots.find(s => s.clinic === selectedTime)?.local || selectedTime} ({getTimezoneFriendlyLabel(visitorTimezone)})
                   </p>
                   <p className="text-sm text-muted-foreground mb-1">Especialista</p>
                   <p className="font-semibold">{displayName}</p>

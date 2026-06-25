@@ -3,7 +3,9 @@ import Layout from '@/components/Layout';
 import MetricCard from '@/components/dashboard/MetricCard';
 import TodayAgenda from '@/components/dashboard/TodayAgenda';
 import RevenueChart from '@/components/dashboard/RevenueChart';
+import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
+import { Appointment } from '@/types';
 import {
   DollarSign,
   Users,
@@ -74,6 +76,7 @@ const Dashboard = () => {
   const [todayAppts, setTodayAppts] = useState<DashboardAppointment[]>([]);
   const [recentNotes, setRecentNotes] = useState<DashboardNote[]>([]);
   const [chartData, setChartData] = useState<RevenuePoint[]>([]);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
@@ -103,7 +106,7 @@ const Dashboard = () => {
       supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd),
       supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type, patients(phone)').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd),
       supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
-      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 5, 1)).toISOString()).lte('start_time', monthEnd),
+      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 11, 1)).toISOString()).lte('start_time', monthEnd),
     ]);
 
     // ── Stats ────────────────────────────────────────────────────────────────
@@ -177,7 +180,8 @@ const Dashboard = () => {
       if (appt.status === 'completed') monthMap[month].sesiones += 1;
     });
     setChartData(Object.entries(monthMap).map(([name, v]) => ({ name, ...v })));
-
+    setAllAppointments((chartRaw ?? []) as Appointment[]);
+ 
     setLoading(false);
   }, [organization?.id]);
 
@@ -261,6 +265,7 @@ const Dashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             <TodayAgenda appointments={todayAppts} />
             <RevenueChart data={chartData} loading={loading} />
+            <ActivityHeatmap appointments={allAppointments} loading={loading} />
           </div>
 
           {/* Columna derecha */}

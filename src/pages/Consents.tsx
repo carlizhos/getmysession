@@ -100,11 +100,11 @@ const Consents = () => {
     // ── Regenerar PDF ────────────────────────────────────────────────────────
     const handleDownloadPDF = async (consent: ConsentRecord) => {
         // Fetch professional data for signature block
-        let professional: { full_name?: string; prefix?: string; cedulas?: any[]; signature_data?: string | null } | null = null;
+        let professional: { full_name?: string; prefix?: string; cedulas?: any[]; signature_data?: string | null; logo_data?: string | null } | null = null;
         if (user) {
             const { data: prof } = await supabase
                 .from('profiles')
-                .select('full_name, prefix, cedulas, signature_data')
+                .select('full_name, prefix, cedulas, signature_data, logo_data')
                 .eq('id', user.id)
                 .single();
             if (prof) professional = prof;
@@ -118,8 +118,19 @@ const Consents = () => {
 
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
-        doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 15);
-        doc.text(`Folio: ${consent.id.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+        doc.text('NOM-024-SSA3-2012 | Expediente Cl\u00ednico Electr\u00f3nico', margin, 15);
+
+        // Render logo in top-right header if available
+        if (professional?.logo_data) {
+            try {
+                doc.addImage(professional.logo_data, 'PNG', pageW - margin - 22, 3.5, 22, 8);
+                doc.text(`Folio: ${consent.id.substring(0, 8).toUpperCase()}`, pageW - margin - 24, 15, { align: 'right' });
+            } catch (_) {
+                doc.text(`Folio: ${consent.id.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+            }
+        } else {
+            doc.text(`Folio: ${consent.id.substring(0, 8).toUpperCase()}`, pageW - margin, 15, { align: 'right' });
+        }
         doc.setDrawColor(200, 200, 220);
         doc.line(margin, 18, pageW - margin, 18);
 

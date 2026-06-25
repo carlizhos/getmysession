@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
@@ -50,7 +50,10 @@ const Auth = () => {
     const [gsiReady, setGsiReady] = useState(false);
     const googleBtnRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const { signIn, signUp, signInWithGoogleIdToken } = useAuth();
+    const [showResendEmail, setShowResendEmail] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [isMagicLink, setIsMagicLink] = useState(false);
+    const { signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogleIdToken } = useAuth();
 
     const getPasswordStrength = (pwd: string) => {
         if (!pwd) return { score: 0, label: '', color: 'bg-muted', checks: { length: false, number: false, upper: false, special: false } };
@@ -164,8 +167,38 @@ const Auth = () => {
         });
     }, [gsiReady, isLogin]);
 
+    const handleResendEmail = async () => {
+        setResendLoading(true);
+        const { error } = await resendConfirmationEmail(email);
+        setResendLoading(false);
+        
+        if (error) {
+            toast.error('Error al reenviar: ' + error.message);
+        } else {
+            toast.success('¡Correo enviado! Por favor revisa tu bandeja de entrada y spam.');
+            setShowResendEmail(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (isLogin && isMagicLink) {
+            setLoading(true);
+            try {
+                const { error } = await signInWithMagicLink(email);
+                if (error) {
+                    toast.error('Error al enviar enlace mágico: ' + error.message);
+                } else {
+                    toast.success('✨ ¡Enlace mágico enviado! Revisa tu correo electrónico.');
+                }
+            } catch (err: unknown) {
+                toast.error('Error: ' + (err as Error).message);
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
 
         // Validate passwords match on signup
         if (!isLogin && password !== confirmPassword) {
@@ -179,7 +212,12 @@ const Auth = () => {
             if (isLogin) {
                 const { error } = await signIn(email, password);
                 if (error) {
-                    toast.error('Error al iniciar sesión: ' + error.message);
+                    if (error.message.includes('Email not confirmed')) {
+                        setShowResendEmail(true);
+                        toast.error('Tu cuenta aún no está confirmada. Revisa tu correo o solicita uno nuevo abajo.');
+                    } else {
+                        toast.error('Error al iniciar sesión: ' + error.message);
+                    }
                     return;
                 }
                 const { data: factors } = await supabase.auth.mfa.listFactors();
@@ -197,6 +235,9 @@ const Auth = () => {
                     toast.error('Error al crear cuenta: ' + error.message);
                 } else {
                     toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
+                    setIsLogin(true);
+                    setPassword('');
+                    setConfirmPassword('');
                 }
             }
         } catch (err: unknown) {
@@ -279,33 +320,46 @@ const Auth = () => {
                                     autoComplete="email"
                                 />
                             </div>
+                            {isLogin && (
+                                <div className="flex justify-end pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMagicLink(!isMagicLink)}
+                                        className="text-xs text-primary hover:underline flex items-center gap-1 transition-all"
+                                    >
+                                        {isMagicLink ? 'Usar contraseña tradicional' : '✨ Entrar sin contraseña (Enlace Mágico)'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Contraseña</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-10 pr-10"
-                                    required
-                                    minLength={6}
-                                    autoComplete={isLogin ? "current-password" : "new-password"}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                        <Eye className="h-4 w-4" />
-                                    )}
-                                </button>
+                        <div className={`grid transition-all duration-300 ease-in-out ${isMagicLink ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                            <div className="overflow-hidden space-y-2">
+                                <label className="text-sm font-medium">Contraseña</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="pl-10 pr-10"
+                                        required={!isMagicLink}
+                                        minLength={6}
+                                        autoComplete={isLogin ? "current-password" : "new-password"}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -392,7 +446,7 @@ const Auth = () => {
                         </div>
 
                         {/* Olvidaste tu contraseña */}
-                        <div className={`grid transition-all duration-300 ease-in-out ${!isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                        <div className={`grid transition-all duration-300 ease-in-out ${!isLogin || isMagicLink ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
                                 <div className="flex justify-end pt-1">
                                     <Link
@@ -416,11 +470,31 @@ const Auth = () => {
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                                 <span className="flex items-center gap-2 transition-all duration-300">
-                                    {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                                    {isLogin ? (isMagicLink ? 'Enviar Enlace Mágico' : 'Iniciar Sesión') : 'Crear Cuenta'}
                                     <ArrowRight className="h-4 w-4" />
                                 </span>
                             )}
                         </Button>
+
+                        {isLogin && showResendEmail && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in duration-300">
+                                <p className="text-sm text-foreground/80">
+                                    <AlertTriangle className="inline w-4 h-4 mr-1.5 text-amber-500"/>
+                                    Parece que no has confirmado tu correo. ¿Necesitas que te lo enviemos de nuevo?
+                                </p>
+                                <Button 
+                                    type="button"
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleResendEmail}
+                                    disabled={resendLoading}
+                                    className="w-full bg-background"
+                                >
+                                    {resendLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                                    Reenviar correo de confirmación
+                                </Button>
+                            </div>
+                        )}
 
                         <div className="relative my-4">
                             <div className="absolute inset-0 flex items-center">
@@ -485,6 +559,8 @@ const Auth = () => {
                             type="button"
                             onClick={() => {
                             setIsLogin(!isLogin);
+                            setShowResendEmail(false);
+                            setIsMagicLink(false);
                             setConfirmPassword('');
                             setShowPassword(false);
                             setShowConfirmPassword(false);

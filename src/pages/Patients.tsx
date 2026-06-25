@@ -80,7 +80,11 @@ import {
 } from "@/components/ui/table";
 import NewPatientDialog from '@/components/patients/NewPatientDialog';
 import AssignTestDialog from '@/components/patients/AssignTestDialog';
+import { PatientHeader } from '@/components/patients/PatientHeader';
+import { PatientClinicalHistory } from '@/components/patients/PatientClinicalHistory';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePatientDetails } from '@/hooks/usePatientDetails';
 import { useSubscription } from '@/hooks/useSubscription';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
@@ -326,18 +330,23 @@ const Patients = () => {
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [activePatientTab, setActivePatientTab] = useState<string>('info');
   const [patients, setPatients] = useState<EnrichedPatient[]>([]);
-  const [patientNotes, setPatientNotes] = useState<SessionNote[]>([]);
-  const [patientTests, setPatientTests] = useState<PatientTest[]>([]);
-  const [patientPayments, setPatientPayments] = useState<any[]>([]);
-  const [patientConsents, setPatientConsents] = useState<any[]>([]);
-  const [patientDocuments, setPatientDocuments] = useState<any[]>([]);
   
+  const queryClient = useQueryClient();
+  const { data: patientDetails, isLoading: isDetailsLoading } = usePatientDetails(selectedPatient, organization?.id);
+
+  const patientNotes = patientDetails?.notes || [];
+  const patientTests = patientDetails?.tests || [];
+  const patientPayments = patientDetails?.payments || [];
+  const patientConsents = patientDetails?.consents || [];
+  const patientDocuments = patientDetails?.documents || [];
+
+  const dataLoading = isDetailsLoading;
+  const notesLoading = isDetailsLoading;
+
   const [isLoading, setIsLoading] = useState(true);
-  const [dataLoading, setDataLoading] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('pacientes');
   const [leads, setLeads] = useState<any[]>([]);
   const [isLeadsLoading, setIsLeadsLoading] = useState(false);
-  const [notesLoading, setNotesLoading] = useState(false);
   
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
@@ -354,6 +363,9 @@ const Patients = () => {
   const [viewingTest, setViewingTest] = useState<PatientTest | null>(null);
   const [isAssignTestOpen, setIsAssignTestOpen] = useState(false);
   const [swipedPatientId, setSwipedPatientId] = useState<string | null>(null);
+
+  // Note details expansion state
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
   // Note editing sheet states
   const [isNoteSheetOpen, setIsNoteSheetOpen] = useState(false);
@@ -548,95 +560,14 @@ const Patients = () => {
     }
   }, [location.state, navigate]);
 
-  const fetchPatientDetails = useCallback(async (patientId: string) => {
-    if (!organization?.id) return;
-    setDataLoading(true);
-    setNotesLoading(true);
-    try {
-      // 1. Fetch Clinical Notes
-      const { data: notesData, error: notesErr } = await supabase
-        .from('session_notes')
-        .select('id, date, session_number, agenda, mood, created_at, cie10_code, cie10_description, diagnostico_principal, bridge, transcript_summary')
-        .eq('patient_id', patientId)
-        .eq('organization_id', organization?.id)
-        .is('deleted_at', null)
-        .order('date', { ascending: false });
-      if (notesErr) throw notesErr;
-      setPatientNotes((notesData as SessionNote[]) || []);
-
-      // 2. Fetch Tests
-      const { data: testsData, error: testsErr } = await supabase
-        .from('patient_tests')
-        .select('id, test_type, status, score, interpretation, created_at, completed_at, answers')
-        .eq('patient_id', patientId)
-        .eq('organization_id', organization?.id)
-        .order('created_at', { ascending: false });
-      if (testsErr) throw testsErr;
-      setPatientTests(testsData as PatientTest[] || []);
-
-      // 3. Fetch Payments
-      const { data: paymentsData, error: paymentsErr } = await supabase
-        .from('payments')
-        .select(`
-            id, amount, method, status, paid_at, created_at,
-            appointments!inner (
-                patient_id,
-                start_time,
-                organization_id
-            )
-        `)
-        .eq('appointments.patient_id', patientId)
-        .eq('appointments.organization_id', organization?.id)
-        .order('created_at', { ascending: false });
-      if (paymentsErr) throw paymentsErr;
-      setPatientPayments(paymentsData || []);
-
-      // 4. Fetch Consents
-      const { data: consentsData, error: consentsErr } = await supabase
-        .from('consent_forms')
-        .select('*')
-        .eq('patient_id', patientId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      if (consentsErr) throw consentsErr;
-      setPatientConsents(consentsData || []);
-
-      // 5. Fetch Documents
-      const { data: docsData, error: docsErr } = await supabase
-        .from('patient_documents')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('organization_id', organization?.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      if (docsErr) throw docsErr;
-      setPatientDocuments(docsData || []);
-
-
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error('Error al cargar expediente: ' + error.message);
-    } finally {
-      setDataLoading(false);
-      setNotesLoading(false);
-    }
-  }, [organization?.id]);
-
-  useEffect(() => {
-    if (selectedPatient) {
-      fetchPatientDetails(selectedPatient);
-    } else {
-      setPatientNotes([]);
-      setPatientTests([]);
-      setPatientPayments([]);
-      setPatientConsents([]);
-      setPatientDocuments([]);
-    }
-  }, [selectedPatient, fetchPatientDetails]);
+  const fetchPatientDetails = useCallback((patientId: string) => {
+    queryClient.invalidateQueries({ queryKey: ['patient-details', patientId, organization?.id] });
+  }, [queryClient, organization?.id]);
 
   // Reset scroll to top when selecting/deselecting a patient to avoid layout cutoff on mobile
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
+    setExpandedNoteId(null);
   }, [selectedPatient]);
 
   const handleIntegratedSend = async (phone: string, message: string, templateId: string) => {
@@ -670,7 +601,7 @@ const Patients = () => {
 
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
-        .select('full_name, prefix, cedulas, signature_data')
+        .select('full_name, prefix, cedulas, signature_data, logo_data')
         .eq('id', user.id)
         .single();
       
@@ -700,7 +631,7 @@ const Patients = () => {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('full_name, prefix, cedulas, signature_data')
+        .select('full_name, prefix, cedulas, signature_data, logo_data')
         .eq('id', user.id)
         .single();
 
@@ -748,38 +679,7 @@ const Patients = () => {
 
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
 
-  const [generalNotes, setGeneralNotes] = useState('');
-  const [isSavingGeneralNotes, setIsSavingGeneralNotes] = useState(false);
 
-  useEffect(() => {
-    if (selectedPatientData) {
-      setGeneralNotes(selectedPatientData.notes || '');
-    }
-  }, [selectedPatientData]);
-
-  const handleSaveGeneralNotes = async () => {
-    if (!selectedPatientData || !organization?.id) return;
-    setIsSavingGeneralNotes(true);
-    try {
-      const { error } = await supabase
-        .from('patient_clinical_data')
-        .upsert({
-          patient_id: selectedPatientData.id,
-          organization_id: organization.id,
-          notes: generalNotes,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'patient_id' });
-
-      if (error) throw error;
-      toast.success('Resumen clínico general actualizado.');
-      fetchPatients();
-    } catch (err: any) {
-      console.error('Error saving clinical notes:', err);
-      toast.error('Error al guardar resumen clínico: ' + err.message);
-    } finally {
-      setIsSavingGeneralNotes(false);
-    }
-  };
 
   const filteredPatientsList = patients
     .filter(p => {
@@ -1146,71 +1046,10 @@ const Patients = () => {
                 </TabsList>
 
                 {/* Header Section (Island Style) */}
-                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft mb-6">
-                    <div className="flex items-center gap-4 w-full lg:w-auto">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 -ml-2 hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
-                          onClick={() => setSelectedPatient(null)}
-                          title="Volver a lista de pacientes"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="relative group shrink-0">
-                          <div className={cn(
-                            "h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold border-2 border-primary/20 transition-all",
-                            getAvatarTheme(selectedPatientData.name)
-                          )}>
-                            {getInitials(selectedPatientData.name)}
-                          </div>
-                        </div>
-                        <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-black tracking-tight text-foreground">{selectedPatientData.name}</h1>
-                                <Badge className="bg-primary text-white hover:bg-primary-dark uppercase text-[9px] px-2 py-0.5 whitespace-nowrap shadow-sm">
-                                  {selectedPatientData.status === 'activo' ? 'Activo' : 
-                                   selectedPatientData.status === 'primer_contacto' ? 'Primer Contacto' : 
-                                   selectedPatientData.status === 'seguimiento' ? 'Seguimiento' : 
-                                   selectedPatientData.status === 'alta' ? 'Alta Clínica' : 
-                                   selectedPatientData.status?.replace(/_/g, ' ')}
-                                </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">ID: {selectedPatientData.id.slice(0,8)}</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        {/* Contact Info Pills */}
-                        {selectedPatientData.phone && (
-                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
-                                <Phone className="h-3.5 w-3.5 text-primary" />
-                                <span>{selectedPatientData.phone}</span>
-                                <a
-                                  href={`https://wa.me/${selectedPatientData.phone.replace(/[^0-9]/g, '')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-1 p-1 rounded hover:bg-success/10 text-success transition-all"
-                                  title="Enviar WhatsApp"
-                                >
-                                  <MessageCircle className="h-3.5 w-3.5" />
-                                </a>
-                            </div>
-                        )}
-                        {selectedPatientData.email && (
-                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
-                                <Mail className="h-3.5 w-3.5 text-primary" />
-                                <span className="truncate max-w-[150px]">{selectedPatientData.email}</span>
-                            </div>
-                        )}
-                        {selectedPatientData.last_session && (
-                            <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
-                                <Calendar className="h-3.5 w-3.5 text-primary" />
-                                <span className="text-xs">Última: {format(new Date(selectedPatientData.last_session), 'd MMM', { locale: es })}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <PatientHeader 
+                  patient={selectedPatientData} 
+                  onBack={() => setSelectedPatient(null)} 
+                />
 
                 {/* Mobile Navigation (iOS-Style Bottom Sheet Selector) - Moved below Patient Header Card */}
                 <div className="lg:hidden w-full mb-6">
@@ -1441,7 +1280,26 @@ const Patients = () => {
                                         <div className={cn("flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center z-10 shadow-sm transition-transform duration-300 group-hover:scale-110", bgMap[item.type])}>
                                           {iconMap[item.type]}
                                         </div>
-                                        <div className="flex-1 bg-white p-5 rounded-2xl border border-border shadow-soft hover:shadow-medium transition-all group-hover:-translate-y-1">
+                                        <div 
+                                          onClick={() => {
+                                            if (item.type === 'note') {
+                                              setActivePatientTab('notes');
+                                              setExpandedNoteId((item.data as SessionNote).id);
+                                              setTimeout(() => {
+                                                const element = document.getElementById(`note-card-${(item.data as SessionNote).id}`);
+                                                if (element) {
+                                                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                }
+                                              }, 150);
+                                            } else if (item.type === 'test') {
+                                              setViewingTest(item.data as PatientTest);
+                                            }
+                                          }}
+                                          className={cn(
+                                            "flex-1 bg-white p-5 rounded-2xl border border-border shadow-soft transition-all group-hover:-translate-y-1",
+                                            (item.type === 'note' || item.type === 'test') && "cursor-pointer hover:border-primary/40 hover:shadow-medium"
+                                          )}
+                                        >
                                           <div className="flex justify-between items-start mb-2">
                                             <span className="text-xs font-bold uppercase tracking-widest opacity-60">
                                               {item.type === 'note' ? 'Sesión Clínica' : item.type === 'test' ? 'Prueba Aplicada' : 'Pago Recibido'}
@@ -1451,6 +1309,11 @@ const Patients = () => {
                                           <p className="text-sm font-semibold text-foreground/90">{item.title}</p>
                                           {item.type === 'test' && score !== undefined && (
                                             <Badge className="mt-2 bg-accent/10 text-accent border-accent/20">Puntaje: {score}</Badge>
+                                          )}
+                                          {item.type === 'note' && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary mt-2 group-hover:underline">
+                                              Ver Nota completa →
+                                            </span>
                                           )}
                                         </div>
                                       </div>
@@ -1604,194 +1467,233 @@ const Patients = () => {
                                     <p className="text-muted-foreground font-medium">No hay notas de sesión registradas aún.</p>
                                   </div>
                                 ) : (
-                                  patientNotes.map((note) => (
-                                    <div key={note.id} className="p-6 rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/30 shadow-sm transition-all duration-300 hover:shadow-medium hover:border-slate-200/50">
-                                      <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                                            <FileText className="h-4 w-4 text-primary" />
-                                          </div>
-                                          <div>
-                                            <p className="text-xs font-bold text-muted-foreground uppercase opacity-50">Sesión Clínica</p>
-                                            <p className="text-sm font-bold">{format(new Date(note.date), 'd MMMM, yyyy', { locale: es })}</p>
-                                          </div>
-                                        </div>
-                                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest bg-primary/10 text-primary border-primary/20 rounded-md px-2.5 py-0.5">{note.session_number}</Badge>
-                                      </div>
-                                      <div className="line-clamp-3 text-sm text-slate-600 leading-relaxed border-l-2 border-primary/30 bg-primary/5 pl-4 py-3 pr-4 rounded-r-xl italic">
-                                        "{Array.isArray(note.agenda) ? note.agenda.map(a => a.topic).join(', ') : 'Resumen de sesión'}"
-                                      </div>
-                                      <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/60">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
-                                          onClick={() => {
-                                            setEditingNoteData(note);
-                                            setNoteSheetMode('manual');
-                                            setIsNoteSheetOpen(true);
-                                          }}
-                                        >
-                                          <Edit3 className="h-3.5 w-3.5" />
-                                          Editar
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
-                                          onClick={() => handleDownloadNote(note)}
-                                          disabled={isExportingNoteId === note.id}
-                                        >
-                                          {isExportingNoteId === note.id ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                          ) : (
-                                            <Download className="h-3.5 w-3.5" />
-                                          )}
-                                          Exportar
-                                        </Button>
-                                      </div>
+                                  patientNotes.map((note) => {
+                                    const isExpanded = expandedNoteId === note.id;
+                                    const notePreviewText = (() => {
+                                      if (note.transcript_summary) {
+                                        return note.transcript_summary;
+                                      }
+                                      if (Array.isArray(note.agenda) && note.agenda.length > 0) {
+                                        const previewParts = note.agenda
+                                          .map((item) => {
+                                            const parts = [];
+                                            if (item.topic) parts.push(item.topic);
+                                            if (item.notes) parts.push(item.notes);
+                                            return parts.join(': ');
+                                          })
+                                          .filter(Boolean);
+                                        if (previewParts.length > 0) {
+                                          return previewParts.join(' | ');
+                                        }
+                                      }
+                                      return 'Sin resumen clínico disponible';
+                                    })();
 
-                                    </div>
-                                  ))
+                                    return (
+                                      <div 
+                                        key={note.id} 
+                                        id={`note-card-${note.id}`}
+                                        onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
+                                        className={cn(
+                                          "p-6 rounded-2xl border bg-gradient-to-b from-white to-slate-50/30 shadow-sm transition-all duration-300 animate-in fade-in duration-300 cursor-pointer select-text",
+                                          isExpanded 
+                                            ? "border-primary/40 shadow-md ring-1 ring-primary/10" 
+                                            : "border-slate-100 hover:shadow-medium hover:border-slate-200/50"
+                                        )}
+                                      >
+                                        <div className="flex justify-between items-start mb-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                                              <FileText className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div>
+                                              <p className="text-xs font-bold text-muted-foreground uppercase opacity-50">Sesión Clínica</p>
+                                              <p className="text-sm font-bold">{format(new Date(note.date), 'd MMMM, yyyy', { locale: es })}</p>
+                                            </div>
+                                          </div>
+                                          <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest bg-primary/10 text-primary border-primary/20 rounded-md px-2.5 py-0.5">{note.session_number}</Badge>
+                                        </div>
+                                        
+                                        <div 
+                                          className={cn(
+                                            "text-sm text-slate-600 leading-relaxed border-l-2 border-primary/30 bg-primary/5 pl-4 py-3 pr-8 rounded-r-xl italic relative group transition-all duration-300",
+                                            !isExpanded && "line-clamp-2"
+                                          )}
+                                        >
+                                          "{notePreviewText}"
+                                          <span className="absolute right-3 bottom-2 text-[10px] font-bold text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {isExpanded ? '▴ contraer' : '▾ expandir'}
+                                          </span>
+                                        </div>
+
+                                        {/* Detalle expandido de la nota */}
+                                        {isExpanded && (
+                                          <div 
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="mt-4 pt-4 border-t border-slate-100 space-y-4 text-sm animate-fade-in text-slate-700 dark:text-slate-300 cursor-default"
+                                          >
+                                            {/* Diagnóstico */}
+                                            {note.diagnostico_principal && (
+                                              <div>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Diagnóstico Principal</span>
+                                                <p className="mt-0.5 text-sm font-semibold">{note.diagnostico_principal} {note.cie10_code && `(${note.cie10_code}: ${note.cie10_description})`}</p>
+                                              </div>
+                                            )}
+
+                                            {/* Estado de ánimo */}
+                                            {note.mood && (note.mood.rating !== undefined || note.mood.notes) && (
+                                              <div>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Estado de Ánimo / Evolución</span>
+                                                <div className="mt-0.5 flex flex-col sm:flex-row sm:items-center gap-2">
+                                                  {note.mood.rating !== undefined && (
+                                                    <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20 w-max shrink-0">
+                                                      Calificación: {note.mood.rating}/10
+                                                    </span>
+                                                  )}
+                                                  {note.mood.notes && <span className="text-xs text-slate-500 dark:text-slate-400 italic">"{note.mood.notes}"</span>}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Temas Tratados y Nota SOAP */}
+                                            {Array.isArray(note.agenda) && note.agenda.length > 0 && (
+                                              <div className="space-y-3">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60 block">Temas y Nota Clínica</span>
+                                                {note.agenda.map((item, idx) => (
+                                                  <div key={idx} className="bg-slate-50/50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                    <p className="font-bold text-xs text-primary">{item.topic || `Tema #${idx + 1}`}</p>
+                                                    {item.notes && (
+                                                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                        <span className="font-semibold text-slate-500">Nota:</span> {item.notes}
+                                                      </p>
+                                                    )}
+                                                    {item.interventions && (
+                                                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                        <span className="font-semibold text-slate-500">Intervenciones:</span> {item.interventions}
+                                                      </p>
+                                                    )}
+                                                    {item.thoughts && (
+                                                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                        <span className="font-semibold text-slate-500">Imp. Clínica:</span> {item.thoughts}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Creencias de la sesión */}
+                                            {note.beliefs && (note.beliefs.belief || note.beliefs.alternative) && (
+                                              <div className="bg-amber-500/5 dark:bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/10 space-y-2">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Creencias Identificadas</span>
+                                                {note.beliefs.belief && (
+                                                  <p className="text-xs">
+                                                    <span className="font-semibold text-slate-500">Creencia Limitante:</span> "{note.beliefs.belief}"
+                                                  </p>
+                                                )}
+                                                {note.beliefs.evidence_for && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                    <span className="font-semibold">Evidencia a Favor:</span> {note.beliefs.evidence_for}
+                                                  </p>
+                                                )}
+                                                {note.beliefs.evidence_against && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                    <span className="font-semibold">Evidencia en Contra:</span> {note.beliefs.evidence_against}
+                                                  </p>
+                                                )}
+                                                {note.beliefs.alternative && (
+                                                  <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                                                    <span className="font-semibold text-primary">Alternativa Saludable:</span> "{note.beliefs.alternative}"
+                                                  </p>
+                                                )}
+                                              </div>
+                                            )}
+
+                                            {/* Tareas / Plan de Acción */}
+                                            {Array.isArray(note.action_plan) && note.action_plan.length > 0 && (
+                                              <div className="space-y-2">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60 block">Tareas / Plan de Acción</span>
+                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                  {note.action_plan.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2.5 p-2 border border-slate-100 rounded-xl bg-white/40 dark:bg-slate-900/10 text-xs">
+                                                      <span className={cn(
+                                                        "h-2 w-2 rounded-full flex-shrink-0",
+                                                        item.completed ? "bg-success" : "bg-warning"
+                                                      )} />
+                                                      <span className={cn("truncate flex-1", item.completed && "line-through text-muted-foreground")}>
+                                                        {item.task}
+                                                      </span>
+                                                      <span className="text-[9px] font-bold text-muted-foreground uppercase">{item.completed ? 'Hecha' : 'Pendiente'}</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Resumen de Transcripción */}
+                                            {note.transcript_summary && (
+                                              <div>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Resumen de Audio / Transcripción</span>
+                                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 bg-muted/40 p-3 rounded-xl border border-border/30 leading-relaxed italic">
+                                                  {note.transcript_summary}
+                                                </p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        <div 
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/60 cursor-default"
+                                        >
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingNoteData(note);
+                                              setNoteSheetMode('manual');
+                                              setIsNoteSheetOpen(true);
+                                            }}
+                                          >
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                            Editar
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs gap-1.5 hover:bg-primary/5 transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDownloadNote(note);
+                                            }}
+                                            disabled={isExportingNoteId === note.id}
+                                          >
+                                            {isExportingNoteId === note.id ? (
+                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                              <Download className="h-3.5 w-3.5" />
+                                            )}
+                                            Exportar
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
                                  )}
                               </div>
                             </div>
                           </TabsContent>
 
                           <TabsContent value="history" className="m-0 animate-in fade-in duration-500">
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-xl font-bold">Historia Clínica</h3>
-                                <p className="text-sm text-muted-foreground">Información diagnóstica y resumen clínico acumulado del paciente.</p>
-                              </div>
-
-                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                {/* Resumen clínico (editable) */}
-                                <div className="lg:col-span-7 space-y-4">
-                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
-                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                                      <h4 className="font-bold text-sm uppercase tracking-wide text-primary">Resumen Clínico General</h4>
-                                      <ClipboardList className="h-4 w-4 text-primary opacity-40" />
-                                    </div>
-                                    <div className="space-y-4">
-                                      <Textarea
-                                        value={generalNotes}
-                                        onChange={(e) => setGeneralNotes(e.target.value)}
-                                        placeholder="Ingresa antecedentes heredofamiliares, patológicos, evolución general, diagnóstico presuntivo o notas de seguimiento a largo plazo..."
-                                        className="min-h-[280px] bg-white border border-border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all leading-relaxed resize-none"
-                                      />
-                                      <div className="flex justify-end">
-                                        <Button
-                                          size="sm"
-                                          variant="zen"
-                                          disabled={isSavingGeneralNotes}
-                                          onClick={handleSaveGeneralNotes}
-                                          className="h-9 px-4 rounded-xl text-xs font-bold gap-2 shadow-sm"
-                                        >
-                                          {isSavingGeneralNotes ? (
-                                            <>
-                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                              Guardando...
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Save className="h-3.5 w-3.5" />
-                                              Guardar Cambios
-                                            </>
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </Card>
-                                </div>
-
-                                {/* Diagnósticos y estadísticas */}
-                                <div className="lg:col-span-5 space-y-6">
-                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
-                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                                      <h4 className="font-bold text-sm uppercase tracking-wide text-secondary">Diagnósticos Registrados</h4>
-                                      <Brain className="h-4 w-4 text-secondary opacity-40" />
-                                    </div>
-                                    <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 scrollbar-zen">
-                                      {(() => {
-                                        const activeDiagnoses = Array.isArray(patientNotes) 
-                                          ? patientNotes
-                                              .filter(n => n.cie10_code || n.diagnostico_principal)
-                                              .reduce((acc: any[], current) => {
-                                                const code = current.cie10_code || 'S/C';
-                                                const desc = current.cie10_description || 'Diagnóstico principal';
-                                                const principal = current.diagnostico_principal || '';
-                                                const exists = acc.find(item => item.code === code && item.principal === principal);
-                                                if (!exists) {
-                                                  acc.push({
-                                                    code,
-                                                    description: desc,
-                                                    principal,
-                                                    date: current.date,
-                                                    sessionNumber: current.session_number
-                                                  });
-                                                }
-                                                return acc;
-                                              }, [])
-                                          : [];
-                                        
-                                        if (activeDiagnoses.length === 0) {
-                                          return (
-                                            <p className="text-xs text-muted-foreground text-center py-6">
-                                              No hay diagnósticos CIE-10 registrados en las sesiones.
-                                            </p>
-                                          );
-                                        }
-
-                                        return activeDiagnoses.map((diag, index) => (
-                                          <div key={index} className="p-3 bg-slate-50/50 hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors">
-                                            <div className="flex items-center gap-2 mb-1">
-                                              <Badge className="bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/15 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5">
-                                                {diag.code}
-                                              </Badge>
-                                              <span className="text-[10px] text-muted-foreground">Sesión {diag.sessionNumber} ({format(new Date(diag.date), 'dd/MM/yy')})</span>
-                                            </div>
-                                            <p className="text-xs font-bold text-slate-800">{diag.description}</p>
-                                            {diag.principal && (
-                                              <p className="text-[11px] text-slate-500 mt-0.5 italic">"{diag.principal}"</p>
-                                            )}
-                                          </div>
-                                        ));
-                                      })()}
-                                    </div>
-                                  </Card>
-
-                                  <Card className="p-6 border-border/50 shadow-soft bg-white">
-                                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                                      <h4 className="font-bold text-sm uppercase tracking-wide text-slate-700">Resumen del Expediente</h4>
-                                      <Clock className="h-4 w-4 text-slate-500 opacity-40" />
-                                    </div>
-                                    <div className="space-y-3.5 text-xs">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">Total de Consultas:</span>
-                                        <span className="font-bold text-slate-800">{patientNotes.length} sesiones</span>
-                                      </div>
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">Primera Sesión:</span>
-                                        <span className="font-semibold text-slate-700">
-                                          {patientNotes.length > 0 
-                                            ? format(new Date(patientNotes[patientNotes.length - 1].date), "d 'de' MMMM, yyyy", { locale: es }) 
-                                            : 'Sin registro'}
-                                        </span>
-                                      </div>
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">Última Sesión:</span>
-                                        <span className="font-semibold text-slate-700">
-                                          {patientNotes.length > 0 
-                                            ? format(new Date(patientNotes[0].date), "d 'de' MMMM, yyyy", { locale: es }) 
-                                            : 'Sin registro'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </Card>
-                                </div>
-                              </div>
-                            </div>
+                            {selectedPatientData && (
+                              <PatientClinicalHistory
+                                patient={selectedPatientData}
+                                patientNotes={patientNotes}
+                                onNotesSaved={fetchPatients}
+                              />
+                            )}
                           </TabsContent>
 
                           <TabsContent value="economy" className="m-0 animate-in fade-in duration-500">
