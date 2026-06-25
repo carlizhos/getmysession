@@ -64,20 +64,9 @@ import DayView from '@/components/agenda/DayView';
 import MonthView from '@/components/agenda/MonthView';
 import { Appointment } from '@/types';
 import { getTimezoneFriendlyLabel } from '@/lib/timezone';
+import { useSchedule, useAppointments, useMutateAppointments, ScheduleConfig } from '@/hooks/useAgenda';
 
 type ViewMode = 'day' | 'week' | 'month';
-
-interface DayConfig {
-  activo: boolean;
-  inicio: string;
-  fin: string;
-}
-
-interface ScheduleConfig {
-  dias: Record<number, DayConfig>;
-  dias_no_laborables: string[];
-  fin?: string;
-}
 
 const AgendaPage = () => {
   const { user } = useAuth();
@@ -87,42 +76,14 @@ const AgendaPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [viewType, setViewType] = useState<'calendar' | 'list'>('calendar');
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [nonWorkingDays, setNonWorkingDays] = useState<string[]>([]); // YYYY-MM-DD
-  const [horarioFin, setHorarioFin] = useState('17:00'); // HH:mm
 
-  // Load schedule from profile
-  const [horario, setHorario] = useState<ScheduleConfig | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('horario_atencion')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        if (data?.horario_atencion) {
-          const config = data.horario_atencion as unknown as ScheduleConfig;
-          setHorario(config);
-          if (config.dias_no_laborables) {
-            setNonWorkingDays(config.dias_no_laborables);
-          }
-          if (config.fin) {
-            setHorarioFin(config.fin);
-          }
-        }
-      } catch (err: unknown) {
-        console.error('Error fetching profile/schedule:', err);
-      }
-    };
-    fetchProfile();
-  }, [user]);
+  // React Query Hooks
+  const { data: horario } = useSchedule();
+  const nonWorkingDays = horario?.dias_no_laborables || [];
+  const horarioFin = horario?.fin || '17:00';
+  const { data: appointments = [] } = useAppointments(organization?.id);
+  const { cancelAppointment } = useMutateAppointments();
 
   const getDayConfig = (date: Date) => {
     if (!horario?.dias) return { inicio: '08:00', fin: '17:00' };
@@ -158,39 +119,8 @@ const AgendaPage = () => {
     return isBefore(parseISO(apt.start_time), new Date());
   };
 
-  const fetchAppointments = useCallback(async () => {
-    try {
-      if (!organization?.id) return;
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('organization_id', organization?.id)
-        .order('start_time', { ascending: true });
-      if (error) throw error;
-      setAppointments(data as Appointment[] || []);
-    } catch (err: unknown) {
-      const error = err as Error;
-      console.error('Error fetching appointments:', error);
-      toast.error('Error al cargar agenda: ' + error.message);
-    }
-  }, [organization?.id]);
-
-  useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
   const handleCancelAppointment = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'cancelled' })
-        .eq('id', id);
-
-      if (error) throw error;
-      fetchAppointments();
-    } catch (error) {
-      console.error('Error al cancelar la cita:', error);
-    }
+    cancelAppointment.mutate(id);
   };
 
   const handleRescheduleAppointment = (apt: Appointment) => {

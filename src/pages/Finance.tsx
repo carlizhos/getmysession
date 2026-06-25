@@ -55,8 +55,8 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PaymentModal from '@/components/finance/PaymentModal';
-
 import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
+import { useFinanceData } from '@/hooks/useFinance';
 
 interface Appointment {
   id: string;
@@ -141,13 +141,16 @@ const SortableSection = ({ id, children }: { id: string; children: React.ReactNo
 const Finance = () => {
   const { user } = useAuth();
   const { organization } = useOrganization();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // React Query Hook
+  const { data: financeData, isLoading, refetch: fetchData } = useFinanceData(organization?.id);
+  const appointments = financeData?.appointments || [];
+  const payments = financeData?.payments || [];
+  const feeConfig = financeData?.feeConfig || { porcentaje_consultorio: 30, stripe_fee_percent: 5.14 };
+  const lastMonthPayments = financeData?.lastMonthPayments || [];
+  const lastMonthAppointments = financeData?.lastMonthAppointments || [];
+
   const [payingAppointment, setPayingAppointment] = useState<Appointment | null>(null);
-  const [feeConfig, setFeeConfig] = useState({ porcentaje_consultorio: 30, stripe_fee_percent: 5.14 });
-  const [lastMonthPayments, setLastMonthPayments] = useState<Payment[]>([]);
-  const [lastMonthAppointments, setLastMonthAppointments] = useState<Appointment[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed(p => ({ ...p, [key]: !p[key] }));
   const [generatingInvoiceId, setGeneratingInvoiceId] = useState<string | null>(null);
@@ -363,60 +366,7 @@ const Finance = () => {
   };
 
   // ── Data fetching ──────────────────────────────────────────────────────
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const now = new Date();
-      const start = startOfMonth(now).toISOString();
-      const end = endOfMonth(now).toISOString();
-      const lastMonth = subMonths(now, 1);
-      const lastStart = startOfMonth(lastMonth).toISOString();
-      const lastEnd = endOfMonth(lastMonth).toISOString();
 
-      const [{ data: appts }, { data: pmts }, { data: cfg }, { data: lastPmts }, { data: lastAppts }] = await Promise.all([
-        supabase
-          .from('appointments')
-          .select('id, patient_name, start_time, fee, payment_status, status, stripe_checkout_id, commission_percentage')
-          .eq('organization_id', organization?.id)
-          .gte('start_time', start)
-          .lte('start_time', end)
-          .order('start_time', { ascending: false }),
-        supabase
-          .from('payments')
-          .select('*, invoice_url, invoice_id')
-          .eq('organization_id', organization?.id)
-          .gte('created_at', start)
-          .lte('created_at', end)
-          .order('created_at', { ascending: false }),
-        supabase.from('profiles').select('porcentaje_consultorio, stripe_fee_percent').eq('id', user?.id).maybeSingle(),
-        supabase
-          .from('payments')
-          .select('id, amount, status, method')
-          .eq('organization_id', organization?.id)
-          .eq('status', 'paid')
-          .gte('created_at', lastStart)
-          .lte('created_at', lastEnd),
-        supabase
-          .from('appointments')
-          .select('id, fee, status, commission_percentage')
-          .eq('organization_id', organization?.id)
-          .gte('start_time', lastStart)
-          .lte('start_time', lastEnd),
-      ]);
-
-      if (appts) setAppointments(appts);
-      if (pmts) setPayments(pmts);
-      if (cfg) setFeeConfig(cfg);
-      if (lastPmts) setLastMonthPayments(lastPmts as Payment[]);
-      if (lastAppts) setLastMonthAppointments(lastAppts as Appointment[]);
-    } catch (err) {
-      toast.error('Error cargando datos financieros');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, organization?.id]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Stripe redirect handler ────────────────────────────────────────────
   useEffect(() => {

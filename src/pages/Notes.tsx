@@ -37,9 +37,7 @@ import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
 import MiniEditor from '@/components/ui/MiniEditor';
 import DOMPurify from 'dompurify';
-
-
-// ── Componente ────────────────────────────────────────────────────────────────
+import { useNotes, useNoteTemplates, useProfessionalProfile, useMutateNotes } from '@/hooks/useNotes';// ── Componente ────────────────────────────────────────────────────────────────
 const Notes = () => {
   const { organization } = useOrganization();
   const [searchParams] = useSearchParams();
@@ -48,17 +46,19 @@ const Notes = () => {
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
-  const [notes, setNotes] = useState<SessionNote[]>([]);
-  const [loading, setLoading] = useState(false);
+  
+  // React Query Hooks
+  const { data: notes = [], isLoading: loading } = useNotes(selectedPatient);
+  const { data: noteTemplates = [], isLoading: isLoadingTemplates } = useNoteTemplates();
+  const { data: professionalProfile } = useProfessionalProfile();
+  const { createNote, archiveNote, updateNote } = useMutateNotes();
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingText, setEditingText] = useState('');
   const [isExportingNote, setIsExportingNote] = useState(false);
-  const [professionalProfile, setProfessionalProfile] = useState<any>(null);
-  const [noteTemplates, setNoteTemplates] = useState<any[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [isDictating, setIsDictating] = useState(false);
 
   // Mount logic for search params
@@ -86,58 +86,13 @@ const Notes = () => {
     }
   }, [searchParams]);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchNotes = useCallback(async () => {
-    if (!selectedPatient) {
-      setNotes([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('session_notes')
-      .select('*')
-      .eq('patient_id', selectedPatient)
-      .is('deleted_at', null)
-      .order('date', { ascending: false });
-
-    if (error) {
-      toast.error('Error al cargar notas: ' + error.message);
-    } else {
-      setNotes((data as SessionNote[]) ?? []);
-      if (data && data.length > 0 && !selectedNote) {
-        setSelectedNote(data[0].id);
-      }
-    }
-    setLoading(false);
-  }, [selectedPatient, selectedNote]);
-
-  const fetchTemplates = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    
-    setIsLoadingTemplates(true);
-    try {
-      const { data, error } = await supabase
-        .from('note_templates')
-        .select('*')
-        .or(`is_system.eq.true,user_id.eq.${user.id}`)
-        .order('is_system', { ascending: false })
-        .order('name', { ascending: true });
-      if (data) setNoteTemplates(data);
-    } catch (err) {
-      console.error('Error fetching templates:', err);
-    } finally {
-      setIsLoadingTemplates(false);
-    }
-  }, []);
-
+  // ── Fetch (Ahora manejado por React Query) ─────────────────────────────────
+  // Si tenemos notas y no hay nota seleccionada, auto-seleccionar la primera.
   useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
-
-
+    if (notes.length > 0 && !selectedNote) {
+      setSelectedNote(notes[0].id);
+    }
+  }, [notes, selectedNote]);
   const handleDownloadNote = async (note: SessionNote) => {
     setIsExportingNote(true);
     try {
@@ -176,22 +131,6 @@ const Notes = () => {
     }
   };
 
-  useEffect(() => { 
-    fetchNotes(); 
-    fetchProfessionalProfile();
-  }, [selectedPatient]); // Fetch when patient changes
-
-  const fetchProfessionalProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, prefix, cedulas, signature_data, logo_data')
-      .eq('id', user.id)
-      .single();
-    if (data) setProfessionalProfile(data);
-  };
-
 
   // ── Guardar nota ───────────────────────────────────────────────────────────
   const handleSaveNote = async (noteData: {
@@ -228,16 +167,9 @@ const Notes = () => {
       organization_id: organization?.id,
     };
 
-    const { error } = await supabase.from('session_notes').insert([payload]);
-
-    if (error) {
-      toast.error('Error al guardar la nota: ' + error.message);
-      return;
-    }
-
-    toast.success('Nota clínica guardada correctamente');
-    setIsCreatingNote(false);
-    await fetchNotes(); // Recarga lista
+    createNote.mutate(payload, {
+      onSuccess: () => setIsCreatingNote(false)
+    });
   };
 
   // ── Archivar nota (soft delete NOM-024 — retención 5 años) ────────────────
@@ -245,19 +177,14 @@ const Notes = () => {
     if (!selectedNote) return;
     setIsDeleting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from('session_notes')
-      .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id })
-      .eq('id', selectedNote);
-    if (error) {
-      toast.error('Error al archivar: ' + error.message);
-    } else {
-      toast.success('Nota archivada (retenida 5 años según NOM-024)');
-      setSelectedNote(null);
-      setConfirmDelete(false);
-      await fetchNotes();
-    }
-    setIsDeleting(false);
+    archiveNote.mutate({ noteId: selectedNote, userId: user?.id }, {
+      onSuccess: () => {
+        setSelectedNote(null);
+        setConfirmDelete(false);
+        setIsDeleting(false);
+      },
+      onError: () => setIsDeleting(false)
+    });
   };
 
   // ── Actualizar reporte de texto ────────────────────────────────────────────
@@ -269,17 +196,10 @@ const Notes = () => {
     } else {
       updatedAgenda[0] = { ...updatedAgenda[0], thoughts: editingText };
     }
-    const { error } = await supabase
-      .from('session_notes')
-      .update({ agenda: updatedAgenda })
-      .eq('id', selectedNote);
-    if (error) {
-      toast.error('Error al guardar cambios: ' + error.message);
-    } else {
-      toast.success('Nota actualizada');
-      setIsEditing(false);
-      await fetchNotes();
-    }
+    
+    updateNote.mutate({ noteId: selectedNote, payload: { agenda: updatedAgenda } }, {
+      onSuccess: () => setIsEditing(false)
+    });
   };
 
   const selectedNoteData = notes.find(n => n.id === selectedNote);
