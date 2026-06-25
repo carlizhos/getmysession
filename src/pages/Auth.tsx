@@ -7,6 +7,18 @@ import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangl
 import { toast } from 'sonner';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const authSchema = z.object({
+    email: z.string().min(1, 'El correo es requerido').email('Ingresa un correo electrónico válido'),
+    password: z.string().optional().or(z.literal('')),
+    confirmPassword: z.string().optional().or(z.literal('')),
+    fullName: z.string().optional().or(z.literal(''))
+});
+
+type AuthFormValues = z.infer<typeof authSchema>;
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '57982623920-afu95mjoklp5pmipaejstbeq67gqgr03.apps.googleusercontent.com';
 
@@ -37,12 +49,17 @@ declare global {
 
 const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [fullName, setFullName] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    
+    const { register, handleSubmit, watch, formState: { errors }, reset, setValue, clearErrors } = useForm<AuthFormValues>({
+        resolver: zodResolver(authSchema),
+        defaultValues: { email: '', password: '', confirmPassword: '', fullName: '' }
+    });
+
+    const email = watch('email') || '';
+    const password = watch('password') || '';
+    const confirmPassword = watch('confirmPassword') || '';
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [mfaPending, setMfaPending] = useState(false);
@@ -180,13 +197,11 @@ const Auth = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const onSubmitForm = async (data: AuthFormValues) => {
         if (isLogin && isMagicLink) {
             setLoading(true);
             try {
-                const { error } = await signInWithMagicLink(email);
+                const { error } = await signInWithMagicLink(data.email);
                 if (error) {
                     toast.error('Error al enviar enlace mágico: ' + error.message);
                 } else {
@@ -201,8 +216,18 @@ const Auth = () => {
         }
 
         // Validate passwords match on signup
-        if (!isLogin && password !== confirmPassword) {
+        if (!isLogin && data.password !== data.confirmPassword) {
             toast.error('Las contraseñas no coinciden');
+            return;
+        }
+        
+        if (!isLogin && !data.fullName) {
+            toast.error('El nombre completo es requerido');
+            return;
+        }
+
+        if (!data.password && !isMagicLink) {
+            toast.error('La contraseña es requerida');
             return;
         }
 
@@ -210,7 +235,7 @@ const Auth = () => {
 
         try {
             if (isLogin) {
-                const { error } = await signIn(email, password);
+                const { error } = await signIn(data.email, data.password!);
                 if (error) {
                     if (error.message.includes('Email not confirmed')) {
                         setShowResendEmail(true);
@@ -230,14 +255,14 @@ const Auth = () => {
                     navigate('/');
                 }
             } else {
-                const { error } = await signUp(email, password, fullName);
+                const { error } = await signUp(data.email, data.password!, data.fullName || '');
                 if (error) {
                     toast.error('Error al crear cuenta: ' + error.message);
                 } else {
                     toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
                     setIsLogin(true);
-                    setPassword('');
-                    setConfirmPassword('');
+                    setValue('password', '');
+                    setValue('confirmPassword', '');
                 }
             }
         } catch (err: unknown) {
@@ -283,7 +308,7 @@ const Auth = () => {
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
                         {/* Nombre completo */}
                         <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
@@ -294,14 +319,13 @@ const Auth = () => {
                                         <Input
                                             type="text"
                                             placeholder="Dr. Juan Pérez"
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                            className="pl-10"
-                                            required={!isLogin}
+                                            {...register('fullName')}
+                                            className={`pl-10 ${errors.fullName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                             disabled={isLogin}
                                             autoComplete="name"
                                         />
                                     </div>
+                                    {errors.fullName && <p className="text-xs text-red-500">{errors.fullName.message}</p>}
                                 </div>
                             </div>
                         </div>
@@ -313,13 +337,12 @@ const Auth = () => {
                                 <Input
                                     type="email"
                                     placeholder="tu@correo.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="pl-10"
-                                    required
+                                    {...register('email')}
+                                    className={`pl-10 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                     autoComplete="email"
                                 />
                             </div>
+                            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
                             {isLogin && (
                                 <div className="flex justify-end pt-1">
                                     <button
@@ -341,11 +364,9 @@ const Auth = () => {
                                     <Input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-10 pr-10"
-                                        required={!isMagicLink}
-                                        minLength={6}
+                                        {...register('password')}
+                                        className={`pl-10 pr-10 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                        disabled={isMagicLink}
                                         autoComplete={isLogin ? "current-password" : "new-password"}
                                     />
                                     <button
@@ -416,12 +437,9 @@ const Auth = () => {
                                         <Input
                                             type={showConfirmPassword ? "text" : "password"}
                                             placeholder="••••••••"
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className={`pl-10 pr-10 ${confirmPassword && password !== confirmPassword ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                                            required={!isLogin}
+                                            {...register('confirmPassword')}
+                                            className={`pl-10 pr-10 ${(errors.confirmPassword || (confirmPassword && password !== confirmPassword)) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                             disabled={isLogin}
-                                            minLength={6}
                                             autoComplete="new-password"
                                         />
                                         <button
@@ -561,9 +579,9 @@ const Auth = () => {
                             setIsLogin(!isLogin);
                             setShowResendEmail(false);
                             setIsMagicLink(false);
-                            setConfirmPassword('');
                             setShowPassword(false);
                             setShowConfirmPassword(false);
+                            clearErrors();
                         }}
                             className="text-primary font-medium hover:underline"
                         >

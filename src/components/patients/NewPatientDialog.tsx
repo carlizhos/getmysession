@@ -18,6 +18,9 @@ import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
 import { logActivity } from '@/lib/activityLogger';
 import { encryptText } from '@/lib/encryption';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 interface Patient {
     id: string;
@@ -47,44 +50,49 @@ interface NewPatientDialogProps {
     editingPatient?: Patient | null;
 }
 
-// Validación básica del formato CURP
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/;
 
-const validateCURP = (curp: string): boolean => {
-    if (!curp) return true; // Opcional
-    return CURP_REGEX.test(curp.toUpperCase());
-};
+const patientSchema = z.object({
+    name: z.string().min(1, 'El nombre completo es requerido'),
+    email: z.string().min(1, 'El correo es requerido').email('Correo electrónico inválido'),
+    phone: z.string().min(10, 'Mínimo 10 dígitos'),
+    dateOfBirth: z.string().min(1, 'Fecha de nacimiento requerida'),
+    curp: z.string().optional().refine(val => !val || CURP_REGEX.test(val.toUpperCase()), 'Formato inválido (18 caracteres)'),
+    gender: z.string().optional(),
+    occupation: z.string().optional(),
+    emergencyContactName: z.string().optional(),
+    emergencyContactPhone: z.string().optional(),
+    notes: z.string().optional(),
+    rfc: z.string().optional(),
+    taxName: z.string().optional(),
+    taxZipCode: z.string().optional(),
+    taxRegime: z.string().optional(),
+    cfdiUse: z.string().optional(),
+});
+
+type PatientFormValues = z.infer<typeof patientSchema>;
 
 const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }: NewPatientDialogProps) => {
     const { organization } = useOrganization();
     const isEditing = !!editingPatient;
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        dateOfBirth: '',
-        curp: '',
-        gender: '',
-        occupation: '',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        notes: '',
-        rfc: '',
-        taxName: '',
-        taxZipCode: '',
-        taxRegime: '',
-        cfdiUse: '',
+    const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<PatientFormValues>({
+        resolver: zodResolver(patientSchema),
+        defaultValues: {
+            name: '', email: '', phone: '', dateOfBirth: '', curp: '', gender: '', occupation: '',
+            emergencyContactName: '', emergencyContactPhone: '', notes: '',
+            rfc: '', taxName: '', taxZipCode: '', taxRegime: '', cfdiUse: '',
+        }
     });
+
     const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [curpError, setCurpError] = useState('');
 
     // Pre-llenar formulario cuando se edita
     useEffect(() => {
         if (editingPatient) {
-            setFormData({
+            reset({
                 name: editingPatient.name || '',
                 email: editingPatient.email || '',
                 phone: editingPatient.phone || '',
@@ -103,7 +111,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
             });
             setTags(editingPatient.tags || []);
         } else {
-            setFormData({
+            reset({
                 name: '', email: '', phone: '', dateOfBirth: '',
                 curp: '', gender: '', occupation: '',
                 emergencyContactName: '', emergencyContactPhone: '', notes: '',
@@ -112,68 +120,44 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
             setTags([]);
         }
         setTagInput('');
-        setCurpError('');
-    }, [editingPatient, open]);
+    }, [editingPatient, open, reset]);
 
-    const handleCURPChange = (val: string) => {
-        const upper = val.toUpperCase();
-        setFormData({ ...formData, curp: upper });
-        if (upper && !validateCURP(upper)) {
-            setCurpError('Formato inválido (18 caracteres: 4 letras, 6 dígitos, género, estado, 3 letras, 2 alfanuméricos)');
-        } else {
-            setCurpError('');
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!formData.name || !formData.email || !formData.phone || !formData.dateOfBirth) {
-            toast.error('Por favor completa todos los campos requeridos');
-            return;
-        }
-
-        if (formData.curp && !validateCURP(formData.curp)) {
-            toast.error('El CURP ingresado no tiene un formato válido');
-            return;
-        }
-
+    const onSubmitForm = async (data: PatientFormValues) => {
         setIsSubmitting(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
             const basePayload = {
-                name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                date_of_birth: formData.dateOfBirth,
-                curp: encryptText(formData.curp || null),
-                gender: formData.gender || null,
-                occupation: formData.occupation || null,
-                emergency_contact_name: formData.emergencyContactName || null,
-                emergency_contact_phone: formData.emergencyContactPhone || null,
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                date_of_birth: data.dateOfBirth,
+                curp: encryptText(data.curp?.toUpperCase() || null),
+                gender: data.gender || null,
+                occupation: data.occupation || null,
+                emergency_contact_name: data.emergencyContactName || null,
+                emergency_contact_phone: data.emergencyContactPhone || null,
                 tags: tags,
                 user_id: user?.id ?? null,
                 organization_id: organization?.id,
             };
 
             const clinicalPayload = {
-                notes: formData.notes,
+                notes: data.notes,
                 organization_id: organization?.id,
             };
 
             const fiscalPayload = {
-                rfc: encryptText(formData.rfc || null),
-                tax_name: formData.taxName || null,
-                tax_zip_code: formData.taxZipCode || null,
-                tax_regime: formData.taxRegime || null,
-                cfdi_use: formData.cfdiUse || null,
+                rfc: encryptText(data.rfc?.toUpperCase() || null),
+                tax_name: data.taxName?.toUpperCase() || null,
+                tax_zip_code: data.taxZipCode || null,
+                tax_regime: data.taxRegime || null,
+                cfdi_use: data.cfdiUse || null,
                 organization_id: organization?.id,
             };
 
             if (isEditing && editingPatient) {
-                // Update Base
                 const { error: err1 } = await supabase
                     .from('patients')
                     .update(basePayload)
@@ -181,13 +165,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     .eq('organization_id', organization?.id);
                 if (err1) throw err1;
 
-                // Update Clinical Data (upsert-like behavior using update, but if it doesn't exist, we must insert. Safer to upsert)
                 const { error: err2 } = await supabase
                     .from('patient_clinical_data')
                     .upsert({ patient_id: editingPatient.id, ...clinicalPayload });
                 if (err2) throw err2;
 
-                // Update Fiscal Data
                 const { error: err3 } = await supabase
                     .from('patient_fiscal_data')
                     .upsert({ patient_id: editingPatient.id, ...fiscalPayload });
@@ -195,7 +177,6 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
 
                 toast.success('Paciente actualizado');
             } else {
-                // Insert Base
                 const { data: insertedPatient, error: err1 } = await supabase
                     .from('patients')
                     .insert([basePayload])
@@ -203,12 +184,10 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     .single();
                 if (err1 || !insertedPatient) throw err1;
 
-                // Insert Clinical
                 if (clinicalPayload.notes) {
                     await supabase.from('patient_clinical_data').insert({ patient_id: insertedPatient.id, ...clinicalPayload });
                 }
 
-                // Insert Fiscal
                 if (fiscalPayload.tax_name || fiscalPayload.rfc || fiscalPayload.tax_zip_code) {
                     await supabase.from('patient_fiscal_data').insert({ patient_id: insertedPatient.id, ...fiscalPayload });
                 }
@@ -219,7 +198,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     profile_id: user!.id,
                     type: 'patient_created',
                     title: 'Nuevo Paciente Registrado',
-                    description: `Has registrado a ${formData.name} en tu expediente clínico.`,
+                    description: `Has registrado a ${data.name} en tu expediente clínico.`,
                     organization_id: organization?.id,
                 });
             }
@@ -250,10 +229,12 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         if (e.key === 'Enter') { e.preventDefault(); addTag(); }
     };
 
+    const curpVal = watch('curp');
+    const isCurpValid = !curpVal || CURP_REGEX.test(curpVal.toUpperCase());
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
-                {/* Header fijo */}
                 <div className="px-6 py-4 border-b">
                     <DialogHeader>
                         <DialogTitle>{isEditing ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
@@ -263,76 +244,71 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     </DialogHeader>
                 </div>
 
-                {/* Cuerpo con scroll */}
-                <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <form onSubmit={handleSubmit(onSubmitForm)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-
                         {/* ── Datos generales ──────────────────────────────── */}
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Datos generales</p>
                             <div className="space-y-4">
-                                {/* Nombre completo */}
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Nombre completo *</Label>
                                     <Input
                                         id="name"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        {...register('name')}
                                         placeholder="Ej: María López García"
-                                        required
                                         disabled={isSubmitting}
+                                        className={errors.name ? 'border-red-500' : ''}
                                     />
+                                    {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
                                 </div>
 
-                                {/* Email y Teléfono */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="email">Correo electrónico *</Label>
                                         <Input
                                             id="email"
                                             type="email"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            {...register('email')}
                                             placeholder="ejemplo@correo.com"
-                                            required
                                             disabled={isSubmitting}
+                                            className={errors.email ? 'border-red-500' : ''}
                                         />
+                                        {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="phone">Teléfono *</Label>
                                         <Input
                                             id="phone"
                                             type="tel"
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            {...register('phone')}
                                             placeholder="+52 55 1234 5678"
-                                            required
                                             disabled={isSubmitting}
+                                            className={errors.phone ? 'border-red-500' : ''}
                                         />
+                                        {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
                                     </div>
                                 </div>
 
-                                {/* Fecha de nacimiento y Género */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
                                         <Input
                                             id="dateOfBirth"
                                             type="date"
-                                            value={formData.dateOfBirth}
-                                            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                                            {...register('dateOfBirth')}
                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                                             max={new Date().toISOString().split('T')[0]}
                                             min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
-                                            required
                                             disabled={isSubmitting}
+                                            className={errors.dateOfBirth ? 'border-red-500' : ''}
                                         />
+                                        {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="gender">Género</Label>
                                         <Select
-                                            value={formData.gender}
-                                            onValueChange={(v) => setFormData({ ...formData, gender: v })}
+                                            value={watch('gender')}
+                                            onValueChange={(v) => setValue('gender', v)}
                                         >
                                             <SelectTrigger id="gender">
                                                 <SelectValue placeholder="Selecciona" />
@@ -346,13 +322,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     </div>
                                 </div>
 
-                                {/* Ocupación */}
                                 <div className="space-y-2">
                                     <Label htmlFor="occupation">Ocupación</Label>
                                     <Input
                                         id="occupation"
-                                        value={formData.occupation}
-                                        onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                                        {...register('occupation')}
                                         placeholder="Ej: Docente, estudiante, comerciante..."
                                         disabled={isSubmitting}
                                     />
@@ -372,17 +346,18 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 </Label>
                                 <Input
                                     id="curp"
-                                    value={formData.curp}
-                                    onChange={(e) => handleCURPChange(e.target.value)}
+                                    {...register('curp', {
+                                        onChange: (e) => setValue('curp', e.target.value.toUpperCase())
+                                    })}
                                     placeholder="LOMP800101MDFGZR02"
                                     maxLength={18}
-                                    className={curpError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                                    className={errors.curp ? 'border-destructive focus-visible:ring-destructive' : ''}
                                     disabled={isSubmitting}
                                 />
-                                {curpError && (
-                                    <p className="text-xs text-destructive">{curpError}</p>
+                                {errors.curp && (
+                                    <p className="text-xs text-destructive">{errors.curp.message}</p>
                                 )}
-                                {formData.curp && !curpError && (
+                                {curpVal && isCurpValid && (
                                     <p className="text-xs text-green-600 flex items-center gap-1">
                                         <ShieldCheck className="h-3 w-3" /> CURP válido
                                     </p>
@@ -401,8 +376,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     <Label htmlFor="emergencyContactName">Nombre</Label>
                                     <Input
                                         id="emergencyContactName"
-                                        value={formData.emergencyContactName}
-                                        onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                                        {...register('emergencyContactName')}
                                         placeholder="Nombre del contacto"
                                         disabled={isSubmitting}
                                     />
@@ -412,8 +386,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     <Input
                                         id="emergencyContactPhone"
                                         type="tel"
-                                        value={formData.emergencyContactPhone}
-                                        onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
+                                        {...register('emergencyContactPhone')}
                                         placeholder="+52 55 1234 5678"
                                         disabled={isSubmitting}
                                     />
@@ -429,8 +402,9 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     <Label htmlFor="rfc">RFC</Label>
                                     <Input
                                         id="rfc"
-                                        value={formData.rfc}
-                                        onChange={(e) => setFormData({ ...formData, rfc: e.target.value.toUpperCase() })}
+                                        {...register('rfc', {
+                                            onChange: (e) => setValue('rfc', e.target.value.toUpperCase())
+                                        })}
                                         placeholder="XAXX010101000"
                                         disabled={isSubmitting}
                                     />
@@ -439,8 +413,9 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     <Label htmlFor="taxName">Razón Social</Label>
                                     <Input
                                         id="taxName"
-                                        value={formData.taxName}
-                                        onChange={(e) => setFormData({ ...formData, taxName: e.target.value.toUpperCase() })}
+                                        {...register('taxName', {
+                                            onChange: (e) => setValue('taxName', e.target.value.toUpperCase())
+                                        })}
                                         placeholder="Ej: Juan Pérez López"
                                         disabled={isSubmitting}
                                     />
@@ -449,8 +424,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     <Label htmlFor="taxZipCode">Código Postal Fiscal</Label>
                                     <Input
                                         id="taxZipCode"
-                                        value={formData.taxZipCode}
-                                        onChange={(e) => setFormData({ ...formData, taxZipCode: e.target.value })}
+                                        {...register('taxZipCode')}
                                         placeholder="Ej: 06000"
                                         maxLength={5}
                                         disabled={isSubmitting}
@@ -459,8 +433,8 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 <div className="space-y-2">
                                     <Label htmlFor="cfdiUse">Uso de CFDI</Label>
                                     <Select
-                                        value={formData.cfdiUse}
-                                        onValueChange={(v) => setFormData({ ...formData, cfdiUse: v })}
+                                        value={watch('cfdiUse')}
+                                        onValueChange={(v) => setValue('cfdiUse', v)}
                                     >
                                         <SelectTrigger id="cfdiUse">
                                             <SelectValue placeholder="Selecciona" />
@@ -475,8 +449,8 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="taxRegime">Régimen Fiscal</Label>
                                     <Select
-                                        value={formData.taxRegime}
-                                        onValueChange={(v) => setFormData({ ...formData, taxRegime: v })}
+                                        value={watch('taxRegime')}
+                                        onValueChange={(v) => setValue('taxRegime', v)}
                                     >
                                         <SelectTrigger id="taxRegime">
                                             <SelectValue placeholder="Selecciona" />
@@ -535,8 +509,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Notas internas</p>
                             <Textarea
                                 id="notes"
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                {...register('notes')}
                                 placeholder="Información adicional sobre el paciente..."
                                 rows={3}
                                 disabled={isSubmitting}
@@ -544,13 +517,12 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                         </div>
                     </div>
 
-                    {/* Footer fijo */}
                     <div className="px-6 py-4 border-t bg-background">
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" variant="zen" disabled={isSubmitting || !!curpError}>
+                            <Button type="submit" variant="zen" disabled={isSubmitting}>
                                 {isSubmitting
                                     ? (isEditing ? 'Guardando...' : 'Agregando...')
                                     : (isEditing ? 'Guardar cambios' : 'Guardar Paciente')}

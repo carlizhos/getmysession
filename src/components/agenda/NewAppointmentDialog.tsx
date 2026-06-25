@@ -25,6 +25,21 @@ import { es } from 'date-fns/locale';
 import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+
+const appointmentSchema = z.object({
+    patientId: z.string().optional(),
+    patientName: z.string().min(1, 'Por favor selecciona un paciente'),
+    startTime: z.string().min(4, 'Por favor ingresa la hora de inicio'),
+    fee: z.union([z.string(), z.number()]).optional(),
+    meetingLink: z.string().url('El enlace de videollamada debe ser una URL válida (ej. https://zoom.us/...)').optional().or(z.literal('')),
+    meetingPlatform: z.string().optional(),
+    notes: z.string().optional(),
+    location: z.string().optional(),
+    patientAge: z.union([z.string(), z.number()]).optional(),
+    reasonForConsultation: z.string().optional(),
+    recurrenceWeeks: z.number().min(2, 'La recurrencia debe ser al menos 2 semanas').max(52, 'Máximo 52 semanas').optional()
+});
 
 const APPOINTMENT_COLORS = [
     { value: 'violet', label: 'Morado', bg: 'bg-violet-500', ring: 'ring-violet-400' },
@@ -294,14 +309,12 @@ const NewAppointmentDialog = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.patientName) {
-            toast.error('Por favor selecciona un paciente');
+        const validation = appointmentSchema.safeParse(formData);
+        if (!validation.success) {
+            toast.error(validation.error.errors[0].message);
             return;
         }
-        if (!formData.startTime) {
-            toast.error('Por favor ingresa la hora de inicio');
-            return;
-        }
+
         if (!date) {
             toast.error('Por favor selecciona una fecha');
             return;
