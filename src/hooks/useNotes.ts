@@ -67,6 +67,14 @@ export const useMutateNotes = () => {
 
   const createNote = useMutation({
     mutationFn: async (payload: any) => {
+      if (!navigator.onLine) {
+        console.warn('Network offline, saving to local queue...');
+        const pending = JSON.parse(localStorage.getItem('saudade_offline_notes') || '[]');
+        pending.push({ ...payload, _offlineId: Date.now().toString() });
+        localStorage.setItem('saudade_offline_notes', JSON.stringify(pending));
+        throw new Error('OFFLINE_SAVED');
+      }
+
       const { error } = await supabase.from('session_notes').insert([payload]);
       if (error) throw error;
     },
@@ -75,7 +83,12 @@ export const useMutateNotes = () => {
       queryClient.invalidateQueries({ queryKey: ['session_notes'] });
     },
     onError: (error: any) => {
-      toast.error('Error al guardar la nota: ' + error.message);
+      if (error.message === 'OFFLINE_SAVED') {
+        toast.info('Sin conexión a internet. La nota se guardó localmente y se sincronizará cuando regrese la red.', { duration: 6000 });
+        queryClient.invalidateQueries({ queryKey: ['session_notes'] });
+      } else {
+        toast.error('Error al guardar la nota: ' + error.message);
+      }
     }
   });
 

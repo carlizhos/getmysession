@@ -24,10 +24,7 @@ export default function JoinSession() {
       if (!id) return;
       try {
         const { data, error } = await supabase
-          .from('appointments')
-          .select('*, profile:profiles!appointments_user_id_fkey(full_name, prefix, avatar_url)')
-          .eq('id', id)
-          .single();
+          .rpc('get_telehealth_session_details', { p_appointment_id: id });
 
         if (error) throw error;
         if (!data) throw new Error('No se encontró la cita.');

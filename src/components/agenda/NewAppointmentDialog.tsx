@@ -416,6 +416,30 @@ const NewAppointmentDialog = ({
             const duration = services.find(s => s.id === formData.serviceId)?.duration || 60;
             const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
 
+            // 3. Validar solapamiento de citas (Double Booking)
+            const { data: overlappingAppointments, error: overlapError } = await supabase
+                .from('appointments')
+                .select('id')
+                .eq('user_id', sessionUser?.id)
+                .neq('status', 'cancelled')
+                .lt('start_time', endDateTime.toISOString())
+                .gt('end_time', startDateTime.toISOString());
+
+            if (overlapError) {
+                console.error('Error checking overlapping appointments:', overlapError);
+            } else if (overlappingAppointments && overlappingAppointments.length > 0) {
+                // If we are editing, make sure the overlap is not the appointment we are editing itself
+                const realOverlaps = isEditing 
+                    ? overlappingAppointments.filter(apt => apt.id !== editingAppointment?.id)
+                    : overlappingAppointments;
+
+                if (realOverlaps.length > 0) {
+                    toast.error('Ya existe otra cita agendada en este mismo horario.');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
             const selectedService = services.find(s => s.id === formData.serviceId);
             let finalCommission = porcentajeGlobal;
             if (selectedService && selectedService.commission_percentage !== undefined && selectedService.commission_percentage !== null) {

@@ -21,6 +21,20 @@ const StripeCallback = () => {
         // que si regresó aquí y tiene un stripe_account_id, se completó.
         // En producción, es mejor tener un Webhook de Stripe (account.updated) que haga esto.
 
+        // 1. Fetch current profile to check if stripe_account_id exists
+        const { data: profile, error: fetchErr } = await supabase
+          .from('profiles')
+          .select('stripe_account_id')
+          .eq('id', user.id)
+          .single();
+
+        if (fetchErr) throw fetchErr;
+
+        if (!profile?.stripe_account_id) {
+          throw new Error('No se encontró una cuenta de Stripe conectada. Por favor, completa el registro en Stripe.');
+        }
+
+        // 2. Only update status if the account ID actually exists
         const { data, error } = await supabase
           .from('profiles')
           .update({ stripe_account_status: 'active' })

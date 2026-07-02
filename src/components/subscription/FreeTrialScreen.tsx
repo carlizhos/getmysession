@@ -36,11 +36,11 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
   const selectedPlanId = billingCycle === 'monthly' ? 'pro_monthly' : 'pro_annual';
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+    <div className="w-full max-w-4xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
       <div className="flex flex-col md:flex-row">
         
         {/* Left Side: Plan Selection */}
-        <div className="p-8 md:p-10 md:w-1/2 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/50">
+        <div className="p-8 md:p-10 md:w-1/2 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/40">
           <h2 className="text-2xl font-bold text-slate-800 mb-6">Iniciar prueba gratis</h2>
           
           <div className="space-y-4 mb-6">
@@ -188,7 +188,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
         </div>
 
         {/* Right Side: Timeline */}
-        <div className="p-8 md:p-10 md:w-1/2 bg-white flex flex-col justify-center">
+        <div className="p-8 md:p-10 md:w-1/2 bg-white/80 flex flex-col justify-center">
           <div className="relative space-y-8 before:absolute before:inset-0 before:ml-[1.1rem] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
             
             {/* Step 1: Today */}

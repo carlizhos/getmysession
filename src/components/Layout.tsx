@@ -49,6 +49,7 @@ import HelpWidget from '@/components/HelpWidget';
 import SystemAgentWidget from '@/components/ai/SystemAgentWidget';
 import CommandPalette from '@/components/CommandPalette';
 import PricingModal from '@/components/subscription/PricingModal';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 const navigationGroups = [
   {
@@ -91,8 +92,9 @@ const COUNTDOWN_SECONDS = 30;
 const COLLAPSED_KEY = 'sidebar_collapsed';
 
 const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange }: LayoutProps) => {
-    const { organization } = useOrganization();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+  useOfflineSync();
+  const { organization } = useOrganization();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -516,25 +518,30 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             {children}
 
             {/* Footer Information */}
-            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-widest font-medium">
-              <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
-              <div className="flex items-center gap-6">
-                <a 
-                  href="/politicas" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors cursor-pointer"
-                >
-                  Políticas de uso
-                </a>
-                <a 
-                  href="/terminos" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors cursor-pointer"
-                >
-                  Términos y condiciones
-                </a>
+            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col gap-6 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 uppercase tracking-widest">
+                <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
+                <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
+                  <a 
+                    href="/politicas" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-primary transition-colors cursor-pointer"
+                  >
+                    Políticas de uso
+                  </a>
+                  <a 
+                    href="/terminos" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-primary transition-colors cursor-pointer"
+                  >
+                    Términos y condiciones
+                  </a>
+                </div>
+              </div>
+              <div className="text-center sm:text-left text-[9px] sm:text-[10px] opacity-70 max-w-5xl leading-relaxed bg-muted/30 p-3 rounded-xl border border-border/30">
+                <strong>Aviso Regulatorio (NOM-024):</strong> Saudade desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la NOM-024-SSA3-2012 (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad. Se hace de conocimiento que Saudade no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
               </div>
             </footer>
           </div>

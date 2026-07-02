@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.user && !error) {
             // 1. Create a default organization for the new user
             const orgName = `Consultorio de ${fullName}`;
-            const orgSlug = `org-${data.user.id.slice(0, 8)}`;
+            const orgSlug = `org-${data.user.id.slice(0, 8)}-${Date.now().toString().slice(-4)}`;
             
             const { data: org, error: orgErr } = await supabase.rpc('create_personal_organization', {
                 p_name: orgName,

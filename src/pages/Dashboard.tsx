@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import MetricCard from '@/components/dashboard/MetricCard';
 import TodayAgenda from '@/components/dashboard/TodayAgenda';
@@ -13,12 +14,14 @@ import {
   Calendar,
   AlertCircle,
   FileText,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
@@ -71,6 +74,7 @@ const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
 const Dashboard = () => {
   const { user } = useAuth();
   const { organization } = useOrganization();
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [todayAppts, setTodayAppts] = useState<DashboardAppointment[]>([]);
@@ -230,30 +234,34 @@ const Dashboard = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Ingresos del Mes"
-            value={loading ? '...' : `$${(stats?.monthlyRevenue ?? 0).toLocaleString()}`}
+            value={`$${(stats?.monthlyRevenue ?? 0).toLocaleString()}`}
+            loading={loading}
             icon={DollarSign}
             trend={{ value: revenueGrowth, isPositive: revenueGrowth >= 0 }}
             variant="zen"
           />
           <MetricCard
             title="Pacientes Activos"
-            value={loading ? '...' : stats?.activePatients ?? 0}
-            subtitle={loading ? '' : `+${stats?.newPatientsThisMonth ?? 0} nuevos este mes`}
+            value={stats?.activePatients ?? 0}
+            subtitle={`+${stats?.newPatientsThisMonth ?? 0} nuevos este mes`}
+            loading={loading}
             icon={Users}
             variant="default"
           />
           <MetricCard
             title="Sesiones Completadas"
-            value={loading ? '...' : stats?.completedSessions ?? 0}
+            value={stats?.completedSessions ?? 0}
             subtitle={`Meta: ${SESSION_GOAL}`}
+            loading={loading}
             icon={TrendingUp}
             trend={{ value: Math.round(((stats?.completedSessions ?? 0) / SESSION_GOAL) * 100), isPositive: true }}
             variant="success"
           />
           <MetricCard
             title="Citas Hoy"
-            value={loading ? '...' : stats?.todayAppointmentsCount ?? 0}
-            subtitle={loading ? '' : `${stats?.confirmedToday ?? 0} confirmadas, ${stats?.pendingToday ?? 0} pendientes`}
+            value={stats?.todayAppointmentsCount ?? 0}
+            subtitle={`${stats?.confirmedToday ?? 0} confirmadas, ${stats?.pendingToday ?? 0} pendientes`}
+            loading={loading}
             icon={Calendar}
             variant="default"
           />
@@ -278,8 +286,8 @@ const Dashboard = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-slate-600 dark:text-slate-300">Pagos Pendientes</p>
-                  <p className="text-2xl font-bold">
-                    {loading ? '...' : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
+                  <p className="text-2xl font-bold flex items-center h-8">
+                    {loading ? <Skeleton className="h-6 w-24" /> : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="bg-white/50 backdrop-blur-sm">Ver detalles</Button>
@@ -293,8 +301,8 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl font-bold">
-                    {loading ? '...' : stats?.completedSessions ?? 0}
+                  <span className="text-2xl font-bold flex items-center h-8">
+                    {loading ? <Skeleton className="h-6 w-12" /> : stats?.completedSessions ?? 0}
                   </span>
                   <Badge variant="zen" className="bg-primary/10 text-primary border-none">Meta: {SESSION_GOAL}</Badge>
                 </div>
@@ -324,7 +332,10 @@ const Dashboard = () => {
                     <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
                       <FileText className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <p className="text-slate-500 text-sm">No hay notas recientes</p>
+                    <p className="text-slate-500 text-sm mb-4">No hay notas recientes</p>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/notes')}>
+                      <Plus className="h-4 w-4" /> Crear nueva nota
+                    </Button>
                   </div>
                 ) : (
                   recentNotes.map((note, i) => (

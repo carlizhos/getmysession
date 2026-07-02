@@ -100,6 +100,7 @@ import {
 } from '@/components/ui/drawer';
 import { Patient, SessionNote, PatientTest, Appointment } from '@/types';
 import { decryptText } from '@/lib/encryption';
+import DOMPurify from 'dompurify';
 
 // Enriched patient type with appointment metadata
 interface EnrichedPatient extends Patient {
@@ -401,12 +402,13 @@ const Patients = () => {
       
       if (pErr) throw pErr;
 
-      // Traer citas
+      // Traer citas futuras para el badge de "Próxima cita"
       const { data: aptsData } = await supabase
         .from('appointments')
         .select('patient_id, start_time, status, modality, location')
         .eq('organization_id', organization?.id)
         .neq('status', 'cancelled')
+        .gte('start_time', now) // Solo citas futuras para evitar cuellos de botella
         .order('start_time', { ascending: true });
 
       const apts = aptsData || [];
@@ -1045,10 +1047,16 @@ const Patients = () => {
                     ))}
                 </TabsList>
 
-                {/* Header Section (Island Style) */}
                 <PatientHeader 
                   patient={selectedPatientData} 
-                  onBack={() => setSelectedPatient(null)} 
+                  onBack={() => {
+                    if (isNoteSheetOpen) {
+                      setIsNoteSheetOpen(false);
+                      setEditingNoteData(null);
+                    } else {
+                      setSelectedPatient(null);
+                    }
+                  }} 
                 />
 
                 {/* Mobile Navigation (iOS-Style Bottom Sheet Selector) - Moved below Patient Header Card */}
@@ -1119,6 +1127,27 @@ const Patients = () => {
                   </Drawer>
                 </div>
 
+                {isNoteSheetOpen ? (
+                  /* ── Inline Note Editor: replaces the tabs grid when editing ── */
+                  <NoteEditorSheet
+                    inline
+                    isOpen={isNoteSheetOpen}
+                    onClose={() => {
+                      setIsNoteSheetOpen(false);
+                      setEditingNoteData(null);
+                    }}
+                    note={editingNoteData}
+                    patientId={selectedPatientData?.id || ''}
+                    patientName={selectedPatientData?.name || ''}
+                    patientDOB={selectedPatientData?.date_of_birth || selectedPatientData?.birth_date}
+                    initialMode={noteSheetMode}
+                    onNoteUpdated={() => {
+                      if (selectedPatientData?.id) {
+                        fetchPatientDetails(selectedPatientData.id);
+                      }
+                    }}
+                  />
+                ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start w-full">
                     {/* Desktop Sidebar Navigation */}
                     <div className="hidden lg:flex flex-col bg-card border border-border p-5 rounded-2xl shadow-soft shrink-0 w-full animate-in fade-in duration-500">
@@ -1264,14 +1293,14 @@ const Patients = () => {
                                 ) : (
                                   timelineItems.map((item, idx) => {
                                     const iconMap: Record<string, JSX.Element> = {
-                                      note: <FileText className="h-4 w-4 text-primary" />,
-                                      test: <Brain className="h-4 w-4 text-accent" />,
-                                      payment: <ShoppingCart className="h-4 w-4 text-secondary" />
+                                      note: <FileText className="h-4 w-4 text-emerald-600" />,
+                                      test: <Brain className="h-4 w-4 text-violet-600" />,
+                                      payment: <ShoppingCart className="h-4 w-4 text-amber-600" />
                                     };
                                     const bgMap: Record<string, string> = {
-                                      note: 'bg-primary/15',
-                                      test: 'bg-accent/15',
-                                      payment: 'bg-secondary/15'
+                                      note: 'bg-emerald-500/15',
+                                      test: 'bg-violet-500/15',
+                                      payment: 'bg-amber-500/15'
                                     };
 
                                     const score = (item as { score?: number }).score;
@@ -1293,11 +1322,13 @@ const Patients = () => {
                                               }, 150);
                                             } else if (item.type === 'test') {
                                               setViewingTest(item.data as PatientTest);
+                                            } else if (item.type === 'payment') {
+                                              navigate('/finance');
                                             }
                                           }}
                                           className={cn(
                                             "flex-1 bg-white p-5 rounded-2xl border border-border shadow-soft transition-all group-hover:-translate-y-1",
-                                            (item.type === 'note' || item.type === 'test') && "cursor-pointer hover:border-primary/40 hover:shadow-medium"
+                                            (item.type === 'note' || item.type === 'test' || item.type === 'payment') && "cursor-pointer hover:border-primary/40 hover:shadow-medium"
                                           )}
                                         >
                                           <div className="flex justify-between items-start mb-2">
@@ -1313,6 +1344,11 @@ const Patients = () => {
                                           {item.type === 'note' && (
                                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary mt-2 group-hover:underline">
                                               Ver Nota completa →
+                                            </span>
+                                          )}
+                                          {item.type === 'payment' && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-secondary mt-2 group-hover:underline">
+                                              Ir a Finanzas →
                                             </span>
                                           )}
                                         </div>
@@ -1520,7 +1556,7 @@ const Patients = () => {
                                             !isExpanded && "line-clamp-2"
                                           )}
                                         >
-                                          "{notePreviewText}"
+                                          "{notePreviewText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}"
                                           <span className="absolute right-3 bottom-2 text-[10px] font-bold text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {isExpanded ? '▴ contraer' : '▾ expandir'}
                                           </span>
@@ -1573,9 +1609,10 @@ const Patients = () => {
                                                       </p>
                                                     )}
                                                     {item.thoughts && (
-                                                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                                        <span className="font-semibold text-slate-500">Imp. Clínica:</span> {item.thoughts}
-                                                      </p>
+                                                      <div className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                        <span className="font-semibold text-slate-500 block mb-1">Imp. Clínica:</span>
+                                                        <div className="prose prose-sm max-w-none prose-headings:text-slate-700 prose-p:text-slate-600 dark:prose-headings:text-slate-300 dark:prose-p:text-slate-400" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.thoughts) }} />
+                                                      </div>
                                                     )}
                                                   </div>
                                                 ))}
@@ -1632,11 +1669,12 @@ const Patients = () => {
 
                                             {/* Resumen de Transcripción */}
                                             {note.transcript_summary && (
-                                              <div>
-                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Resumen de Audio / Transcripción</span>
-                                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 bg-muted/40 p-3 rounded-xl border border-border/30 leading-relaxed italic">
-                                                  {note.transcript_summary}
-                                                </p>
+                                              <div className="mt-2">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60 block mb-1">Resumen de Audio / Transcripción</span>
+                                                <div 
+                                                  className="mt-1 text-xs text-slate-600 dark:text-slate-400 bg-muted/40 p-3 rounded-xl border border-border/30 leading-relaxed italic prose prose-sm max-w-none"
+                                                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.transcript_summary) }}
+                                                />
                                               </div>
                                             )}
                                           </div>
@@ -2084,6 +2122,7 @@ const Patients = () => {
                         </div>
                       </div>
                     </div>
+                )}
                 </Tabs>
               </>
             ) : (
@@ -2458,23 +2497,7 @@ const Patients = () => {
         </DialogContent>
       </Dialog>
 
-      <NoteEditorSheet
-        isOpen={isNoteSheetOpen}
-        onClose={() => {
-          setIsNoteSheetOpen(false);
-          setEditingNoteData(null);
-        }}
-        note={editingNoteData}
-        patientId={selectedPatientData?.id || ''}
-        patientName={selectedPatientData?.name || ''}
-        patientDOB={selectedPatientData?.date_of_birth || selectedPatientData?.birth_date}
-        initialMode={noteSheetMode}
-        onNoteUpdated={() => {
-          if (selectedPatientData?.id) {
-            fetchPatientDetails(selectedPatientData.id);
-          }
-        }}
-      />
+
 
       {/* Mobile Floating Action Button (FAB) for Patients List */}
       {!selectedPatient && (

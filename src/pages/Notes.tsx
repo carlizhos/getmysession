@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Search,
   Plus,
   Filter,
@@ -22,7 +28,8 @@ import {
   ChevronRight,
   Activity,
   Download,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -37,7 +44,8 @@ import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
 import AIVoiceRecorder from '@/components/notes/AIVoiceRecorder';
 import MiniEditor from '@/components/ui/MiniEditor';
 import DOMPurify from 'dompurify';
-import { useNotes, useNoteTemplates, useProfessionalProfile, useMutateNotes } from '@/hooks/useNotes';// ── Componente ────────────────────────────────────────────────────────────────
+import { useNotes, useNoteTemplates, useProfessionalProfile, useMutateNotes } from '@/hooks/useNotes';
+
 const Notes = () => {
   const { organization } = useOrganization();
   const [searchParams] = useSearchParams();
@@ -47,7 +55,6 @@ const Notes = () => {
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   
-  // React Query Hooks
   const { data: notes = [], isLoading: loading } = useNotes(selectedPatient);
   const { data: noteTemplates = [], isLoading: isLoadingTemplates } = useNoteTemplates();
   const { data: professionalProfile } = useProfessionalProfile();
@@ -61,14 +68,12 @@ const Notes = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isDictating, setIsDictating] = useState(false);
 
-  // Mount logic for search params
   useEffect(() => {
     const pId = searchParams.get('patientId');
     const nId = searchParams.get('noteId');
     const newNote = searchParams.get('newNote');
     if (pId) {
       setSelectedPatient(pId);
-      // Fetch patient name
       supabase
         .from('patients')
         .select('name')
@@ -86,13 +91,6 @@ const Notes = () => {
     }
   }, [searchParams]);
 
-  // ── Fetch (Ahora manejado por React Query) ─────────────────────────────────
-  // Si tenemos notas y no hay nota seleccionada, auto-seleccionar la primera.
-  useEffect(() => {
-    if (notes.length > 0 && !selectedNote) {
-      setSelectedNote(notes[0].id);
-    }
-  }, [notes, selectedNote]);
   const handleDownloadNote = async (note: SessionNote) => {
     setIsExportingNote(true);
     try {
@@ -131,22 +129,7 @@ const Notes = () => {
     }
   };
 
-
-  // ── Guardar nota ───────────────────────────────────────────────────────────
-  const handleSaveNote = async (noteData: {
-    patientId?: string;
-    patientName?: string;
-    date: string;
-    sessionNumber: string;
-    mood: any;
-    bridge: any;
-    agenda: any[];
-    beliefs: any;
-    actionPlan: string[];
-    cie10Code?: string;
-    cie10Description?: string;
-    diagnosticoPrincipal?: string;
-  }) => {
+  const handleSaveNote = async (noteData: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No hay sesión activa');
 
@@ -155,7 +138,7 @@ const Notes = () => {
       patient_id: noteData.patientId || null,
       patient_name: noteData.patientName || 'Sin paciente',
       date: noteData.date,
-      session_number: noteData.patientId ? notes.filter(n => n.patient_id === noteData.patientId).length + 1 : 1,
+      session_number: noteData.patientId ? notes.filter((n: any) => n.patient_id === noteData.patientId).length + 1 : 1,
       mood: noteData.mood,
       bridge: noteData.bridge,
       agenda: noteData.agenda,
@@ -172,7 +155,6 @@ const Notes = () => {
     });
   };
 
-  // ── Archivar nota (soft delete NOM-024 — retención 5 años) ────────────────
   const handleDelete = async () => {
     if (!selectedNote) return;
     setIsDeleting(true);
@@ -187,7 +169,6 @@ const Notes = () => {
     });
   };
 
-  // ── Actualizar reporte de texto ────────────────────────────────────────────
   const handleUpdateReport = async () => {
     if (!selectedNote || !selectedNoteData) return;
     const updatedAgenda = [...(selectedNoteData.agenda || [])];
@@ -202,9 +183,8 @@ const Notes = () => {
     });
   };
 
-  const selectedNoteData = notes.find(n => n.id === selectedNote);
+  const selectedNoteData = notes.find((n: any) => n.id === selectedNote);
 
-  // ── Vista: Formulario de nueva nota ───────────────────────────────────────
   if (isCreatingNote) {
     if (isDictating) {
       return (
@@ -219,8 +199,7 @@ const Notes = () => {
                   const { data: { user } } = await supabase.auth.getUser();
                   if (!user) throw new Error('Sesión inválida');
                   
-                  // Calcular número de sesión aproximado
-                  const sessionNum = selectedPatient ? notes.filter(n => n.patient_id === selectedPatient).length + 1 : 1;
+                  const sessionNum = selectedPatient ? notes.filter((n: any) => n.patient_id === selectedPatient).length + 1 : 1;
 
                   const payload = {
                     user_id: user.id,
@@ -238,7 +217,6 @@ const Notes = () => {
                   toast.success('Nota estructurada y guardada con éxito.');
                   setIsDictating(false);
                   setIsCreatingNote(false);
-                  fetchNotes();
                   if (searchParams.get('newNote') === 'true' && selectedPatient) {
                     navigate('/patients', { state: { selectPatientId: selectedPatient } });
                   }
@@ -273,7 +251,6 @@ const Notes = () => {
 
           {!selectedTemplateId ? (
             <div className="space-y-6">
-              {/* Premium AI Banner */}
               <button 
                 onClick={() => setIsDictating(true)}
                 className="w-full relative overflow-hidden group rounded-2xl bg-gradient-to-r from-primary to-emerald-600 p-8 text-left transition-all hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.01]"
@@ -308,27 +285,56 @@ const Notes = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {noteTemplates.map(template => (
-                      <button
+                    {noteTemplates.map((template: any) => (
+                      <div
                         key={template.id}
-                        onClick={() => setSelectedTemplateId(template.id)}
-                        className="group flex flex-col items-start p-5 rounded-2xl border border-border bg-card text-left transition-all hover:border-primary hover:shadow-md hover:-translate-y-1"
+                        className="group flex flex-col p-5 rounded-2xl border border-border bg-card text-left transition-all hover:border-primary/40 hover:shadow-md"
                       >
-                        <div className={cn(
-                          "h-10 w-10 rounded-xl flex items-center justify-center mb-4 transition-colors",
-                          template.is_system ? "bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white" : "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white"
-                        )}>
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <h4 className="font-bold text-sm mb-1 group-hover:text-primary transition-colors">{template.name}</h4>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed mb-4">{template.description}</p>
-                        <div className="mt-auto pt-4 w-full flex items-center justify-between border-t border-border/40">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className={cn(
+                            "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
+                            template.is_system ? "bg-primary/5 text-primary" : "bg-violet-50 text-violet-600"
+                          )}>
+                            <FileText className="h-5 w-5" />
+                          </div>
+                          
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 border",
+                            template.is_system ? "bg-primary/5 text-primary border-primary/20" : "bg-violet-50 text-violet-600 border-violet-200"
+                          )}>
                             {template.is_system ? 'Sistema' : 'Personalizada'}
-                          </span>
-                          <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+                          </Badge>
                         </div>
-                      </button>
+
+                        <h4 className="font-bold text-sm mb-1.5">{template.name}</h4>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed mb-6 flex-1">
+                          {template.description}
+                        </p>
+
+                        <div className="mt-auto pt-4 flex flex-row items-center gap-2 border-t border-border/40 w-full">
+                          <Button 
+                            variant="zen"
+                            size="sm"
+                            className="flex-1 h-8 text-xs font-bold shadow-sm px-2"
+                            onClick={() => setSelectedTemplateId(template.id)}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                            <span className="truncate">Redactar</span>
+                          </Button>
+
+                          {!template.is_system && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs font-bold text-slate-600 hover:text-violet-700 hover:bg-violet-50 border-border/50 shrink-0"
+                              onClick={() => navigate('/settings?tab=plantillas')}
+                            >
+                              <Settings className="h-3.5 w-3.5 mr-1.5" />
+                              Editar
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -375,7 +381,6 @@ const Notes = () => {
                   toast.success('Nota guardada con éxito');
                   setIsCreatingNote(false);
                   setSelectedTemplateId(null);
-                  fetchNotes();
                   if (searchParams.get('newNote') === 'true' && selectedPatient) {
                     navigate('/patients', { state: { selectPatientId: selectedPatient } });
                   }
@@ -389,12 +394,10 @@ const Notes = () => {
     );
   }
 
-  // ── Vista: Lista de notas ─────────────────────────────────────────────────
   return (
     <Layout>
       <FeatureGate feature="core_notes">
       <div className="space-y-6">
-        {/* Unified Header: Title, Search & Actions */}
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
           <div className="flex items-center gap-4 w-full lg:w-auto">
             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -431,7 +434,6 @@ const Notes = () => {
           </div>
         </div>
 
-        {/* Dynamic Content */}
         {!selectedPatient ? (
           <Card className="border-dashed border-2 bg-transparent">
             <CardContent className="flex flex-col items-center justify-center py-24 text-center">
@@ -464,263 +466,226 @@ const Notes = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Sidebar: Session History */}
-            <div className="lg:col-span-4 space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-1 mb-4">
-                Historial de Sesiones
-              </h3>
-              <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-320px)] pr-2 scrollbar-zen pb-4">
-                {notes.map((note, index) => {
-                  const isActive = selectedNote === note.id;
-                  return (
-                    <div
-                      key={note.id}
-                      onClick={() => setSelectedNote(note.id)}
-                      className={cn(
-                        "group relative cursor-pointer overflow-hidden transition-all duration-500 rounded-2xl border-2",
-                        isActive
-                          ? "bg-primary border-primary shadow-md shadow-primary/20"
-                          : "bg-primary/5 border-transparent hover:border-primary/30 hover:bg-primary/[0.12] hover:-translate-y-0.5"
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+              {notes.map((note: any) => (
+                <div
+                  key={note.id}
+                  onClick={() => setSelectedNote(note.id)}
+                  className="group relative cursor-pointer overflow-hidden transition-all duration-300 rounded-2xl border-2 bg-card border-border hover:border-primary/40 hover:shadow-lg hover:-translate-y-1"
+                >
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-primary/10 text-primary">
+                        Sesión #{note.session_number}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <Calendar className="h-3 w-3 opacity-60" />
+                        {format(parseISO(note.date), "d MMM yyyy", { locale: es })}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-foreground leading-tight">
+                        {note.agenda?.[0]?.topic || 'Consulta General'}
+                      </p>
+                      {note.cie10_code && (
+                        <p className="text-[10px] text-muted-foreground font-medium truncate">
+                          {note.cie10_code} - {note.cie10_description}
+                        </p>
                       )}
-                    >
-                      <div className="p-4 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
-                              isActive ? "bg-white text-primary" : "bg-primary/20 text-primary"
-                            )}>
-                              S #{note.session_number}
+                    </div>
+                    
+                    {note.mood?.rating != null && (
+                      <div className="pt-2 border-t border-border/40 flex items-center gap-2">
+                        <Activity className="h-3.5 w-3.5 text-primary/60" />
+                        <span className="text-[11px] font-bold text-muted-foreground">
+                          Ánimo: {note.mood.rating}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Dialog open={!!selectedNoteData} onOpenChange={(open) => {
+              if (!open) {
+                setSelectedNote(null);
+                setIsEditing(false);
+                setConfirmDelete(false);
+              }
+            }}>
+              <DialogContent className="w-[95vw] max-w-5xl sm:max-w-5xl h-[95vh] p-0 flex flex-col bg-slate-50/50 dark:bg-slate-900/50 overflow-hidden border-border/50 shadow-2xl">
+                {selectedNoteData && (
+                  <>
+                    <DialogHeader className="p-4 md:p-6 bg-background border-b shadow-sm z-10 flex-shrink-0">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="zen" className="px-3 py-1 rounded-lg shadow-sm">Sesión #{selectedNoteData.session_number}</Badge>
+                            <span className="text-xs md:text-sm font-bold text-muted-foreground/60 flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4" />
+                              {format(parseISO(selectedNoteData.date), "EEEE, d 'de' MMMM yyyy", { locale: es })}
                             </span>
-                            <div className={cn(
-                              "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider",
-                              isActive ? "text-white/80" : "text-muted-foreground"
-                            )}>
-                              <Calendar className="h-3 w-3 opacity-60" />
-                              {format(parseISO(note.date), "d MMM yyyy", { locale: es })}
-                            </div>
                           </div>
-                          {isActive && <ChevronRight className="h-4 w-4 text-white animate-pulse" />}
+                          <DialogTitle className="text-2xl md:text-3xl font-black tracking-tight text-primary mt-2 md:mt-3">
+                            {selectedPatientName}
+                          </DialogTitle>
                         </div>
-                        
-                        <div className="space-y-0.5">
-                          <p className={cn(
-                            "text-sm font-bold truncate transition-colors",
-                            isActive ? "text-white" : "text-foreground"
-                          )}>
-                            {note.agenda?.[0]?.topic || 'Consulta General'}
-                          </p>
-                          {note.mood?.rating != null && (
-                            <div className="flex items-center gap-1.5">
-                              <div className={cn(
-                                "h-1 flex-1 rounded-full overflow-hidden max-w-[40px]",
-                                isActive ? "bg-white/20" : "bg-primary/20"
-                              )}>
-                                <div 
-                                  className={cn(
-                                    "h-full",
-                                    isActive ? "bg-white" : "bg-primary"
-                                  )} 
-                                  style={{ width: `${note.mood.rating}%` }}
-                                />
-                              </div>
-                              <span className={cn(
-                                "text-[10px] font-medium",
-                                isActive ? "text-white/60" : "text-muted-foreground/60"
-                              )}>
-                                {note.mood.rating}% ánimo
-                              </span>
+
+                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                          {!isEditing ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-10 px-4 rounded-xl border-primary/20 hover:bg-primary/5 text-primary gap-2 transition-all font-bold"
+                                onClick={() => {
+                                  setEditingText(selectedNoteData.agenda?.[0]?.thoughts || '');
+                                  setIsEditing(true);
+                                  setConfirmDelete(false);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" /> Editar Modo Completo
+                              </Button>
+                              <Button
+                                variant="zen"
+                                size="sm"
+                                className="h-10 px-4 rounded-xl gap-2 font-bold shadow-sm"
+                                onClick={() => handleDownloadNote(selectedNoteData)}
+                                disabled={isExportingNote}
+                              >
+                                {isExportingNote ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
+                                Descargar Reporte
+                              </Button>
+
+                              {confirmDelete ? (
+                                <div className="flex items-center gap-2 bg-destructive/5 border border-destructive/20 p-1.5 rounded-xl animate-in fade-in zoom-in-95">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="h-7 px-3 text-xs font-black uppercase tracking-widest"
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                  >
+                                    Confirmar
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-7 w-7 rounded-lg"
+                                    onClick={() => setConfirmDelete(false)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-10 px-4 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive gap-2 font-bold"
+                                  onClick={() => setConfirmDelete(true)}
+                                >
+                                  <Trash2 className="h-4 w-4" /> Eliminar
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Button variant="zen" size="sm" className="h-10 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20" onClick={handleUpdateReport}>
+                                <Save className="h-4 w-4" /> Guardar Cambios
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-10 px-4 rounded-xl font-bold" onClick={() => setIsEditing(false)}>
+                                Cancelar
+                              </Button>
                             </div>
                           )}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                    </DialogHeader>
 
-            {/* Main Content: Note Details */}
-            <div className="lg:col-span-8">
-              {selectedNoteData && (
-                <Card className="border-2 shadow-xl overflow-hidden">
-                  <div className="bg-primary/5 border-b border-primary/10 p-8">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="zen" className="px-3 py-1 rounded-lg">Sesión #{selectedNoteData.session_number}</Badge>
-                          <span className="text-sm font-bold text-muted-foreground/60">
-                            {format(parseISO(selectedNoteData.date), "EEEE, d 'de' MMMM yyyy", { locale: es })}
-                          </span>
-                        </div>
-                        <h2 className="text-3xl font-black tracking-tight text-primary mt-4">
-                          {selectedPatientName}
-                        </h2>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {!isEditing ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-10 px-4 rounded-xl border-primary/20 hover:bg-primary/5 text-primary gap-2 transition-all font-bold"
-                              onClick={() => {
-                                setEditingText(selectedNoteData.agenda?.[0]?.thoughts || '');
-                                setIsEditing(true);
-                                setConfirmDelete(false);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" /> Editar
-                            </Button>
-                            <Button
-                              variant="zen"
-                              size="sm"
-                              className="h-10 px-4 rounded-xl gap-2 font-bold shadow-sm"
-                              onClick={() => handleDownloadNote(selectedNoteData)}
-                              disabled={isExportingNote}
-                            >
-                              {isExportingNote ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                              Descargar Reporte
-                            </Button>
-
-                            {confirmDelete ? (
-                              <div className="flex items-center gap-2 bg-destructive/5 border border-destructive/20 p-1.5 rounded-xl animate-in fade-in zoom-in-95">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  className="h-7 px-3 text-xs font-black uppercase tracking-widest"
-                                  onClick={handleDelete}
-                                  disabled={isDeleting}
-                                >
-                                  Confirmar
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-7 w-7 rounded-lg"
-                                  onClick={() => setConfirmDelete(false)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+                      {/* Document Sheet - "Word-like print preview" effect */}
+                      <div className="max-w-4xl mx-auto bg-background rounded-sm shadow-2xl border border-border/50 min-h-[850px] p-8 sm:p-16 ring-1 ring-slate-900/5">
+                        
+                        {/* Quick Metadata inside document */}
+                        {(!isEditing && (selectedNoteData.cie10_code || selectedNoteData.mood?.rating != null)) && (
+                          <div className="flex flex-wrap gap-4 mb-10 pb-6 border-b border-border/40">
+                            {selectedNoteData.cie10_code && (
+                              <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl">
+                                <span className="text-[10px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{selectedNoteData.cie10_code}</span>
+                                <span className="text-xs font-bold text-muted-foreground truncate max-w-[200px]">{selectedNoteData.cie10_description}</span>
                               </div>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-10 px-4 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive gap-2 font-bold"
-                                onClick={() => setConfirmDelete(true)}
-                              >
-                                <Trash2 className="h-4 w-4" /> Eliminar
-                              </Button>
                             )}
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Button variant="zen" size="sm" className="h-10 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20" onClick={handleUpdateReport}>
-                              <Save className="h-4 w-4" /> Guardar Cambios
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-10 px-4 rounded-xl font-bold" onClick={() => setIsEditing(false)}>
-                              Cancelar
-                            </Button>
+                            {selectedNoteData.mood?.rating != null && (
+                              <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl">
+                                <Activity className="h-3.5 w-3.5 text-primary" />
+                                <span className="text-xs font-bold text-muted-foreground">Estado de Ánimo: {selectedNoteData.mood.rating}/100</span>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Quick Metadata */}
-                    <div className="flex flex-wrap gap-4 mt-6">
-                      {selectedNoteData.cie10_code && (
-                        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-primary/10 px-4 py-2 rounded-2xl shadow-sm">
-                          <span className="text-[10px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{selectedNoteData.cie10_code}</span>
-                          <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]">{selectedNoteData.cie10_description}</span>
+                        {/* Report Section */}
+                        <div className="space-y-6">
+                          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/60 flex items-center gap-2">
+                            <Brain className="h-5 w-5" /> Reporte Clínico Estructurado
+                          </h4>
+                          
+                          {isEditing ? (
+                            <div className="bg-white dark:bg-slate-900 rounded-xl p-2 border-2 border-primary/20 shadow-inner focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all duration-300">
+                              <MiniEditor
+                                content={editingText}
+                                onChange={(html) => setEditingText(html)}
+                                className="border-none min-h-[500px]"
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              className="text-[15px] bg-transparent whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 prose prose-sm max-w-none prose-headings:text-primary prose-a:text-primary prose-p:mb-4"
+                              dangerouslySetInnerHTML={{ 
+                                __html: DOMPurify.sanitize(selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.') 
+                              }}
+                            />
+                          )}
                         </div>
-                      )}
-                      {selectedNoteData.mood?.rating != null && (
-                        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-primary/10 px-4 py-2 rounded-2xl shadow-sm">
-                          <Activity className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-xs font-bold text-slate-600">Estado de Ánimo: {selectedNoteData.mood.rating}/100</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <CardContent className="p-8 space-y-8 overflow-y-auto max-h-[calc(100vh-420px)] scrollbar-zen">
-                    {/* Report Section */}
-                    <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-4 flex items-center gap-2">
-                        <Brain className="h-4 w-4" /> Reporte Clínico Estructurado
-                      </h4>
-                      {isEditing ? (
-                        <div className="bg-white rounded-[1.5rem] p-1 border-2 border-primary/20 shadow-sm">
-                          <MiniEditor
-                            content={editingText}
-                            onChange={(html) => setEditingText(html)}
-                            className="border-none"
-                          />
-                        </div>
-                      ) : (
-                        <div 
-                          className="text-[15px] bg-muted/30 rounded-[1.5rem] p-8 whitespace-pre-wrap leading-relaxed border border-border/40 text-slate-700 shadow-inner prose prose-sm max-w-none prose-headings:text-primary prose-a:text-primary"
-                          dangerouslySetInnerHTML={{ 
-                            __html: DOMPurify.sanitize(selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.') 
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Visual Signature Block */}
-                    {!isEditing && professionalProfile && (
-                      <div className="pt-12 mt-12 border-t border-border/60 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                        {professionalProfile.signature_data && (
-                          <img 
-                            src={professionalProfile.signature_data} 
-                            alt="Firma" 
-                            className="h-16 w-auto mb-2 grayscale hover:grayscale-0 transition-all duration-500 opacity-80"
-                          />
-                        )}
-                        <div className="h-px w-48 bg-slate-200 mb-4" />
-                        <p className="text-sm font-bold text-slate-800">
-                          {[professionalProfile.prefix, professionalProfile.full_name].filter(Boolean).join(' ')}
-                        </p>
-                        {professionalProfile.cedulas?.map((ced: any, i: number) => (
-                          <p key={i} className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mt-1">
-                            Céd. Prof. {ced.numero}
-                          </p>
-                        ))}
-                        <p className="text-[9px] font-black text-primary/40 uppercase tracking-[0.3em] mt-6">
-                          Psicólogo Responsable
-                        </p>
-                      </div>
-                    )}
-
-
-                    {/* Agenda Section */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Temas Tratados</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {selectedNoteData.agenda?.map((item, i) => (
-                          <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-2">
-                            <span className="text-sm font-bold text-primary">{item.topic || `Tema ${i + 1}`}</span>
-                            {item.situation && (
-                              <p className="text-xs text-muted-foreground leading-relaxed">
-                                <span className="font-black opacity-40 mr-1">SIT:</span> {item.situation}
+                        {/* Visual Signature Block (only shown in view mode) */}
+                        {!isEditing && professionalProfile && (
+                          <div className="pt-24 mt-24 border-t border-border/60 flex flex-col items-center animate-in fade-in duration-1000">
+                            {professionalProfile.signature_data && (
+                              <img 
+                                src={professionalProfile.signature_data} 
+                                alt="Firma" 
+                                className="h-20 w-auto mb-4 grayscale hover:grayscale-0 transition-all duration-500 opacity-80"
+                              />
+                            )}
+                            <div className="h-px w-64 bg-slate-200 dark:bg-slate-800 mb-6" />
+                            <p className="text-base font-bold text-foreground">
+                              {[professionalProfile.prefix, professionalProfile.full_name].filter(Boolean).join(' ')}
+                            </p>
+                            {professionalProfile.cedulas?.map((ced: any, i: number) => (
+                              <p key={i} className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">
+                                Céd. Prof. {ced.numero}
                               </p>
-                            )}
+                            ))}
+                            <p className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mt-8">
+                              Psicólogo Responsable
+                            </p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </div>
       </FeatureGate>

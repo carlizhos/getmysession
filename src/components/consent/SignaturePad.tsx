@@ -68,6 +68,12 @@ const SignaturePad = ({ onSign, onClear, disabled, height = 180 }: SignaturePadP
     const stopDraw = () => {
         setIsDrawing(false);
         lastPos.current = null;
+        
+        // Auto-save signature to parent state on stroke release
+        const canvas = canvasRef.current;
+        if (canvas && hasSignature) {
+            onSign(canvas.toDataURL('image/png'));
+        }
     };
 
     const handleClear = () => {
@@ -81,14 +87,8 @@ const SignaturePad = ({ onSign, onClear, disabled, height = 180 }: SignaturePadP
         onClear?.();
     };
 
-    const handleConfirm = () => {
-        const canvas = canvasRef.current;
-        if (!canvas || !hasSignature) return;
-        onSign(canvas.toDataURL('image/png'));
-    };
-
     return (
-        <div className="space-y-2">
+        <div className="space-y-5">
             <div className={`relative rounded-xl border-2 border-dashed transition-colors ${disabled ? 'opacity-60 bg-muted/30 border-border' : 'border-primary/30 bg-white hover:border-primary/60 cursor-crosshair'}`}>
                 <canvas
                     ref={canvasRef}
@@ -109,28 +109,17 @@ const SignaturePad = ({ onSign, onClear, disabled, height = 180 }: SignaturePadP
                     </div>
                 )}
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end">
                 <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="gap-1.5"
+                    className="gap-1.5 rounded-lg border-slate-200"
                     onClick={handleClear}
                     disabled={disabled || !hasSignature}
                 >
                     <Eraser className="h-3.5 w-3.5" />
-                    Limpiar
-                </Button>
-                <Button
-                    type="button"
-                    variant="zen"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={handleConfirm}
-                    disabled={disabled || !hasSignature}
-                >
-                    <Check className="h-3.5 w-3.5" />
-                    Confirmar firma
+                    Limpiar firma
                 </Button>
             </div>
         </div>

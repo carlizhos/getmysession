@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MetricCardProps {
   title: string;
@@ -13,6 +14,7 @@ interface MetricCardProps {
   };
   variant?: 'default' | 'zen' | 'success' | 'warning';
   className?: string;
+  loading?: boolean;
 }
 
 const MetricCard = ({ 
@@ -22,7 +24,8 @@ const MetricCard = ({
   icon: Icon, 
   trend,
   variant = 'default',
-  className 
+  className,
+  loading = false
 }: MetricCardProps) => {
   const variantStyles = {
     default: 'bg-slate-100/50 dark:bg-slate-800/50',
@@ -53,8 +56,12 @@ const MetricCard = ({
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl sm:text-3xl font-bold tracking-tight">{value}</span>
-          {trend && (
+          {loading ? (
+            <Skeleton className="h-8 w-24" />
+          ) : (
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight">{value}</span>
+          )}
+          {trend && !loading && (
             <span className={cn(
               "flex items-center gap-0.5 text-sm font-medium",
               trend.isPositive ? "text-success" : "text-destructive"
@@ -68,7 +75,10 @@ const MetricCard = ({
             </span>
           )}
         </div>
-        {subtitle && (
+        {loading && subtitle !== undefined && (
+          <Skeleton className="h-4 w-32 mt-1" />
+        )}
+        {subtitle && !loading && (
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         )}
       </CardContent>

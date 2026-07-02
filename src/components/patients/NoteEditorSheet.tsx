@@ -109,6 +109,8 @@ interface NoteEditorSheetProps {
   patientDOB?: string;
   initialMode: 'manual' | 'ai';
   onNoteUpdated: () => void;
+  /** When true, renders inline within the page instead of as a Sheet overlay */
+  inline?: boolean;
 }
 
 export default function NoteEditorSheet({
@@ -120,9 +122,11 @@ export default function NoteEditorSheet({
   patientDOB,
   initialMode,
   onNoteUpdated,
+  inline = false,
 }: NoteEditorSheetProps) {
   const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual');
+
   
   // Note data states
   const [editorContent, setEditorContent] = useState('');
@@ -630,577 +634,262 @@ export default function NoteEditorSheet({
     }
   };
 
-  return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col h-full bg-background border-l border-border p-0 shadow-elevated">
-        
-        {/* Panel Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/80 bg-white/50 backdrop-blur-md sticky top-0 z-10">
-          <div className="space-y-1">
-            <SheetTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              {note ? `Edición de Nota` : 'Nueva Nota Clínica'}
-            </SheetTitle>
-            <p className="text-xs text-muted-foreground font-medium">
+  // ── Shared inner content (used by both Sheet and inline modes) ──
+  const editorHeader = (
+    <div className="flex items-center justify-between px-6 py-5 border-b border-border/80 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+      <div className="space-y-1">
+        <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          {note ? `Edición de Nota` : 'Nueva Nota Clínica'}
+        </h2>
+        <p className="text-xs text-muted-foreground font-medium">
               Paciente: <span className="text-foreground font-semibold">{patientName}</span>
               {note && ` • Sesión ${note.session_number || 1} (${getNoteDateFormatted()})`}
             </p>
-          </div>
-          <div className="flex items-center gap-2 pr-6">
-            {note && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-slate-100 rounded-xl"
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                title="Exportar Reporte PDF"
-              >
-                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-slate-500" />}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-slate-100 rounded-xl"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4 text-slate-500" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Tab Controls / Navigation */}
-        <div className="px-6 py-4 bg-muted/20 border-b border-border/50">
-          <Tabs
-            value={activeTab}
-            onValueChange={(val) => setActiveTab(val as 'manual' | 'ai')}
-            className="w-full"
+      </div>
+      <div className="flex items-center gap-2">
+        {note && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100 rounded-xl"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            title="Exportar Reporte PDF"
           >
-            <TabsList className="grid grid-cols-2 w-full p-1 bg-slate-100/80 rounded-2xl border border-slate-200/50">
-              <TabsTrigger
-                value="manual"
-                className="flex items-center gap-2 rounded-xl text-xs font-semibold py-2 transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <FileText className="h-3.5 w-3.5 text-slate-500" />
-                Edición Manual
-              </TabsTrigger>
-              <TabsTrigger
-                value="ai"
-                className="flex items-center gap-2 rounded-xl text-xs font-semibold py-2 transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Asistente de IA
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-slate-500" />}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 hover:bg-slate-100 rounded-xl"
+          onClick={onClose}
+          title="Volver al expediente"
+        >
+          <X className="h-4 w-4 text-slate-500" />
+        </Button>
+      </div>
+    </div>
+  );
 
-        {/* Sheet Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-zen">
-          
-          {hasDraft && draftData && (
-            <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
-              <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">Tienes un borrador sin guardar de esta sesión</h4>
-                  <p className="text-[10px] text-muted-foreground">
-                    Guardado localmente el {draftData.timestamp ? format(new Date(draftData.timestamp), "d 'de' MMMM, h:mm a", { locale: es }) : ''}
-                  </p>
-                </div>
+  const editorTabs = (
+    <div className="px-6 py-4 bg-muted/20 border-b border-border/50">
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => setActiveTab(val as 'manual' | 'ai')}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-2 w-full p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
+          <TabsTrigger
+            value="manual"
+            className="flex items-center gap-2 rounded-xl text-xs font-semibold py-2 transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm"
+          >
+            <FileText className="h-3.5 w-3.5 text-slate-500" />
+            Edición Manual
+          </TabsTrigger>
+          <TabsTrigger
+            value="ai"
+            className="flex items-center gap-2 rounded-xl text-xs font-semibold py-2 transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Asistente de IA
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
+  );
+
+  const editorBody = (
+    <>
+      {/* Content Body */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-zen">
+        
+        {hasDraft && draftData && (
+          <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
               </div>
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleDiscardDraft}
-                  className="h-8 text-[10px] font-bold rounded-xl text-slate-500 hover:text-slate-800"
-                >
-                  Descartar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="zen"
-                  onClick={handleRestoreDraft}
-                  className="h-8 text-[10px] font-bold rounded-xl px-4 shadow-sm"
-                >
-                  Restaurar
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'manual' ? (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              
-              {/* AI Writing Tools Panel */}
-              <div className="bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-primary/5 border border-primary/10 p-4 rounded-2xl space-y-3 shadow-sm relative overflow-hidden animate-in slide-in-from-top-1 duration-300">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                  <Sparkles className="h-4 w-4 text-violet-500 animate-pulse" />
-                  <span>Herramientas de Escritura con IA</span>
-                </div>
-                
-                {/* Custom Instruction Input */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Instrucción libre (ej: 'traduce a tono TCC', 'añade que asistió puntual')"
-                    value={aiRefinePrompt}
-                    onChange={(e) => setAiRefinePrompt(e.target.value)}
-                    disabled={isRefiningAI || !editorContent.trim()}
-                    className="bg-white rounded-xl text-xs h-9 flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleRefineAI(aiRefinePrompt);
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="zen"
-                    disabled={isRefiningAI || !aiRefinePrompt.trim() || !editorContent.trim()}
-                    onClick={() => handleRefineAI(aiRefinePrompt)}
-                    className="h-9 px-4 rounded-xl text-xs font-bold shrink-0 shadow-sm"
-                  >
-                    {isRefiningAI ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Aplicar'}
-                  </Button>
-                </div>
-                
-                {/* Quick Action Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <button
-                    type="button"
-                    disabled={isRefiningAI || !editorContent.trim()}
-                    onClick={() => handleRefineAI('Hacer más formal / clínico')}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    ✨ Profesionalizar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isRefiningAI || !editorContent.trim()}
-                    onClick={() => handleRefineAI('Corregir ortografía y redacción')}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    📝 Corregir Redacción
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isRefiningAI || !editorContent.trim()}
-                    onClick={() => handleRefineAI('Resumir nota')}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    📊 Resumir
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-                  Reporte Clínico
-                </label>
-                <div className="relative min-h-[350px] border border-border rounded-2xl overflow-hidden bg-white shadow-soft focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                  {isRefiningAI && (
-                    <div className="absolute inset-0 bg-white/70 backdrop-blur-xs z-20 flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200">
-                      <div className="relative h-12 w-12 flex items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10">
-                        <Sparkles className="h-6 w-6 text-violet-500 animate-pulse" />
-                      </div>
-                      <p className="text-xs font-bold text-slate-600 animate-pulse">Aplicando herramientas de escritura...</p>
-                    </div>
-                  )}
-                  {diffParts ? (
-                    <div className="flex flex-col h-full min-h-[350px] animate-in fade-in duration-300">
-                      {/* Review header */}
-                      <div className="bg-violet-50 text-violet-900 border-b border-slate-100 px-4 py-2.5 flex items-center justify-between text-xs font-semibold select-none">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <Sparkles className="h-4 w-4 text-violet-500 animate-pulse" />
-                          <span>Cambios Sugeridos por IA</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleRejectAllDiff}
-                            className="h-7 text-[10px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 px-2"
-                          >
-                            Rechazar Todo
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="zen"
-                            onClick={handleAcceptAllDiff}
-                            className="h-7 text-[10px] font-bold rounded-lg px-3 bg-violet-600 hover:bg-violet-700 text-white shadow-sm"
-                          >
-                            Aceptar Todo
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Diff segments body */}
-                      <div className="p-5 text-sm leading-relaxed overflow-y-auto max-h-[450px] bg-slate-50/20 whitespace-pre-wrap select-text">
-                        {diffParts.map((part) => {
-                          if (part.type === 'unchanged') {
-                            return <span key={part.id}>{part.text} </span>;
-                          }
-                          if (part.type === 'added') {
-                            return (
-                              <span
-                                key={part.id}
-                                className="bg-emerald-50 text-emerald-950 border border-emerald-200/50 px-1.5 py-0.5 rounded-lg mx-0.5 inline-flex items-center gap-1.5 select-none font-medium animate-in zoom-in-95 duration-200"
-                              >
-                                <span className="text-emerald-600 font-bold text-xs select-none">+</span>
-                                <span className="select-text">{part.text}</span>
-                                <span className="inline-flex items-center gap-1 ml-1 shrink-0 select-none">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAcceptPart(part.id)}
-                                    className="h-[18px] w-[18px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm"
-                                    title="Aceptar adición"
-                                  >
-                                    ✓
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRejectPart(part.id)}
-                                    className="h-[18px] w-[18px] bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm"
-                                    title="Rechazar adición"
-                                  >
-                                    ✕
-                                  </button>
-                                </span>
-                              </span>
-                            );
-                          }
-                          if (part.type === 'removed') {
-                            return (
-                              <span
-                                key={part.id}
-                                className="bg-rose-50/80 text-rose-900/80 border border-rose-200/40 px-1.5 py-0.5 rounded-lg mx-0.5 inline-flex items-center gap-1.5 line-through select-none"
-                              >
-                                <span className="text-rose-600 font-bold text-xs select-none">-</span>
-                                <span className="select-text">{part.text}</span>
-                                <span className="inline-flex items-center gap-1 ml-1 line-none shrink-0 select-none">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAcceptPart(part.id)}
-                                    className="h-[18px] w-[18px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm"
-                                    title="Confirmar eliminación"
-                                  >
-                                    ✓
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRejectPart(part.id)}
-                                    className="h-[18px] w-[18px] bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm"
-                                    title="Restaurar texto"
-                                  >
-                                    ✕
-                                  </button>
-                                </span>
-                              </span>
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <MiniEditor
-                        content={editorContent}
-                        onChange={(val) => {
-                          setEditorContent(val);
-                          setIsDirty(true);
-                        }}
-                        className="min-h-[350px] p-4 text-sm focus:outline-none"
-                      />
-
-                      {/* Floating AI Button */}
-                      <div className="absolute bottom-3.5 right-3.5 z-10">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="zen"
-                          onClick={() => setIsInlineAIPanelOpen(!isInlineAIPanelOpen)}
-                          className="h-8 w-8 rounded-full shadow-md hover:scale-105 transition-transform"
-                          title="Herramientas de IA (Cmd + J)"
-                        >
-                          <Sparkles className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {/* Inline AI Popover */}
-                      {isInlineAIPanelOpen && (
-                        <div className="absolute bottom-14 right-3.5 bg-white border border-slate-200/80 shadow-elevated rounded-2xl p-4 w-80 space-y-3 z-30 animate-in slide-in-from-bottom-2 duration-200">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                              <Sparkles className="h-3.5 w-3.5 text-violet-500 animate-pulse" />
-                              <span>Apple Intelligence</span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setIsInlineAIPanelOpen(false)}
-                              className="h-5 w-5 hover:bg-slate-100 rounded-lg"
-                            >
-                              <X className="h-3 w-3 text-slate-400" />
-                            </Button>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Input
-                              placeholder="Refinar con IA... (ej: 'añade que...')"
-                              value={inlineAIInstruction}
-                              onChange={(e) => setInlineAIInstruction(e.target.value)}
-                              className="text-xs h-8 bg-slate-50/50 rounded-xl"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  if (inlineAIInstruction.trim()) {
-                                    handleRefineAI(inlineAIInstruction);
-                                    setIsInlineAIPanelOpen(false);
-                                  }
-                                }
-                              }}
-                              autoFocus
-                            />
-                            <Button
-                              size="sm"
-                              variant="zen"
-                              disabled={!inlineAIInstruction.trim() || isRefiningAI}
-                              onClick={() => {
-                                handleRefineAI(inlineAIInstruction);
-                                setIsInlineAIPanelOpen(false);
-                              }}
-                              className="h-8 text-xs font-bold rounded-xl px-3"
-                            >
-                              Aplicar
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1.5 pt-1">
-                            <button
-                              type="button"
-                              disabled={isRefiningAI || !editorContent.trim()}
-                              onClick={() => {
-                                handleRefineAI('Hacer más formal / clínico');
-                                setIsInlineAIPanelOpen(false);
-                              }}
-                              className="text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-100 bg-slate-50/40 hover:bg-slate-100/70 text-slate-600 text-left transition-all"
-                            >
-                              ✨ Profesionalizar
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isRefiningAI || !editorContent.trim()}
-                              onClick={() => {
-                                handleRefineAI('Corregir ortografía y redacción');
-                                setIsInlineAIPanelOpen(false);
-                              }}
-                              className="text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-100 bg-slate-50/40 hover:bg-slate-100/70 text-slate-600 text-left transition-all"
-                            >
-                              📝 Redacción
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isRefiningAI || !editorContent.trim()}
-                              onClick={() => {
-                                handleRefineAI('Resumir nota');
-                                setIsInlineAIPanelOpen(false);
-                              }}
-                              className="text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-100 bg-slate-50/40 hover:bg-slate-100/70 text-slate-600 text-left transition-all"
-                            >
-                              📊 Resumir Nota
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isRefiningAI || !editorContent.trim()}
-                              onClick={() => {
-                                handleRefineAI('Completa el párrafo o las ideas clínicas expresadas en el texto actual, manteniendo la coherencia y el estilo profesional del expediente.');
-                                setIsInlineAIPanelOpen(false);
-                              }}
-                              className="text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-100 bg-slate-50/40 hover:bg-slate-100/70 text-slate-600 text-left transition-all"
-                            >
-                              ✍️ Completar Idea
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Diagnostic Fields Accordion */}
-              <div className="border border-border/80 rounded-2xl bg-white shadow-soft overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)}
-                  className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-widest opacity-80">
-                      Diagnóstico y Códigos CIE-10
-                    </span>
-                  </div>
-                  {showDiagnosticPanel ? (
-                    <ChevronUp className="h-4 w-4 text-slate-500" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
-                  )}
-                </button>
-
-                {showDiagnosticPanel && (
-                  <div className="p-5 border-t border-border/60 bg-slate-50/20 space-y-4 animate-in slide-in-from-top-1 duration-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          Código CIE-10
-                        </label>
-                        <Input
-                          value={cie10Code}
-                          onChange={(e) => {
-                            setCie10Code(e.target.value);
-                            setIsDirty(true);
-                          }}
-                          placeholder="Ej. F41.1"
-                          className="bg-white rounded-xl text-xs h-9"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          Descripción CIE-10
-                        </label>
-                        <Input
-                          value={cie10Description}
-                          onChange={(e) => {
-                            setCie10Description(e.target.value);
-                            setIsDirty(true);
-                          }}
-                          placeholder="Ej. Trastorno de ansiedad generalizada"
-                          className="bg-white rounded-xl text-xs h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Diagnóstico Principal
-                      </label>
-                      <Input
-                        value={diagnosticoPrincipal}
-                        onChange={(e) => {
-                          setDiagnosticoPrincipal(e.target.value);
-                          setIsDirty(true);
-                        }}
-                        placeholder="Ej. Ansiedad generalizada exacerbada por estrés laboral"
-                        className="bg-white rounded-xl text-xs h-9"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="space-y-2 bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10 p-5 rounded-2xl">
-                <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
-                  <Sparkles className="h-4 w-4" />
-                  <span>¿Cómo funciona el Asistente de IA?</span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Ingresa las ideas clave de la sesión en el recuadro inferior (notas sueltas, temas tratados, observaciones rápidas). La IA se encargará de darle estructura clínica profesional, generar diagnósticos probables y redactar el reporte final en formato SOAP.
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Tienes un borrador sin guardar de esta sesión</h4>
+                <p className="text-[10px] text-muted-foreground">
+                  Guardado localmente el {draftData.timestamp ? format(new Date(draftData.timestamp), "d 'de' MMMM, h:mm a", { locale: es }) : ''}
                 </p>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-                  Notas Clave o Puntos de la Sesión
-                </label>
-                <Textarea
-                  value={bulletPoints}
-                  onChange={(e) => {
-                    setBulletPoints(e.target.value);
-                    setIsDirty(true);
-                  }}
-                  placeholder="Ej: Paciente asiste a sesión manifestando alto nivel de estrés debido a sobrecarga laboral. Presenta insomnio secundario de conciliación. Se aplica técnica de reestructuración cognitiva y se sugieren técnicas de higiene del sueño..."
-                  className="min-h-[180px] bg-white border border-border rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all leading-relaxed"
-                />
-              </div>
-
-              <Button
-                type="button"
-                variant="zen"
-                onClick={handleGenerateAI}
-                disabled={isProcessingAI}
-                className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-md shadow-primary/10"
-              >
-                {isProcessingAI ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generando reporte clínico...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Generar Reporte con IA
-                  </>
-                )}
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <Button size="sm" variant="ghost" onClick={handleDiscardDraft} className="h-8 text-[10px] font-bold rounded-xl text-slate-500 hover:text-slate-800">
+                Descartar
+              </Button>
+              <Button size="sm" variant="zen" onClick={handleRestoreDraft} className="h-8 text-[10px] font-bold rounded-xl px-4 shadow-sm">
+                Restaurar
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer Actions */}
-        <div className="px-6 py-4 border-t border-border bg-slate-50/50 flex items-center justify-between gap-3 sticky bottom-0 z-10 select-none">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-            {autosaveStatus === 'saving' && (
-              <>
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span>Guardando...</span>
-              </>
-            )}
-            {autosaveStatus === 'saved' && (
-              <>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Borrador guardado</span>
-              </>
+        {activeTab === 'manual' ? (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            
+            {/* AI Writing Tools Panel */}
+            <div className="bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-primary/5 border border-primary/10 p-4 rounded-2xl space-y-3 shadow-sm relative overflow-hidden animate-in slide-in-from-top-1 duration-300">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                <Sparkles className="h-4 w-4 text-violet-500 animate-pulse" />
+                <span>Herramientas de Escritura con IA</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Instrucción libre (ej: 'traduce a tono TCC', 'añade que asistió puntual')"
+                  value={aiRefinePrompt}
+                  onChange={(e) => setAiRefinePrompt(e.target.value)}
+                  className="flex-1 h-9 rounded-xl border-primary/15 bg-white/70 dark:bg-slate-800/70 text-xs placeholder:text-slate-400"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && aiRefinePrompt.trim()) handleRefineWithAI(aiRefinePrompt); }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="h-7 text-[10px] rounded-xl border-primary/20 hover:bg-primary/5 gap-1" onClick={() => handleRefineWithAI('Profesionaliza el lenguaje clínico')} disabled={isRefiningAI || !editorContent.trim()}>
+                  <Sparkles className="h-3 w-3 text-primary" /> Profesionalizar
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-[10px] rounded-xl border-primary/20 hover:bg-primary/5 gap-1" onClick={() => handleRefineWithAI('Corrige la redacción y ortografía')} disabled={isRefiningAI || !editorContent.trim()}>
+                  <Sparkles className="h-3 w-3 text-orange-500" /> Corregir Redacción
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-[10px] rounded-xl border-primary/20 hover:bg-primary/5 gap-1" onClick={() => handleRefineWithAI('Resume de forma concisa')} disabled={isRefiningAI || !editorContent.trim()}>
+                  <Sparkles className="h-3 w-3 text-blue-500" /> Resumir
+                </Button>
+              </div>
+            </div>
+
+            {/* Diagnostic Panel */}
+            <div>
+              <button type="button" onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)} className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
+                {showDiagnosticPanel ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                Datos Diagnósticos (CIE-10)
+              </button>
+              {showDiagnosticPanel && (
+                <div className="mt-3 p-4 bg-muted/30 rounded-2xl border border-border/50 space-y-3 animate-in slide-in-from-top-1 duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Código CIE-10</label>
+                      <Input value={cie10Code} onChange={(e) => { setCie10Code(e.target.value); setIsDirty(true); }} placeholder="Ej: F41.1" className="mt-1 h-9 rounded-xl text-xs" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descripción CIE-10</label>
+                      <Input value={cie10Description} onChange={(e) => { setCie10Description(e.target.value); setIsDirty(true); }} placeholder="Ej: Trastorno de ansiedad generalizada" className="mt-1 h-9 rounded-xl text-xs" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Diagnóstico Principal</label>
+                    <Input value={diagnosticoPrincipal} onChange={(e) => { setDiagnosticoPrincipal(e.target.value); setIsDirty(true); }} placeholder="Diagnóstico clínico principal" className="mt-1 h-9 rounded-xl text-xs" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Main Editor */}
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 mb-2 block">Reporte Clínico</label>
+              {isRefiningAI && (
+                <div className="flex items-center gap-2 text-xs text-primary font-semibold mb-2 animate-pulse">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> La IA está refinando tu nota...
+                </div>
+              )}
+              {diffParts ? (
+                <div className="space-y-4">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-4">
+                    <h4 className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-3 flex items-center gap-2">
+                      <Activity className="h-4 w-4" /> Revisión de cambios sugeridos por la IA
+                    </h4>
+                    <div className="text-sm leading-relaxed space-x-1">
+                      {diffParts.map((part) => (
+                        <span key={part.id} className={part.type === 'added' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 px-0.5 rounded' : part.type === 'removed' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 line-through px-0.5 rounded opacity-70' : ''}>
+                          {part.text}{' '}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={handleRejectDiff}>Rechazar</Button>
+                    <Button size="sm" variant="zen" className="rounded-xl text-xs" onClick={handleAcceptDiff}>Aceptar cambios</Button>
+                  </div>
+                </div>
+              ) : (
+                <MiniEditor content={editorContent} onChange={(val) => { setEditorContent(val); setIsDirty(true); }} />
+              )}
+            </div>
+
+            {/* Bridge Notes */}
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 mb-2 block">Notas Puente / Bullet Points</label>
+              <Textarea
+                value={bulletPoints}
+                onChange={(e) => { setBulletPoints(e.target.value); setIsDirty(true); }}
+                placeholder="Puntos clave a retomar en la siguiente sesión..."
+                className="min-h-[100px] rounded-2xl text-sm border-border/80 resize-none"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-primary/5 border border-primary/10 p-6 rounded-2xl text-center space-y-4">
+              <div className="inline-flex p-3 rounded-2xl bg-primary/10"><Sparkles className="h-8 w-8 text-primary" /></div>
+              <h3 className="text-lg font-bold">Asistente de IA para Notas</h3>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">Dicta o escribe puntos clave de la sesión y la IA generará un reporte clínico estructurado.</p>
+              <Textarea value={bulletPoints} onChange={(e) => { setBulletPoints(e.target.value); setIsDirty(true); }} placeholder="Escribe los puntos clave de la sesión aquí..." className="min-h-[150px] rounded-2xl text-sm" />
+              <Button variant="zen" className="gap-2" onClick={handleGenerateWithAI} disabled={isProcessingAI || !bulletPoints.trim()}>
+                {isProcessingAI ? (<><Loader2 className="h-4 w-4 animate-spin" /> Generando...</>) : (<><Sparkles className="h-4 w-4" /> Generar Nota con IA</>)}
+              </Button>
+            </div>
+            {editorContent && (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 mb-2 block">Resultado Generado</label>
+                <MiniEditor content={editorContent} onChange={(val) => { setEditorContent(val); setIsDirty(true); }} />
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              disabled={isSaving}
-              className="rounded-xl h-10 px-5 text-slate-600 font-bold hover:bg-slate-100 transition-colors"
-            >
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-border/80 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md px-6 py-4 flex items-center justify-between sticky bottom-0 z-10">
+        <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+          {autosaveStatus === 'saving' && (<><span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" /><span>Guardando...</span></>)}
+          {autosaveStatus === 'saved' && (<><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /><span>Borrador guardado</span></>)}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={isSaving} className="rounded-xl h-10 px-5 text-slate-600 font-bold hover:bg-slate-100 transition-colors">
             Cancelar
           </Button>
-          <Button
-            variant="zen"
-            onClick={handleSave}
-            disabled={isSaving || isProcessingAI || !!diffParts}
-            className="rounded-xl h-10 px-6 font-bold shadow-md shadow-primary/15 transition-all"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Guardando...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
-              </>
-            )}
+          <Button variant="zen" onClick={handleSave} disabled={isSaving || isProcessingAI || !!diffParts} className="rounded-xl h-10 px-6 font-bold shadow-md shadow-primary/15 transition-all">
+            {isSaving ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />Guardando...</>) : (<><Save className="h-4 w-4 mr-2" />Guardar Cambios</>)}
           </Button>
         </div>
       </div>
+    </>
+  );
 
+  // ── Inline mode: render directly within the page ──
+  if (inline) {
+    if (!isOpen) return null;
+    return (
+      <div className="flex flex-col bg-card rounded-2xl shadow-soft border border-border overflow-hidden min-h-[500px] animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {editorHeader}
+        {editorTabs}
+        {editorBody}
+      </div>
+    );
+  }
+
+  // ── Sheet mode: render as overlay (fallback for non-patient pages) ──
+  return (
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-full sm:max-w-2xl flex flex-col h-full bg-background border-l border-border p-0 shadow-elevated">
+        <SheetTitle className="sr-only">{note ? 'Edición de Nota' : 'Nueva Nota Clínica'}</SheetTitle>
+        {editorHeader}
+        {editorTabs}
+        {editorBody}
       </SheetContent>
     </Sheet>
   );
 }
+

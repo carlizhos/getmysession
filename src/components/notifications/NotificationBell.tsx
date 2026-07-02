@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash } from 'lucide-react';
+import { Bell, Check, Trash, Zap, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityType } from '@/lib/activityLogger';
 import NotificationBadge from '@/components/ui/NotificationBadge';
+import { useSmartAlerts } from '@/hooks/useSmartAlerts';
 
 interface ActivityLog {
   id: string;
@@ -24,6 +25,7 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
+  const { smartAlerts, dismissAlert } = useSmartAlerts();
 
   // Close on outside click or escape
   useEffect(() => {
@@ -91,12 +93,17 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
   }, [user]);
 
   const markAsRead = async (id: string) => {
+    if (id.startsWith('smart-')) {
+      dismissAlert(id);
+      return;
+    }
     setLogs(prev => prev.map(log => log.id === id ? { ...log, read: true } : log));
     setUnreadCount(prev => Math.max(0, prev - 1));
     await supabase.from('activity_logs').update({ read: true }).eq('id', id);
   };
 
   const markAllAsRead = async () => {
+    smartAlerts.forEach(alert => dismissAlert(alert.id));
     if (unreadCount === 0) return;
     setLogs(prev => prev.map(log => ({ ...log, read: true })));
     setUnreadCount(0);
@@ -105,6 +112,10 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
 
   const deleteLog = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (id.startsWith('smart-')) {
+      dismissAlert(id);
+      return;
+    }
     const logToDelete = logs.find(l => l.id === id);
     setLogs(prev => prev.filter(log => log.id !== id));
     if (logToDelete && !logToDelete.read) {
@@ -112,6 +123,9 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
     }
     await supabase.from('activity_logs').delete().eq('id', id);
   };
+
+  const allLogs = [...smartAlerts, ...logs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const displayUnreadCount = unreadCount + smartAlerts.filter(l => !l.read).length;
 
   return (
     <div className="relative" ref={ref}>
@@ -124,9 +138,9 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
         )}
       >
         <Bell className="h-4 w-4" />
-        {unreadCount > 0 && canShow && (
+        {displayUnreadCount > 0 && canShow && (
           <NotificationBadge 
-            count={unreadCount} 
+            count={displayUnreadCount} 
             className="absolute top-1 right-0.5 bg-destructive shadow-destructive/40" 
             forceSettled={forceSettled}
             delay={10000}
@@ -157,13 +171,13 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {logs.length === 0 ? (
+          {allLogs.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               No tienes notificaciones
             </div>
           ) : (
             <div className="flex flex-col">
-              {logs.map((log) => (
+              {allLogs.map((log) => (
                 <div
                   key={log.id}
                   onClick={() => !log.read && markAsRead(log.id)}
@@ -173,9 +187,18 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className={cn("text-sm font-medium", !log.read && "text-primary dark:text-primary")}>
-                      {log.title}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      {log.metadata?.isSmartAlert && (
+                        <div className="mt-0.5 flex-shrink-0">
+                          {log.metadata.icon === 'zap' ? <Zap className="h-4 w-4 text-amber-500 fill-amber-500/20" /> : 
+                           log.metadata.icon === 'sparkles' ? <Sparkles className="h-4 w-4 text-primary fill-primary/20" /> :
+                           <AlertTriangle className="h-4 w-4 text-destructive" />}
+                        </div>
+                      )}
+                      <p className={cn("text-sm font-medium", !log.read && "text-primary dark:text-primary", log.metadata?.isSmartAlert && "text-foreground")}>
+                        {log.title}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!log.read && (
                         <button
