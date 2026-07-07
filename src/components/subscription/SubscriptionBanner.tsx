@@ -4,11 +4,11 @@ import { Sparkles, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SubscriptionBanner() {
-  const { isPastDue, hasAccess } = useSubscription();
+  const { isPastDue, isTrialing, isTrialExpired, daysRemaining, hasAccess } = useSubscription();
   const { open: openModal } = usePricingModal();
 
-  // Don't show banner if the user has access (active trial or active paid plan)
-  if (hasAccess) return null;
+  // Don't show banner if the user has access (unless they are trialing and have 5 or less days left)
+  if (hasAccess && (!isTrialing || daysRemaining > 5)) return null;
 
   let bannerStyle = "";
   let icon = null;
@@ -31,6 +31,20 @@ export default function SubscriptionBanner() {
     );
     buttonText = "Actualizar pago";
     buttonClass = "bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600 text-white";
+  } else if (isTrialing && daysRemaining <= 5) {
+    bannerStyle = "bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-600/10 dark:from-amber-500/15 dark:to-amber-600/5 border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-200";
+    icon = (
+      <div className="bg-amber-100 dark:bg-amber-950/60 p-1.5 rounded-lg shrink-0">
+        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+      </div>
+    );
+    text = (
+      <p className="text-sm font-semibold truncate">
+        Tu periodo de prueba del Plan Pro termina en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}. Suscríbete ahora para no perder acceso.
+      </p>
+    );
+    buttonText = "Suscribirse al Plan Pro";
+    buttonClass = "bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white";
   } else {
     bannerStyle = "bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-600/10 dark:from-red-500/15 dark:to-red-600/5 border-red-300 dark:border-red-500/30 text-red-900 dark:text-red-200";
     icon = (

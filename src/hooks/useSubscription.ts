@@ -98,6 +98,7 @@ export function useSubscription() {
 
     const isActive = status === 'active';
     const isTrialing = status === 'trialing' && daysRemaining > 0;
+    const isTrialExpired = status === 'trialing' && daysRemaining === 0;
     const isPastDue = status === 'past_due';
     const isCanceled = status === 'canceled' || status === 'unpaid';
     const isPro = planId === 'pro';
@@ -120,6 +121,7 @@ export function useSubscription() {
       isClinic,
       isActive,
       isTrialing,
+      isTrialExpired,
       isPastDue,
       isCanceled,
       hasAccess,

@@ -45,6 +45,7 @@ export interface SessionNoteData {
     cie10_description?: string;
     diagnostico_principal?: string;
     transcript_summary?: string;
+    mental_status?: Record<string, string[]>;
 }
 
 export interface ConsentData {
@@ -403,6 +404,42 @@ export function generateExpedientePDF(
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(40, 40, 40);
             y = addWrappedText(doc, note.bridge.homework_review || note.bridge.notes || '', margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
+        }
+
+        // Examen del Estado Mental (MSE)
+        if (note.mental_status && Object.keys(note.mental_status).some(k => Array.isArray(note.mental_status[k]) && note.mental_status[k].length > 0)) {
+            if (y > pageH - margin - 15) y = addPage();
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 100);
+            doc.text('Examen del Estado Mental (MSE):', margin + 3, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(40, 40, 40);
+
+            const categoryLabels: Record<string, string> = {
+                apariencia: 'Apariencia',
+                actitud: 'Actitud',
+                conciencia: 'Estado de conciencia',
+                orientacion: 'Orientación',
+                lenguaje: 'Lenguaje',
+                pensamiento: 'Pensamiento',
+                percepcion: 'Percepción',
+                animo: 'Estado de ánimo y afecto',
+                riesgo: 'Riesgo'
+            };
+
+            const mseLines: string[] = [];
+            Object.entries(note.mental_status).forEach(([catKey, options]) => {
+                if (Array.isArray(options) && options.length > 0) {
+                    const label = categoryLabels[catKey] || catKey;
+                    mseLines.push(`• ${label}: ${options.join(', ')}`);
+                }
+            });
+
+            if (mseLines.length > 0) {
+                const mseText = mseLines.join('\n');
+                y = addWrappedText(doc, mseText, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
+            }
         }
 
         // Agenda / Temas

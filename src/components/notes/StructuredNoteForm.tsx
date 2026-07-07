@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import CIE10Selector from '@/components/notes/CIE10Selector';
+import MentalStatusSection from '@/components/notes/MentalStatusSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,6 +76,9 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     const [bridgeItems, setBridgeItems] = useState<{ text: string; completed: boolean }[]>([]);
     const [newBridgeItem, setNewBridgeItem] = useState('');
     const [bridgeNotes, setBridgeNotes] = useState('');
+
+    // Mental Status Exam
+    const [mentalStatus, setMentalStatus] = useState<Record<string, string[]> | null>(null);
 
     // Agenda
     const [agendaItems, setAgendaItems] = useState<{
@@ -187,6 +191,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
             sessionNumber,
             mood: { rating: moodRating[0], notes: moodNotes },
             bridge: { items: bridgeItems, notes: bridgeNotes },
+            mentalStatus,
             agenda: agendaItems,
             beliefs: { core: coreBeliefs, alternative: alternativeBeliefs },
             actionPlan: actionPlanItems,
@@ -342,6 +347,14 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                             />
                         </CardContent>
                     </Card>
+                )}
+
+                {/* Mental Status Exam Section */}
+                {hasSection('mental_status') && (
+                    <MentalStatusSection
+                        value={mentalStatus}
+                        onChange={setMentalStatus}
+                    />
                 )}
 
                 {/* Agenda Section */}

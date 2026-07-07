@@ -29,7 +29,8 @@ import {
   PenLine, 
   Eye as EyeIcon, 
   BookOpen, 
-  Settings as SettingsIcon 
+  Settings as SettingsIcon,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ import { NoteTemplate } from '@/types';
 const TEMPLATE_SECTIONS: { key: string; label: string; icon: React.ElementType; description: string }[] = [
   { key: 'mood', label: 'Estado de Ánimo', icon: Brain, description: 'Slider 1-100 con notas' },
   { key: 'bridge', label: 'Puente Intersesión', icon: ClipboardList, description: 'Revisión de tareas previas' },
+  { key: 'mental_status', label: 'Examen del Estado Mental', icon: ShieldCheck, description: 'Checklist de observación clínica' },
   { key: 'agenda', label: 'Agenda / Conceptualización', icon: List, description: 'Temas, pensamientos, emociones' },
   { key: 'beliefs', label: 'Creencias', icon: Lightbulb, description: 'Nucleares y alternativas' },
   { key: 'action_plan', label: 'Plan de Acción', icon: Target, description: 'Tareas y recomendaciones' },

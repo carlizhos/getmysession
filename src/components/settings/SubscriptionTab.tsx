@@ -13,7 +13,7 @@ import { usePricingModal } from '@/hooks/useSubscription';
 
 const SubscriptionTab = () => {
     const { organization, refresh: refreshOrg } = useOrganization();
-    const { isTrialing, isActive, isPastDue, isCanceled, daysRemaining, hasAccess, cancelAtPeriodEnd } = useSubscription();
+    const { isTrialing, isTrialExpired, isActive, isPastDue, isCanceled, daysRemaining, hasAccess, cancelAtPeriodEnd } = useSubscription();
     const [isProcessing, setIsProcessing] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const syncedRef = useRef(false);
@@ -85,6 +85,7 @@ const SubscriptionTab = () => {
     const subStatus = organization?.subscription_status || 'trialing';
 
     const getStatusLabel = () => {
+        if (isTrialExpired) return 'Prueba Vencida';
         if (subStatus === 'active' && cancelAtPeriodEnd) return 'Cancelación Programada';
         if (subStatus === 'active') return 'Activa';
         if (subStatus === 'trialing') return 'Periodo de Prueba';
@@ -94,6 +95,7 @@ const SubscriptionTab = () => {
     };
 
     const getStatusVariant = () => {
+        if (isTrialExpired) return 'destructive';
         if (subStatus === 'active' && !cancelAtPeriodEnd) return 'success';
         if (subStatus === 'trialing') return 'secondary';
         if (subStatus === 'past_due') return 'warning';
@@ -111,7 +113,13 @@ const SubscriptionTab = () => {
                         </div>
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tu Suscripción</p>
-                            <h3 className="text-lg font-bold capitalize">Plan {currentPlan === 'free' ? 'Gratuito' : currentPlan}</h3>
+                            <h3 className="text-lg font-bold capitalize">
+                                {isTrialing 
+                                    ? 'Plan Pro (Prueba)' 
+                                    : isTrialExpired 
+                                        ? 'Plan Pro (Prueba Expirada)' 
+                                        : `Plan ${currentPlan === 'free' ? 'Gratuito' : currentPlan}`}
+                            </h3>
                         </div>
                     </div>
                     <Badge variant={getStatusVariant() as any} className="px-3 py-1">
@@ -122,10 +130,14 @@ const SubscriptionTab = () => {
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="space-y-1">
                             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                {isTrialing ? 'Fin de la prueba' : 'Próximo cobro'}
+                                {isTrialing 
+                                    ? 'Fin de la prueba' 
+                                    : isTrialExpired 
+                                        ? 'Prueba vencida el' 
+                                        : 'Próximo cobro'}
                             </span>
                             <p className="text-sm font-semibold flex items-center gap-2">
-                                {isTrialing && <Clock className="h-4 w-4 text-primary" />}
+                                {(isTrialing || isTrialExpired) && <Clock className="h-4 w-4 text-primary" />}
                                 {organization?.current_period_end 
                                     ? new Date(organization.current_period_end).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric'})
                                     : 'Sin fecha'}
@@ -138,7 +150,11 @@ const SubscriptionTab = () => {
                             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Método de pago</span>
                             <p className="text-sm flex items-center gap-2">
                                 <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                {organization?.stripe_customer_id ? 'Registrado en Stripe' : 'No registrado'}
+                                {isActive 
+                                    ? 'Registrado en Stripe' 
+                                    : organization?.stripe_customer_id 
+                                        ? 'Sin método de pago activo' 
+                                        : 'No registrado'}
                             </p>
                         </div>
                         <div className="flex items-center lg:justify-end">
@@ -146,11 +162,11 @@ const SubscriptionTab = () => {
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => handleManageBilling()}
-                                disabled={isProcessing || !organization?.stripe_customer_id}
+                                disabled={isProcessing || !isActive || !organization?.stripe_customer_id}
                                 className="gap-2"
                             >
                                 {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-                                {organization?.stripe_customer_id ? 'Gestionar facturación' : 'Sin facturación activa'}
+                                {isActive ? 'Gestionar facturación' : 'Sin facturación activa'}
                             </Button>
                         </div>
                     </div>
@@ -209,7 +225,7 @@ const SubscriptionTab = () => {
                             ) : currentPlan === 'pro' ? (
                                 'Plan Actual'
                             ) : (
-                                <><Sparkles className="h-4 w-4" /> Empezar 30 días gratis</>
+                                <><Sparkles className="h-4 w-4" /> {isTrialExpired ? 'Contratar Plan Pro' : 'Empezar 30 días gratis'}</>
                             )}
                         </Button>
                     </CardContent>

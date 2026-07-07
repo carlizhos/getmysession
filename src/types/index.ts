@@ -82,6 +82,7 @@ export interface SessionNote {
     diagnostico_principal?: string;
     transcript_summary?: string;
     audio_url?: string;
+    mental_status?: Record<string, string[]>;
     created_at?: string;
     deleted_at?: string | null;
 }

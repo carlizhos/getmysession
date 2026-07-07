@@ -147,6 +147,7 @@ const Notes = () => {
       cie10_code: noteData.cie10Code || null,
       cie10_description: noteData.cie10Description || null,
       diagnostico_principal: noteData.diagnosticoPrincipal || null,
+      mental_status: noteData.mentalStatus || null,
       organization_id: organization?.id,
     };
 
@@ -371,6 +372,7 @@ const Notes = () => {
                     cie10_code: noteData.cie10Code || null,
                     cie10_description: noteData.cie10Description || null,
                     diagnostico_principal: noteData.diagnosticoPrincipal || null,
+                    mental_status: noteData.mentalStatus || null,
                     content: noteData,
                     organization_id: organization?.id,
                     template_id: selectedTemplateId

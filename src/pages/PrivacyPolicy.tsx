@@ -27,7 +27,7 @@ const PrivacyPolicy = () => {
                 {/* Content */}
                 <div className="prose prose-slate dark:prose-invert max-w-none space-y-8 text-foreground">
                     <p className="text-muted-foreground leading-relaxed">
-                        <strong>Saudade</strong> (en adelante, &quot;Saudade&quot;), con domicilio en Tijuana, Baja California, México, C.P. 22117, reconoce la importancia de garantizar la protección de los datos personales proporcionados por los usuarios (en adelante el “Usuario” o “Usuarios”) que interactúan con nuestra plataforma web <a href="https://app.saudade.mx" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://app.saudade.mx</a>.
+                        <strong>Saudade</strong> (en adelante, &quot;Saudade&quot;), con domicilio en Priv. San Francisco Centro 8705-38, Fracc. Colinas de California, C.P. 22647, Tijuana, Baja California, México, reconoce la importancia de garantizar la protección de los datos personales proporcionados por los usuarios (en adelante el “Usuario” o “Usuarios”) que interactúan con nuestra plataforma web <a href="https://app.saudade.mx" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://app.saudade.mx</a>.
                     </p>
 
                     <p className="text-muted-foreground leading-relaxed">
@@ -37,7 +37,7 @@ const PrivacyPolicy = () => {
                     <section className="space-y-3">
                         <h2 className="text-xl font-semibold text-foreground">1. Identidad y Domicilio del Responsable</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Saudade es el responsable del tratamiento de los datos personales que usted nos proporciona. Para cualquier duda o ejercicio de derechos ARCO (Acceso, Rectificación, Cancelación y Oposición), puede contactarnos a través del correo electrónico oficial: <a href="mailto:contacto@saudade.mx" className="text-primary hover:underline">contacto@saudade.mx</a> o el correo de asistencia alterno <a href="mailto:saudade.app.mx@gmail.com" className="text-primary hover:underline">saudade.app.mx@gmail.com</a>, o bien, en nuestro domicilio ubicado en Tijuana, Baja California, México, C.P. 22117.
+                            Saudade es el responsable del tratamiento de los datos personales que usted nos proporciona. Para cualquier duda o ejercicio de derechos ARCO (Acceso, Rectificación, Cancelación y Oposición), puede contactarnos a través del correo electrónico oficial: <a href="mailto:contacto@saudade.mx" className="text-primary hover:underline">contacto@saudade.mx</a> o el correo de asistencia alterno <a href="mailto:saudade.app.mx@gmail.com" className="text-primary hover:underline">saudade.app.mx@gmail.com</a>, o bien, en nuestro domicilio ubicado en Priv. San Francisco Centro 8705-38, Fracc. Colinas de California, C.P. 22647, Tijuana, Baja California, México.
                         </p>
                     </section>
 

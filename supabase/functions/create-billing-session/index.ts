@@ -164,13 +164,33 @@ serve(async (req) => {
       };
 
       if (isRecurring) {
+        let trialDays = 0;
+        let effectiveEnd = org?.current_period_end;
+        if (!effectiveEnd && org?.subscription_status === 'trialing' && org?.created_at) {
+          const createdDate = new Date(org.created_at);
+          createdDate.setDate(createdDate.getDate() + 30);
+          effectiveEnd = createdDate.toISOString();
+        }
+
+        if (org?.subscription_status === 'trialing' && effectiveEnd) {
+          const end = new Date(effectiveEnd);
+          const now = new Date();
+          trialDays = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        } else if (!org?.subscription_status) {
+          // Fallback for new organizations if status is unset
+          trialDays = 30;
+        }
+
         sessionOpts.subscription_data = {
-          trial_period_days: 30,
           metadata: { 
             organization_id,
             plan_id // passing the slug (pro/clinic)
           }
         };
+
+        if (trialDays > 0) {
+          sessionOpts.subscription_data.trial_period_days = trialDays;
+        }
       }
 
       const session = await stripe.checkout.sessions.create(sessionOpts);

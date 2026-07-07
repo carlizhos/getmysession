@@ -1646,6 +1646,36 @@ const Patients = () => {
                                               </div>
                                             )}
 
+                                            {/* Examen del Estado Mental (MSE) */}
+                                            {note.mental_status && Object.keys(note.mental_status).some(k => Array.isArray((note.mental_status as any)[k]) && (note.mental_status as any)[k].length > 0) && (
+                                              <div className="space-y-2">
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60 block">Examen del Estado Mental (MSE)</span>
+                                                <div className="bg-primary/5 dark:bg-primary/10 p-3.5 rounded-xl border border-primary/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                  {Object.entries(note.mental_status).map(([categoryKey, options]) => {
+                                                    if (!Array.isArray(options) || options.length === 0) return null;
+                                                    const categoryLabels: Record<string, string> = {
+                                                      apariencia: 'Apariencia',
+                                                      actitud: 'Actitud',
+                                                      conciencia: 'Estado de conciencia',
+                                                      orientacion: 'Orientación',
+                                                      lenguaje: 'Lenguaje',
+                                                      pensamiento: 'Pensamiento',
+                                                      percepcion: 'Percepción',
+                                                      animo: 'Estado de ánimo y afecto',
+                                                      riesgo: 'Riesgo'
+                                                    };
+                                                    const label = categoryLabels[categoryKey] || categoryKey;
+                                                    return (
+                                                      <div key={categoryKey} className="text-xs">
+                                                        <span className="font-semibold text-primary block mb-0.5">{label}</span>
+                                                        <span className="text-slate-600 dark:text-slate-400">{options.join(', ')}</span>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </div>
+                                            )}
+
                                             {/* Tareas / Plan de Acción */}
                                             {Array.isArray(note.action_plan) && note.action_plan.length > 0 && (
                                               <div className="space-y-2">

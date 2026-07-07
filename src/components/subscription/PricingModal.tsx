@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { usePricingModal } from '@/hooks/useSubscription';
+import { usePricingModal, useSubscription } from '@/hooks/useSubscription';
 
 // ── Pricing Constants ──────────────────────────────────────────────────────
 const MONTHLY_PRICE = 749;
@@ -27,6 +27,7 @@ const FEATURES = [
 
 export default function PricingModal() {
   const { isOpen, close } = usePricingModal();
+  const { isTrialExpired } = useSubscription();
   const { organization } = useOrganization();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +104,9 @@ export default function PricingModal() {
             Elige tu plan
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
-            Pruébalo gratis 30 días. Cancela cuando quieras, sin compromisos.
+            {isTrialExpired 
+              ? 'Suscríbete al Plan Pro para continuar gestionando tu consultorio clínico.' 
+              : 'Pruébalo gratis 30 días. Cancela cuando quieras, sin compromisos.'}
           </p>
 
           {/* ── Toggle Mensual / Anual ── */}
@@ -238,51 +241,53 @@ export default function PricingModal() {
         </div>
 
         {/* ── Timeline ── */}
-        <div className="px-6 pb-6">
-          <div className="flex items-center gap-0 w-full">
-            {/* Step 1: Today */}
-            <div className="flex-1 flex flex-col items-center text-center group">
-              <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
-                <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        {!isTrialExpired && (
+          <div className="px-6 pb-6 animate-in fade-in duration-300">
+            <div className="flex items-center gap-0 w-full">
+              {/* Step 1: Today */}
+              <div className="flex-1 flex flex-col items-center text-center group">
+                <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
+                  <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
+                <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">Hoy</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
+                  Inicia tu prueba gratis de 30 días
+                </p>
               </div>
-              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
-              <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">Hoy</h4>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
-                Inicia tu prueba gratis de 30 días
-              </p>
-            </div>
 
-            {/* Connector */}
-            <div className="flex-shrink-0 w-8 h-0.5 bg-slate-200 dark:bg-slate-700 -mt-8" />
+              {/* Connector */}
+              <div className="flex-shrink-0 w-8 h-0.5 bg-slate-200 dark:bg-slate-700 -mt-8" />
 
-            {/* Step 2: Reminder */}
-            <div className="flex-1 flex flex-col items-center text-center group">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
-                <Bell className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+              {/* Step 2: Reminder */}
+              <div className="flex-1 flex flex-col items-center text-center group">
+                <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
+                  <Bell className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                </div>
+                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
+                <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">{formatDate(reminderDate)}</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
+                  Te avisaremos 7 días antes
+                </p>
               </div>
-              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
-              <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">{formatDate(reminderDate)}</h4>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
-                Te avisaremos 7 días antes
-              </p>
-            </div>
 
-            {/* Connector */}
-            <div className="flex-shrink-0 w-8 h-0.5 bg-slate-200 dark:bg-slate-700 -mt-8" />
+              {/* Connector */}
+              <div className="flex-shrink-0 w-8 h-0.5 bg-slate-200 dark:bg-slate-700 -mt-8" />
 
-            {/* Step 3: Charge */}
-            <div className="flex-1 flex flex-col items-center text-center group">
-              <div className="flex items-center justify-center w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
-                <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              {/* Step 3: Charge */}
+              <div className="flex-1 flex flex-col items-center text-center group">
+                <div className="flex items-center justify-center w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10 group-hover:scale-110 transition-transform">
+                  <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
+                <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">{formatDate(chargeDate)}</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
+                  Se cobra si no cancelas
+                </p>
               </div>
-              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent -mt-5 mb-5" />
-              <h4 className="font-bold text-slate-800 dark:text-white text-xs mt-2">{formatDate(chargeDate)}</h4>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-tight max-w-[140px]">
-                Se cobra si no cancelas
-              </p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ── CTA + Footer ── */}
         <div className="px-6 pb-8">
@@ -290,14 +295,21 @@ export default function PricingModal() {
           <div className="flex items-center justify-between mb-3 px-1">
             <div>
               <p className="text-xs text-slate-400">A pagar hoy</p>
-              <p className="text-lg font-black text-slate-900 dark:text-white">MX$0 <span className="text-xs font-normal text-slate-400">(30 días gratis)</span></p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Después del {formatDate(chargeDate)}</p>
-              <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                MX${selectedPrice.toLocaleString()}{selectedLabel}
+              <p className="text-lg font-black text-slate-900 dark:text-white">
+                {isTrialExpired 
+                  ? `MX$${selectedPrice.toLocaleString()}` 
+                  : 'MX$0'}
+                {!isTrialExpired && <span className="text-xs font-normal text-slate-400"> (30 días gratis)</span>}
               </p>
             </div>
+            {!isTrialExpired && (
+              <div className="text-right">
+                <p className="text-xs text-slate-400">Después del {formatDate(chargeDate)}</p>
+                <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                  MX${selectedPrice.toLocaleString()}{selectedLabel}
+                </p>
+              </div>
+            )}
           </div>
 
           <Button
@@ -308,7 +320,7 @@ export default function PricingModal() {
             {isLoading ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</>
             ) : (
-              <><Sparkles className="w-5 h-5" /> Comenzar 30 días gratis</>
+              <><Sparkles className="w-5 h-5" /> {isTrialExpired ? 'Suscribirse al Plan Pro' : 'Comenzar 30 días gratis'}</>
             )}
           </Button>
 
