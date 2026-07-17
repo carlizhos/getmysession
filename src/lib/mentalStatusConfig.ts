@@ -73,3 +73,21 @@ export const DEFAULT_MSE_CATEGORIES: MSECategory[] = [
     ]
   }
 ];
+
+/**
+ * Resolves a human-readable label for an MSE category id.
+ * Priority: customCategories → DEFAULT_MSE_CATEGORIES → capitalized id fallback.
+ */
+export function getMSECategoryLabel(
+  categoryId: string,
+  customCategories?: MSECategory[]
+): string {
+  if (customCategories && Array.isArray(customCategories)) {
+    const custom = customCategories.find((c) => c.id === categoryId);
+    if (custom) return custom.label;
+  }
+  const defaultCat = DEFAULT_MSE_CATEGORIES.find((c) => c.id === categoryId);
+  if (defaultCat) return defaultCat.label;
+  // Fallback: capitalize the id
+  return categoryId.charAt(0).toUpperCase() + categoryId.slice(1);
+}

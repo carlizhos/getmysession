@@ -124,6 +124,14 @@ const Auth = () => {
         if (plan === 'pro_monthly' || plan === 'pro_annual') {
             localStorage.setItem('saudade_selected_plan', plan);
         }
+
+        // Save referral code from invite link
+        const ref = params.get('ref');
+        if (ref) {
+            localStorage.setItem('saudade_ref_code', ref.toUpperCase());
+            // Auto-switch to registration if coming from a referral link
+            if (isLogin) setIsLogin(false);
+        }
     }, []);
 
     // Handle the credential returned by Google GSI

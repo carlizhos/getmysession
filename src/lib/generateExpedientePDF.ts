@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { format, differenceInYears, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getMSECategoryLabel, MSECategory } from '@/lib/mentalStatusConfig';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 export interface PatientData {
@@ -416,22 +417,10 @@ export function generateExpedientePDF(
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(40, 40, 40);
 
-            const categoryLabels: Record<string, string> = {
-                apariencia: 'Apariencia',
-                actitud: 'Actitud',
-                conciencia: 'Estado de conciencia',
-                orientacion: 'Orientación',
-                lenguaje: 'Lenguaje',
-                pensamiento: 'Pensamiento',
-                percepcion: 'Percepción',
-                animo: 'Estado de ánimo y afecto',
-                riesgo: 'Riesgo'
-            };
-
             const mseLines: string[] = [];
             Object.entries(note.mental_status).forEach(([catKey, options]) => {
                 if (Array.isArray(options) && options.length > 0) {
-                    const label = categoryLabels[catKey] || catKey;
+                    const label = getMSECategoryLabel(catKey);
                     mseLines.push(`• ${label}: ${options.join(', ')}`);
                 }
             });

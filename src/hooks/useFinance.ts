@@ -4,18 +4,17 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
-export const useFinanceData = (organizationId?: string) => {
+export const useFinanceData = (organizationId?: string, selectedDate: Date = new Date()) => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['finance', organizationId, user?.id],
+    queryKey: ['finance', organizationId, user?.id, selectedDate.toISOString().substring(0, 7)],
     queryFn: async () => {
       if (!organizationId || !user?.id) return null;
 
-      const now = new Date();
-      const start = startOfMonth(now).toISOString();
-      const end = endOfMonth(now).toISOString();
-      const lastMonth = subMonths(now, 1);
+      const start = startOfMonth(selectedDate).toISOString();
+      const end = endOfMonth(selectedDate).toISOString();
+      const lastMonth = subMonths(selectedDate, 1);
       const lastStart = startOfMonth(lastMonth).toISOString();
       const lastEnd = endOfMonth(lastMonth).toISOString();
 

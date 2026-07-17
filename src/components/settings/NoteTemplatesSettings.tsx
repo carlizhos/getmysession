@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { 
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   FileText, 
   Plus, 
@@ -30,11 +31,17 @@ import {
   Eye as EyeIcon, 
   BookOpen, 
   Settings as SettingsIcon,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert,
+  RotateCcw,
+  Save,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { NoteTemplate } from '@/types';
+import { DEFAULT_MSE_CATEGORIES, MSECategory } from '@/lib/mentalStatusConfig';
+import { supabase } from '@/lib/supabase';
 
 const TEMPLATE_SECTIONS: { key: string; label: string; icon: React.ElementType; description: string }[] = [
   { key: 'mood', label: 'Estado de Ánimo', icon: Brain, description: 'Slider 1-100 con notas' },
@@ -61,7 +68,7 @@ const TEMPLATE_COLORS: { value: string; bg: string; text: string }[] = [
 
 export default function NoteTemplatesSettings() {
   const { user } = useAuth();
-  const { organization } = useOrganization();
+  const { organization, refresh: refreshOrganization, isAdmin } = useOrganization();
 
   const { data: noteTemplates = [], isLoading: isLoadingTemplates } = useNoteTemplatesQuery(user?.id);
   const saveTemplateMutation = useSaveNoteTemplateMutation();
@@ -70,6 +77,111 @@ export default function NoteTemplatesSettings() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<NoteTemplate | null>(null);
   const [templateView, setTemplateView] = useState<'system' | 'custom'>('system');
+
+  // ── MSE Configuration State ───────────────────────────────────────────
+  const getInitialMSECategories = useCallback((): MSECategory[] => {
+    try {
+      const config = (organization?.settings as any)?.mental_status_config;
+      if (config?.categories && Array.isArray(config.categories) && config.categories.length > 0) {
+        return config.categories;
+      }
+    } catch (e) { /* fallback to defaults */ }
+    return DEFAULT_MSE_CATEGORIES;
+  }, [organization]);
+
+  const [mseCategories, setMseCategories] = useState<MSECategory[]>(getInitialMSECategories);
+  const [mseSelectedId, setMseSelectedId] = useState<string | null>(null);
+  const [mseNewOption, setMseNewOption] = useState('');
+  const [mseDirty, setMseDirty] = useState(false);
+  const [mseSaving, setMseSaving] = useState(false);
+  const [mseShowPreview, setMseShowPreview] = useState(false);
+
+  useEffect(() => {
+    setMseCategories(getInitialMSECategories());
+    setMseDirty(false);
+  }, [organization, getInitialMSECategories]);
+
+  // Auto-select first category
+  useEffect(() => {
+    if (!mseSelectedId && mseCategories.length > 0) {
+      setMseSelectedId(mseCategories[0].id);
+    }
+  }, [mseCategories, mseSelectedId]);
+
+  const mseSelectedCategory = mseCategories.find(c => c.id === mseSelectedId) || null;
+
+  const handleMseUpdateCategory = (categoryId: string, updates: Partial<MSECategory>) => {
+    setMseCategories(prev => prev.map(c => c.id === categoryId ? { ...c, ...updates } : c));
+    setMseDirty(true);
+  };
+
+  const handleMseAddOption = (categoryId: string) => {
+    const trimmed = mseNewOption.trim();
+    if (!trimmed) return;
+    setMseCategories(prev => prev.map(c => {
+      if (c.id !== categoryId) return c;
+      if (c.options.includes(trimmed)) { toast.error('Esta opción ya existe.'); return c; }
+      return { ...c, options: [...c.options, trimmed] };
+    }));
+    setMseNewOption('');
+    setMseDirty(true);
+  };
+
+  const handleMseRemoveOption = (categoryId: string, option: string) => {
+    setMseCategories(prev => prev.map(c =>
+      c.id === categoryId ? { ...c, options: c.options.filter(o => o !== option) } : c
+    ));
+    setMseDirty(true);
+  };
+
+  const handleMseAddCategory = () => {
+    const newId = `cat_${Date.now()}`;
+    const newCat: MSECategory = { id: newId, label: 'Nueva Categoría', options: [] };
+    setMseCategories(prev => [...prev, newCat]);
+    setMseSelectedId(newId);
+    setMseDirty(true);
+  };
+
+  const handleMseDeleteCategory = (categoryId: string) => {
+    setMseCategories(prev => {
+      const next = prev.filter(c => c.id !== categoryId);
+      if (mseSelectedId === categoryId) {
+        setMseSelectedId(next.length > 0 ? next[0].id : null);
+      }
+      return next;
+    });
+    setMseDirty(true);
+  };
+
+  const handleMseReset = () => {
+    setMseCategories(DEFAULT_MSE_CATEGORIES.map(c => ({ ...c, options: [...c.options] })));
+    setMseSelectedId(DEFAULT_MSE_CATEGORIES[0]?.id || null);
+    setMseDirty(true);
+  };
+
+  const handleMseSave = async () => {
+    if (!organization?.id) return;
+    setMseSaving(true);
+    try {
+      const orgSettings = {
+        ...((organization.settings as any) || {}),
+        mental_status_config: { categories: mseCategories }
+      };
+      const { error } = await supabase
+        .from('organizations')
+        .update({ settings: orgSettings })
+        .eq('id', organization.id);
+      if (error) throw error;
+      await refreshOrganization();
+      setMseDirty(false);
+      toast.success('Configuración del Examen Mental guardada.');
+    } catch (err: any) {
+      console.error('Error saving MSE config:', err);
+      toast.error('Error al guardar: ' + err.message);
+    } finally {
+      setMseSaving(false);
+    }
+  };
 
   const handleSaveTemplate = async (templateData: NoteTemplate) => {
     if (!user || !organization) return;
@@ -285,6 +397,218 @@ export default function NoteTemplatesSettings() {
               <FileText className="h-3 w-3" />
               Las plantillas del sistema están optimizadas para cada enfoque terapéutico. Crea las tuyas para personalizar tu flujo de trabajo.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── MSE Configuration Panel ────────────────────────────────────── */}
+      <Card variant="flat" className="border border-border">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <ShieldAlert className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Examen del Estado Mental (MSE)
+                  {mseDirty && (
+                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-1 border-amber-300 text-amber-600 bg-amber-50">
+                      Sin guardar
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>Personaliza las categorías y opciones del checklist clínico que aparece en tus notas de sesión</CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+                onClick={() => setMseShowPreview(!mseShowPreview)}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {mseShowPreview ? 'Ocultar Vista Previa' : 'Vista Previa'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Master–Detail Layout */}
+          <div className="flex flex-col lg:flex-row gap-4 min-h-[340px]">
+            {/* Left: Category List */}
+            <div className="w-full lg:w-56 shrink-0 space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2 block">Categorías</Label>
+              <div className="space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                {mseCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setMseSelectedId(cat.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all group",
+                      mseSelectedId === cat.id
+                        ? "bg-primary/10 border border-primary/30 shadow-sm"
+                        : "hover:bg-muted/30 border border-transparent"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-2 w-2 rounded-full shrink-0 transition-colors",
+                      mseSelectedId === cat.id ? "bg-primary" : "bg-muted-foreground/20"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-bold truncate flex-1",
+                      mseSelectedId === cat.id ? "text-primary" : "text-foreground/70"
+                    )}>{cat.label}</span>
+                    <Badge variant="secondary" className="text-[8px] h-4 px-1 shrink-0 font-mono">
+                      {cat.options.length}
+                    </Badge>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleMseDeleteCategory(cat.id); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      title="Eliminar categoría"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 text-[10px] h-8 font-bold mt-2 border-dashed"
+                onClick={handleMseAddCategory}
+              >
+                <Plus className="h-3 w-3" /> Nueva Categoría
+              </Button>
+            </div>
+
+            {/* Right: Category Detail */}
+            <div className="flex-1 rounded-2xl border border-border bg-muted/5 p-5">
+              {mseSelectedCategory ? (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  {/* Category Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Nombre de la Categoría</Label>
+                    <Input
+                      value={mseSelectedCategory.label}
+                      onChange={(e) => handleMseUpdateCategory(mseSelectedCategory.id, { label: e.target.value })}
+                      className="h-10 text-sm font-semibold bg-card"
+                      placeholder="Ej. Apariencia"
+                    />
+                  </div>
+
+                  {/* Options */}
+                  <div className="space-y-2.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                      Opciones ({mseSelectedCategory.options.length})
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {mseSelectedCategory.options.map((option) => (
+                        <div
+                          key={option}
+                          className="group/tag flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-medium text-foreground/80 hover:border-destructive/30 transition-all"
+                        >
+                          <span>{option}</span>
+                          <button
+                            onClick={() => handleMseRemoveOption(mseSelectedCategory.id, option)}
+                            className="opacity-40 group-hover/tag:opacity-100 hover:text-destructive transition-all p-0.5 rounded-full hover:bg-destructive/10"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {mseSelectedCategory.options.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic py-2">Sin opciones. Agrega al menos una opción para esta categoría.</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Input
+                        value={mseNewOption}
+                        onChange={(e) => setMseNewOption(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleMseAddOption(mseSelectedCategory.id);
+                          }
+                        }}
+                        placeholder="Escribe una opción nueva..."
+                        className="h-9 text-xs flex-1 bg-card"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 gap-1.5 text-xs font-bold shrink-0"
+                        onClick={() => handleMseAddOption(mseSelectedCategory.id)}
+                        disabled={!mseNewOption.trim()}
+                      >
+                        <Plus className="h-3 w-3" /> Agregar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                  <ShieldAlert className="h-10 w-10 text-muted-foreground/15 mb-3" />
+                  <p className="text-sm text-muted-foreground font-medium">Selecciona una categoría para editar sus opciones</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          {mseShowPreview && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/[0.02] p-5 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2 mb-4">
+                <Eye className="h-4 w-4 text-primary/60" />
+                <span className="text-xs font-black uppercase tracking-widest text-primary/60">Vista Previa — Así se verá en la nota</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mseCategories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="p-3.5 rounded-xl border border-border/60 bg-card space-y-2.5"
+                  >
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-primary border-b border-border/40 pb-1.5">
+                      {category.label}
+                    </h4>
+                    <div className="space-y-1.5">
+                      {category.options.map((option) => (
+                        <div key={option} className="flex items-center gap-2">
+                          <Checkbox disabled className="h-3.5 w-3.5" />
+                          <span className="text-[11px] text-foreground/70 font-medium">{option}</span>
+                        </div>
+                      ))}
+                      {category.options.length === 0 && (
+                        <span className="text-[10px] text-muted-foreground italic">Sin opciones</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-3 border-t border-border/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+              onClick={handleMseReset}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Restablecer Predeterminados
+            </Button>
+            <Button
+              variant="zen"
+              size="sm"
+              className="gap-1.5 text-xs font-bold px-6"
+              onClick={handleMseSave}
+              disabled={!mseDirty || mseSaving}
+            >
+              {mseSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {mseSaving ? 'Guardando...' : 'Guardar Configuración'}
+            </Button>
           </div>
         </CardContent>
       </Card>

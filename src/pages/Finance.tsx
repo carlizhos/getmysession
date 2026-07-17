@@ -46,6 +46,7 @@ import {
   Mail,
   ExternalLink,
   Plus,
+  Search,
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,6 +58,14 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import PaymentModal from '@/components/finance/PaymentModal';
 import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
 import { useFinanceData } from '@/hooks/useFinance';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Appointment {
   id: string;
@@ -142,8 +151,20 @@ const Finance = () => {
   const { user } = useAuth();
   const { organization } = useOrganization();
   
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfMonth(new Date()));
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Generate the last 12 months for the dropdown selector
+  const monthOptions = Array.from({ length: 12 }).map((_, i) => {
+    const d = startOfMonth(subMonths(new Date(), i));
+    return {
+      value: d.toISOString(),
+      label: format(d, "MMMM yyyy", { locale: es }),
+    };
+  });
+  
   // React Query Hook
-  const { data: financeData, isLoading, refetch: fetchData } = useFinanceData(organization?.id);
+  const { data: financeData, isLoading, refetch: fetchData } = useFinanceData(organization?.id, selectedDate);
   const appointments = financeData?.appointments || [];
   const payments = financeData?.payments || [];
   const feeConfig = financeData?.feeConfig || { porcentaje_consultorio: 30, stripe_fee_percent: 5.14 };
@@ -225,6 +246,74 @@ const Finance = () => {
     }
   };
 
+  const handleExportToExcel = () => {
+    try {
+      if (filteredPaidPayments.length === 0) {
+        toast.error('No hay cobros para exportar con los filtros actuales');
+        return;
+      }
+
+      // CSV headers
+      const headers = [
+        'Fecha de Pago',
+        'Paciente',
+        'Categoria',
+        'Metodo de Pago',
+        'Monto Bruto (MXN)',
+        'Comision Pasarela (MXN)',
+        'Monto Neto (MXN)',
+        'Comision Consultorio (%)',
+        'Comision Consultorio (MXN)',
+        'Ganancia Especialista (MXN)',
+        'Notas'
+      ];
+
+      // Build rows
+      const rows = filteredPaidPayments.map(p => {
+        const m = (p.method || 'stripe') as PaymentMethod;
+        const isStripe = m === 'stripe';
+        const stripeFee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
+        const neto = p.amount - stripeFee;
+        const pct = getPaymentCommission(p);
+        const consultorio = neto * (pct / 100);
+        const psicologo = neto - consultorio;
+        const dateStr = format(parseISO(p.paid_at || p.created_at), "yyyy-MM-dd HH:mm");
+        const methodLabel = METHOD_LABELS[m] || m;
+
+        return [
+          dateStr,
+          `"${p.patient_name.replace(/"/g, '""')}"`,
+          `"${(p.category || 'sesion').replace(/"/g, '""')}"`,
+          `"${methodLabel.replace(/"/g, '""')}"`,
+          p.amount.toFixed(2),
+          stripeFee.toFixed(2),
+          neto.toFixed(2),
+          `${pct}%`,
+          consultorio.toFixed(2),
+          psicologo.toFixed(2),
+          `"${(p.notes || '').replace(/"/g, '""')}"`
+        ];
+      });
+
+      // Combine headers and rows with UTF-8 BOM so Excel opens it correctly with Spanish accents
+      const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+      // Trigger browser download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `ingresos_saudade_${format(selectedDate, 'yyyy-MM')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Reporte de ingresos exportado con éxito');
+    } catch (err) {
+      console.error('Error al exportar ingresos:', err);
+      toast.error('Ocurrió un error al exportar los ingresos');
+    }
+  };
+
   // ── Delta badge helper ────────────────────────────────────────────────
   const DeltaBadge = ({ current, previous }: { current: number; previous: number }) => {
     if (previous === 0 && current === 0) return null;
@@ -279,6 +368,14 @@ const Finance = () => {
 
   // ── Derivados de pagos (con método) ────────────────────────────────────
   const paidPayments = payments.filter(p => p.status === 'paid');
+
+  // Filtros locales aplicados por búsqueda
+  const filteredPaidPayments = paidPayments.filter(p =>
+    p.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredPending = pending.filter(a =>
+    a.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const byMethod = (method: PaymentMethod) =>
     paidPayments.filter(p => p.method === method || (!p.method && method === 'stripe'));
@@ -446,19 +543,70 @@ const Finance = () => {
             <div className="space-y-0.5">
               <h1 className="text-2xl font-black tracking-tight text-foreground">Finanzas</h1>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">
-                Gestión financiera · {format(new Date(), "MMMM yyyy", { locale: es })}
+                Gestión financiera · {format(selectedDate, "MMMM yyyy", { locale: es })}
               </p>
             </div>
           </div>
 
-          <Button 
-            variant="zen" 
-            className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all" 
-            onClick={() => setIsNewIncomeOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo Ingreso Manual</span>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all border border-border"
+              onClick={handleExportToExcel}
+            >
+              <Download className="h-4 w-4 text-muted-foreground" />
+              <span>Exportar Excel</span>
+            </Button>
+            <Button 
+              variant="zen" 
+              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all" 
+              onClick={() => setIsNewIncomeOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo Ingreso Manual</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Filtros de Finanzas */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-soft animate-in fade-in duration-500">
+          <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
+            {/* Buscador de Pacientes */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente por nombre..."
+                className="pl-9 h-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Selector de Mes */}
+            <Select
+              value={selectedDate.toISOString()}
+              onValueChange={(val) => setSelectedDate(new Date(val))}
+            >
+              <SelectTrigger className="w-full sm:w-48 h-10">
+                <SelectValue placeholder="Seleccionar mes" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="capitalize">{opt.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="text-xs text-muted-foreground font-medium bg-muted/30 px-3 py-1.5 rounded-lg border border-border/40">
+            {searchQuery ? (
+              <span>Mostrando {filteredPaidPayments.length} de {paidPayments.length} cobros filtrados</span>
+            ) : (
+              <span>Mes con {paidPayments.length} cobros registrados</span>
+            )}
+          </div>
         </div>
 
         {/* KPI row */}
@@ -785,13 +933,13 @@ const Finance = () => {
               if (sectionId === 'sesiones') return (
                 <SortableSection key="sesiones" id="sesiones">
                   <Card variant="default">
-                    <Tabs defaultValue={pending.length > 0 ? 'pendientes' : 'cobros'}>
+                    <Tabs defaultValue={filteredPending.length > 0 ? 'pendientes' : 'cobros'}>
                       <CardHeader>
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0">
                             <CardTitle>Sesiones</CardTitle>
                             <CardDescription>
-                              {format(new Date(), 'MMMM yyyy', { locale: es })}
+                              {format(selectedDate, 'MMMM yyyy', { locale: es })}
                             </CardDescription>
                           </div>
                           {!collapsed['sesiones'] && (
@@ -799,18 +947,18 @@ const Finance = () => {
                               <TabsTrigger value="pendientes" className="flex-1 gap-1.5">
                                 <Clock className="h-3.5 w-3.5" />
                                 Pendientes
-                                {pending.length > 0 && (
+                                {filteredPending.length > 0 && (
                                   <span className="ml-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning text-warning-foreground text-[10px] font-bold px-1">
-                                    {pending.length}
+                                    {filteredPending.length}
                                   </span>
                                 )}
                               </TabsTrigger>
                               <TabsTrigger value="cobros" className="flex-1 gap-1.5">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 Cobrados
-                                {paidPayments.length > 0 && (
+                                {filteredPaidPayments.length > 0 && (
                                   <span className="ml-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-success text-success-foreground text-[10px] font-bold px-1">
-                                    {paidPayments.length}
+                                    {filteredPaidPayments.length}
                                   </span>
                                 )}
                               </TabsTrigger>
@@ -829,14 +977,14 @@ const Finance = () => {
                         <>
                           <TabsContent value="pendientes" className="mt-0">
                             <CardContent className="pt-4">
-                              {pending.length === 0 ? (
+                              {filteredPending.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <CheckCircle2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                                  <p>¡Todo cobrado! Sin pendientes este mes.</p>
+                                  <p>No hay pendientes este mes.</p>
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  {pending.map(apt => (
+                                  {filteredPending.map(apt => (
                                     <div key={apt.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl bg-warning/5 border border-warning/20">
                                       <div>
                                         <p className="font-medium">{apt.patient_name}</p>
@@ -865,14 +1013,14 @@ const Finance = () => {
                                 <div className="flex justify-center py-8">
                                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 </div>
-                              ) : paidPayments.length === 0 ? (
+                              ) : filteredPaidPayments.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
                                   <p>Sin cobros registrados este mes</p>
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  {paidPayments.map((p, index) => {
+                                  {filteredPaidPayments.map((p, index) => {
                                     const m = (p.method || 'stripe') as PaymentMethod;
                                     const isStripe = m === 'stripe';
                                     const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;

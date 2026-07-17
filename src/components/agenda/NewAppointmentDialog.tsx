@@ -22,7 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles } from 'lucide-react';
+import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -115,6 +115,7 @@ const NewAppointmentDialog = ({
     const [confirmCancel, setConfirmCancel] = useState(false);
     const [services, setServices] = useState<any[]>([]);
     const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [copiedLink, setCopiedLink] = useState(false);
 
     const [specialistName, setSpecialistName] = useState('');
     const [porcentajeGlobal, setPorcentajeGlobal] = useState<number>(30);
@@ -1181,17 +1182,44 @@ const NewAppointmentDialog = ({
                                 {/* Link de videollamada */}
                                 <div className="space-y-2">
                                     <Label htmlFor="meetingLink">Link de Videollamada (Opcional)</Label>
-                                    <div className="relative">
-                                        <Video className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="meetingLink"
-                                            type="url"
-                                            placeholder="https://zoom.us/j/... o https://meet.google.com/..."
-                                            className="pl-9"
-                                            value={formData.meetingLink}
-                                            onChange={(e) => !isReadOnly && setFormData({ ...formData, meetingLink: e.target.value })}
-                                            disabled={isSubmitting || isReadOnly}
-                                        />
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Video className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="meetingLink"
+                                                type="url"
+                                                placeholder="https://zoom.us/j/... o https://meet.google.com/..."
+                                                className="pl-9"
+                                                value={formData.meetingLink}
+                                                onChange={(e) => !isReadOnly && setFormData({ ...formData, meetingLink: e.target.value })}
+                                                disabled={isSubmitting || isReadOnly}
+                                            />
+                                        </div>
+                                        {formData.meetingLink && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-10 w-10 shrink-0"
+                                                onClick={async () => {
+                                                    try {
+                                                        await navigator.clipboard.writeText(formData.meetingLink);
+                                                        setCopiedLink(true);
+                                                        toast.success('Enlace de videollamada copiado');
+                                                        setTimeout(() => setCopiedLink(false), 2000);
+                                                    } catch (err) {
+                                                        toast.error('Error al copiar el enlace');
+                                                    }
+                                                }}
+                                                title="Copiar enlace"
+                                            >
+                                                {copiedLink ? (
+                                                    <Check className="h-4 w-4 text-emerald-500" />
+                                                ) : (
+                                                    <Copy className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         Puedes agregar el link después de crear la reunión en Zoom o Meet

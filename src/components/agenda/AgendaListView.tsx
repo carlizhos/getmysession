@@ -18,9 +18,11 @@ import {
     ChevronUp,
     ExternalLink,
     Calendar,
+    Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
+import { toast } from 'sonner';
 
 import { Appointment } from '@/types';
 
@@ -125,6 +127,21 @@ const AppointmentRow = ({
     onReschedule: (apt: Appointment) => void;
 }) => {
     const [expanded, setExpanded] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyLink = async (e: React.MouseEvent, link: string) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(link);
+            setCopied(true);
+            toast.success('Enlace de videollamada copiado');
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Error copying to clipboard:', err);
+            toast.error('No se pudo copiar el enlace');
+        }
+    };
+
     const cfg = STATUS_CONFIG[apt.status] || STATUS_CONFIG.scheduled;
     const StatusIcon = STATUS_ICON[apt.status] || Clock;
     const startFmt = format(parseISO(apt.start_time), 'hh:mm a');
@@ -290,22 +307,34 @@ const AppointmentRow = ({
                         )}
 
                         {/* Meeting link */}
-                    {/* Meeting link */}
                     {apt.meeting_link && (
                         <div className="sm:col-span-2 md:col-span-3">
                             <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-                                Link
+                                Link de Videollamada
                             </span>
-                            <a
-                                href={apt.meeting_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate"
-                            >
-                                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                                {apt.meeting_link}
-                            </a>
+                            <div className="flex items-center gap-2 max-w-full">
+                                <a
+                                    href={apt.meeting_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate min-w-0 flex-1"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                                    <span className="truncate">{apt.meeting_link}</span>
+                                </a>
+                                <button
+                                    onClick={(e) => handleCopyLink(e, apt.meeting_link!)}
+                                    className="p-1 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors flex-shrink-0"
+                                    title="Copiar enlace"
+                                >
+                                    {copied ? (
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400 animate-in zoom-in duration-200" />
+                                    ) : (
+                                        <Copy className="h-3.5 w-3.5" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     )}
                     </div>

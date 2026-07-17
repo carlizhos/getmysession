@@ -243,6 +243,59 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     full_name: fullName,
                 }, { onConflict: 'id' });
             }
+
+            // 2. Handle referral attribution
+            try {
+                const refCode = localStorage.getItem('saudade_ref_code');
+                if (refCode) {
+                    // Look up the referrer by their referral_code
+                    const { data: referrerProfile } = await supabase
+                        .from('profiles')
+                        .select('id, current_organization_id')
+                        .eq('referral_code', refCode.toUpperCase())
+                        .single();
+
+                    // Anti-fraud: don't allow self-referral
+                    if (referrerProfile && referrerProfile.id !== data.user.id) {
+                        // Set referred_by_id on the new user's profile
+                        await supabase
+                            .from('profiles')
+                            .update({ referred_by_id: referrerProfile.id })
+                            .eq('id', data.user.id);
+
+                        // Read referral program config for expiration
+                        let expirationDays = 90;
+                        if (referrerProfile.current_organization_id) {
+                            const { data: orgData } = await supabase
+                                .from('organizations')
+                                .select('settings')
+                                .eq('id', referrerProfile.current_organization_id)
+                                .single();
+                            if (orgData?.settings?.referral_program?.expiration_days) {
+                                expirationDays = orgData.settings.referral_program.expiration_days;
+                            }
+                        }
+
+                        const expiresAt = new Date();
+                        expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+                        // Create a pending referral record
+                        await supabase.from('referrals').insert({
+                            referrer_id: referrerProfile.id,
+                            referred_id: data.user.id,
+                            status: 'pending',
+                            expires_at: expiresAt.toISOString(),
+                        });
+                    }
+
+                    // Always clean up the ref code from storage
+                    localStorage.removeItem('saudade_ref_code');
+                }
+            } catch (refErr) {
+                // Referral attribution is best-effort; don't block signup
+                console.warn('Referral attribution failed:', refErr);
+                localStorage.removeItem('saudade_ref_code');
+            }
         }
 
         return { error };

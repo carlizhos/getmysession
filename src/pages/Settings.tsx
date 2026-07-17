@@ -13,7 +13,8 @@ import {
   Building2, 
   Plug, 
   CreditCard, 
-  ShieldCheck 
+  ShieldCheck,
+  Share2 
 } from 'lucide-react';
 
 // Subcomponents
@@ -27,8 +28,9 @@ import OrganizationSettings from '@/components/settings/OrganizationSettings';
 import IntegrationSettings from '@/components/settings/IntegrationSettings';
 import SubscriptionTab from '@/components/settings/SubscriptionTab';
 import SecuritySettings from '@/components/settings/SecuritySettings';
+import ReferralsSettings from '@/components/settings/ReferralsSettings';
 
-type TabId = 'perfil' | 'horarios' | 'servicios' | 'preguntas' | 'plantillas' | 'seguridad' | 'organizacion' | 'suscripcion' | 'integraciones' | 'apariencia';
+type TabId = 'perfil' | 'horarios' | 'servicios' | 'preguntas' | 'plantillas' | 'seguridad' | 'organizacion' | 'suscripcion' | 'integraciones' | 'apariencia' | 'referidos';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'perfil', label: 'Perfil Profesional', icon: User },
@@ -41,6 +43,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'integraciones', label: 'Integraciones', icon: Plug },
   { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { id: 'seguridad', label: 'Seguridad y Notificaciones', icon: ShieldCheck },
+  { id: 'referidos', label: 'Recomendar Saudade', icon: Share2 },
 ];
 
 const TAB_GROUPS = [
@@ -54,7 +57,7 @@ const TAB_GROUPS = [
   },
   {
     title: "Administración",
-    tabs: ['organizacion', 'integraciones', 'suscripcion']
+    tabs: ['organizacion', 'integraciones', 'suscripcion', 'referidos']
   }
 ];
 
@@ -169,6 +172,7 @@ export default function Settings() {
               {activeTab === 'integraciones' && <IntegrationSettings />}
               {activeTab === 'suscripcion' && <SubscriptionTab />}
               {activeTab === 'seguridad' && <SecuritySettings />}
+              {activeTab === 'referidos' && <ReferralsSettings />}
             </div>
           </div>
         </div>

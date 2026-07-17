@@ -83,6 +83,7 @@ import AssignTestDialog from '@/components/patients/AssignTestDialog';
 import { PatientHeader } from '@/components/patients/PatientHeader';
 import { PatientClinicalHistory } from '@/components/patients/PatientClinicalHistory';
 import { useOrganization } from '@/hooks/useOrganization';
+import { getMSECategoryLabel } from '@/lib/mentalStatusConfig';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePatientDetails } from '@/hooks/usePatientDetails';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -1653,18 +1654,7 @@ const Patients = () => {
                                                 <div className="bg-primary/5 dark:bg-primary/10 p-3.5 rounded-xl border border-primary/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                                   {Object.entries(note.mental_status).map(([categoryKey, options]) => {
                                                     if (!Array.isArray(options) || options.length === 0) return null;
-                                                    const categoryLabels: Record<string, string> = {
-                                                      apariencia: 'Apariencia',
-                                                      actitud: 'Actitud',
-                                                      conciencia: 'Estado de conciencia',
-                                                      orientacion: 'Orientación',
-                                                      lenguaje: 'Lenguaje',
-                                                      pensamiento: 'Pensamiento',
-                                                      percepcion: 'Percepción',
-                                                      animo: 'Estado de ánimo y afecto',
-                                                      riesgo: 'Riesgo'
-                                                    };
-                                                    const label = categoryLabels[categoryKey] || categoryKey;
+                                                    const label = getMSECategoryLabel(categoryKey, (organization?.settings as any)?.mental_status_config?.categories);
                                                     return (
                                                       <div key={categoryKey} className="text-xs">
                                                         <span className="font-semibold text-primary block mb-0.5">{label}</span>
