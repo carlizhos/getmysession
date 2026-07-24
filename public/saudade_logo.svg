@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  
+  <g fill="none" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    
+    <!-- Brain + speech bubble combined outline -->
+    <path d="
+      M 155,368
+      L 125,412
+      L 205,368
+      H 360
+      Q 390,368 390,338
+      V 248
+      Q 390,218 360,218
+      H 335
+      C 350,208 368,185 362,158
+      C 356,132 338,115 315,108
+      C 295,102 280,110 270,125
+      C 262,136 258,150 256,160
+      C 254,150 250,136 242,125
+      C 232,110 217,102 197,108
+      C 174,115 156,132 150,158
+      C 144,185 162,208 177,218
+      H 152
+      Q 122,218 122,248
+      V 338
+      Q 122,368 152,368
+      Z
+    "/>
+    
+    <!-- Brain fold - right hemisphere (lateral sulcus) -->
+    <path d="M 288,145 Q 325,155 352,140"/>
+    
+    <!-- Brain fold - left hemisphere (lateral sulcus) -->
+    <path d="M 224,145 Q 187,155 160,140"/>
+    
+    <!-- Central fissure -->
+    <line x1="256" y1="218" x2="256" y2="182"/>
+    
+    <!-- Left eye -->
+    <circle cx="212" cy="282" r="12" fill="white" stroke="none"/>
+    
+    <!-- Right eye -->
+    <circle cx="300" cy="282" r="12" fill="white" stroke="none"/>
+    
+    <!-- Smile -->
+    <path d="M 206,324 Q 256,360 306,324"/>
+  </g>
+</svg>

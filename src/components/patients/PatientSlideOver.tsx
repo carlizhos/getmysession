@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
     X, Download, Pencil, Trash2, Loader2,
-    Mail, Phone, Calendar, FileText, Brain,
+    Mail, Phone, Calendar, FileText, Brain, MessageCircle,
     ShieldCheck, FileSignature, CheckCircle2, XCircle,
     AlertTriangle, Plus, History, ShoppingCart, TrendingUp,
     ExternalLink, ClipboardList
@@ -361,9 +361,37 @@ const PatientSlideOver = ({
                                             <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                             <span className="truncate">{patient.email || 'Sin email'}</span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-muted/40">
-                                            <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                            <span>{patient.phone || 'Sin teléfono'}</span>
+                                        <div className="flex flex-col gap-2 p-3 rounded-xl bg-muted/40 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                    <span className="font-medium">{patient.phone || 'Sin teléfono'}</span>
+                                                </div>
+                                                {patient.phone && (
+                                                    <a
+                                                        href={`https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 transition-colors"
+                                                        title="Abrir chat directo en tu app de WhatsApp"
+                                                    >
+                                                        <MessageCircle className="h-3.5 w-3.5" />
+                                                        <span>Abrir en mi WhatsApp</span>
+                                                    </a>
+                                                )}
+                                            </div>
+                                            {patient.phone && (
+                                                <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs text-muted-foreground">
+                                                    <span>Bot y notificaciones activas</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate('/messages')}
+                                                        className="text-primary hover:underline font-medium"
+                                                    >
+                                                        Ver bandeja Saudade →
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Datos NOM-024 */}

@@ -360,6 +360,9 @@ export default function ProfileSettings() {
                   placeholder="+52 55 1234 5678"
                   disabled={updateProfileMutation.isLoading}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Se usa en tus recetas médicas, expedientes PDF y para contacto profesional directo.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="experience_years" className="flex items-center gap-2">

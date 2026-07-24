@@ -452,7 +452,7 @@ serve(async (req) => {
           // Fetch psychologist profile
           const { data: psychologist } = await supabaseClient
             .from("profiles")
-            .select("full_name, notification_settings")
+            .select("full_name, prefix, notification_settings")
             .eq("id", apt.user_id)
             .maybeSingle();
 
@@ -494,12 +494,16 @@ serve(async (req) => {
           const tzLabel = getTimezoneFriendlyLabel(timezone);
 
           const nameOnly = apt.patient_name ? apt.patient_name.split(' ')[0] : 'paciente';
+          const profPrefix = (psychologist?.prefix && psychologist.prefix !== 'none') ? `${psychologist.prefix} ` : '';
+          const profFullName = psychologist?.full_name || '';
+          const profTitle = profFullName ? ` con ${profPrefix}${profFullName}` : '';
+
           let body = "";
           if (apt.modality === 'presencial' && apt.location) {
             const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.location)}`;
-            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} en ${apt.location}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`;
+            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} para tu cita${profTitle} en ${apt.location}. Puedes guiarte con este mapa: ${mapLink}. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
           } else {
-            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
+            body = `¡Hola, ${nameOnly}! ✨ Te esperamos el ${dateStr} a las ${timeStr} ${tzLabel} para tu cita${profTitle}. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`;
           }
 
           let metaMsgId = `MOCK_SID_REM_${Math.random().toString(36).substr(2, 9)}`;
