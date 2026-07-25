@@ -109,6 +109,7 @@ interface EnrichedPatient extends Patient {
     _next_appointment_modality?: string | null;
     _next_appointment_location?: string | null;
     _last_appointment?: string | null;
+    _has_valid_consent?: boolean;
 }
 
 const PATIENT_TABS = [
@@ -278,9 +279,20 @@ const SwipeablePatientCard = ({ patient, onSelect, swipedPatientId, setSwipedPat
               )}>
                 {getInitials(patient.name)}
               </div>
-              <Badge variant="outline" className="text-[9px] uppercase tracking-tighter opacity-60">
-                {patient.status?.replace(/_/g, ' ') || 'Activo'}
-              </Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] uppercase tracking-tighter opacity-60">
+                  {patient.status?.replace(/_/g, ' ') || 'Activo'}
+                </Badge>
+                {patient._has_valid_consent ? (
+                  <Badge className="text-[8px] bg-emerald-500/10 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-500/30 font-semibold">
+                    <FileSignature className="h-2.5 w-2.5 mr-1" /> Legal Completo
+                  </Badge>
+                ) : (
+                  <Badge className="text-[8px] bg-amber-500/10 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-500/30 font-semibold">
+                    <FileSignature className="h-2.5 w-2.5 mr-1" /> Firma Pendiente
+                  </Badge>
+                )}
+              </div>
             </div>
             
             <div className="space-y-1">
@@ -346,6 +358,7 @@ const Patients = () => {
   const notesLoading = isDetailsLoading;
 
   const [isLoading, setIsLoading] = useState(true);
+  const [clinicalStatusFilter, setClinicalStatusFilter] = useState<'all' | 'activo' | 'primer_contacto' | 'seguimiento' | 'alta' | 'consent_pending'>('all');
   const [activeMainTab, setActiveMainTab] = useState('pacientes');
   const [leads, setLeads] = useState<any[]>([]);
   const [isLeadsLoading, setIsLeadsLoading] = useState(false);
@@ -436,6 +449,18 @@ const Patients = () => {
         }
       });
 
+      // Traer consentimientos firmados para el badge legal
+      const { data: consentsData } = await supabase
+        .from('patient_consents')
+        .select('patient_id, is_valid')
+        .eq('organization_id', organization?.id)
+        .eq('is_valid', true);
+
+      const validConsentsMap: Record<string, boolean> = {};
+      (consentsData || []).forEach((c: any) => {
+        if (c.patient_id) validConsentsMap[c.patient_id] = true;
+      });
+
       const enriched: EnrichedPatient[] = (patientsData || []).map((p: Patient) => {
         // Map the array relationship if present (Supabase returns arrays for one-to-many/one-to-one joins)
         const getRelation = (data: any) => Array.isArray(data) ? data[0] : data;
@@ -455,6 +480,7 @@ const Patients = () => {
           _next_appointment_modality: nextByPatient[p.id] ? nextByPatient[p.id].modality : null,
           _next_appointment_location: nextByPatient[p.id] ? nextByPatient[p.id].location : null,
           _last_appointment: lastByPatient[p.id] || null,
+          _has_valid_consent: !!validConsentsMap[p.id],
         };
       });
 
@@ -686,6 +712,15 @@ const Patients = () => {
 
   const filteredPatientsList = patients
     .filter(p => {
+      // Clinical status filter
+      if (clinicalStatusFilter !== 'all') {
+        if (clinicalStatusFilter === 'consent_pending') {
+          if (p._has_valid_consent) return false;
+        } else if (p.status !== clinicalStatusFilter) {
+          return false;
+        }
+      }
+
       if (!searchFilter) return true;
       const search = searchFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
       const name = (p.name || '').toLowerCase();
@@ -2216,7 +2251,24 @@ const Patients = () => {
                       </Button>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Select 
+                        value={clinicalStatusFilter}
+                        onValueChange={(value) => setClinicalStatusFilter(value as any)}
+                      >
+                        <SelectTrigger className="h-10 bg-muted/50 border-border/50 text-[10px] font-bold uppercase tracking-widest rounded-xl px-4 hover:bg-background transition-all min-w-[150px]">
+                          <SelectValue placeholder="Estado Clínico" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/50 shadow-xl">
+                          <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest">Todos los estados</SelectItem>
+                          <SelectItem value="activo" className="text-[10px] font-bold uppercase tracking-widest">Activos</SelectItem>
+                          <SelectItem value="primer_contacto" className="text-[10px] font-bold uppercase tracking-widest">Primer Contacto</SelectItem>
+                          <SelectItem value="seguimiento" className="text-[10px] font-bold uppercase tracking-widest">Seguimiento</SelectItem>
+                          <SelectItem value="alta" className="text-[10px] font-bold uppercase tracking-widest">Alta Clínica</SelectItem>
+                          <SelectItem value="consent_pending" className="text-[10px] font-bold uppercase tracking-widest">📜 Firma Pendiente</SelectItem>
+                        </SelectContent>
+                      </Select>
+
                       <Select 
                         value={sortBy}
                         onValueChange={(value) => {
