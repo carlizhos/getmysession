@@ -204,10 +204,17 @@ const AgendaPage = () => {
     }
   };
 
+  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'pending_payment' | 'presencial' | 'online'>('all');
+
   const getAppointmentsForDay = (date: Date) => {
-    return appointments.filter(apt =>
-      isSameDay(parseISO(apt.start_time), date)
-    );
+    return appointments.filter(apt => {
+      if (!isSameDay(parseISO(apt.start_time), date)) return false;
+      if (statusFilter === 'confirmed') return apt.status === 'confirmed';
+      if (statusFilter === 'pending_payment') return apt.payment_status === 'pending';
+      if (statusFilter === 'presencial') return apt.modality === 'presencial';
+      if (statusFilter === 'online') return apt.modality === 'online';
+      return true;
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -364,6 +371,54 @@ const AgendaPage = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+
+        {/* Quick Filter Bar */}
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          <Button
+            size="sm"
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('all')}
+            className="text-xs h-7 rounded-full px-3"
+          >
+            Todas las citas
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'confirmed' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('confirmed')}
+            className="text-xs h-7 rounded-full px-3 gap-1.5 border-emerald-500/30 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Confirmadas por WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'pending_payment' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('pending_payment')}
+            className="text-xs h-7 rounded-full px-3 gap-1.5 border-amber-500/30 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+          >
+            <CircleDollarSign className="h-3 w-3 text-amber-600" />
+            Pendientes de Pago
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'presencial' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('presencial')}
+            className="text-xs h-7 rounded-full px-3 gap-1.5"
+          >
+            <MapPin className="h-3 w-3 text-primary" />
+            Presencial
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'online' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('online')}
+            className="text-xs h-7 rounded-full px-3 gap-1.5"
+          >
+            <Video className="h-3 w-3 text-primary" />
+            Online
+          </Button>
         </div>
 
         {/* Calendar Navigation */}

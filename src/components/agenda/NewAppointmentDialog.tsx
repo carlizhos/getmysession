@@ -1001,7 +1001,20 @@ const NewAppointmentDialog = ({
                             <Label htmlFor="type">Tipo de Sesión</Label>
                             <Select
                                 value={formData.type}
-                                onValueChange={(value) => !isReadOnly && setFormData({ ...formData, type: value })}
+                                onValueChange={(value) => {
+                                    if (isReadOnly) return;
+                                    if (value === 'block') {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            type: value,
+                                            patientName: prev.patientName || 'Bloqueo de Horario / Tiempo Personal',
+                                            color: 'slate',
+                                            fee: '0',
+                                        }));
+                                    } else {
+                                        setFormData(prev => ({ ...prev, type: value }));
+                                    }
+                                }}
                                 disabled={isReadOnly}
                             >
                                 <SelectTrigger>
@@ -1013,6 +1026,7 @@ const NewAppointmentDialog = ({
                                     <SelectItem value="group">Sesión Grupal</SelectItem>
                                     <SelectItem value="initial">Consulta Inicial</SelectItem>
                                     <SelectItem value="follow_up">Seguimiento</SelectItem>
+                                    <SelectItem value="block">🚫 Bloqueo de Horario / Tiempo Personal</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
