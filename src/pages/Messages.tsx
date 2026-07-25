@@ -49,15 +49,22 @@ const MESSAGE_TEMPLATES = [
 ];
 
 function getTemplateMessage(templateId: string, name: string): string {
+  // Format name in Title Case (e.g. "ana flores" -> "Ana Flores")
+  const cleanName = (name || '').trim();
+  const formattedName = cleanName 
+    ? cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    : 'Paciente';
+  const firstName = formattedName.split(' ')[0];
+
   const templates: Record<string, string> = {
-    reminder_short: `¡Hola, ${name}! ✨ Te esperamos el [Fecha] a las [Hora] para nuestra cita. Estamos listos para recibirte. Si necesitas cambiar algo, por favor avísanos. ¡Nos vemos pronto!`,
-    reminder_presential: `¡Hola, ${name}! ✨ Te esperamos el [Fecha] a las [Hora] en [Dirección/Lugar]. Puedes guiarte con este mapa: [Link de Google Maps]. Si necesitas algo, aquí estamos. ¡Qué ganas de verte!`,
-    payment_reminder: `¡Hola, ${name}! Un recordatorio amable: tu pago por sesión vence el [Fecha]. Si ya lo realizaste, ignora este mensaje. ¡Gracias por tu confianza!`,
-    reactivation: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: [Enlace]. ¡Será un gusto volver a coincidir!`,
-    task_reminder: `¡Hola, ${name}! Paso a recordarte que tienes pendiente completar: [Nombre de la tarea] para el [Fecha]. ¡Cada avance cuenta! Estamos aquí para cualquier duda.`,
-    followup_short: `¡Hola, ${name}! Esperamos que hayas disfrutado tu experiencia hoy. ¿Todo bien con tu sesión? Si tienes alguna duda o comentario, nos encantaría escucharte. ¡Gracias!`,
-    birthday_congrats: `¡Feliz cumpleaños, ${name}! ✨ Celebramos tu vida y nos da mucha alegría acompañarte. Que este año sea increíble y esté lleno de momentos bonitos. ¡Disfruta mucho tu día! 🎂🤍`,
-    test: `Hola ${name}, te comparto el enlace para completar tu prueba psicológica. Es rápida y nos ayudará mucho en tu proceso. 📋`,
+    reminder_short: `¡Hola, ${firstName}! ✨ Te esperamos el [Fecha] a las [Hora] para tu cita. Estamos listos para recibirte. Si necesitas confirmar o realizar algún cambio, responde a este mensaje. ¡Nos vemos pronto!`,
+    reminder_presential: `¡Hola, ${firstName}! ✨ Te esperamos el [Fecha] a las [Hora] en [Dirección/Lugar]. Puedes guiarte con este mapa: [Link de Google Maps]. Si tienes alguna duda, puedes responder directamente aquí. ¡Qué ganas de verte!`,
+    payment_reminder: `¡Hola, ${firstName}! 🌿 Esperamos que estés muy bien. Te compartimos el recordatorio amable de tu saldo por las sesiones realizadas ($[Monto] MXN).\n\n💳 Puedes realizar tu pago de forma segura aquí: [Link de Pago]\n\nO si realizaste transferencia, puedes responder a este mensaje adjuntando tu comprobante. ¡Muchas gracias por tu confianza!`,
+    reactivation: `¡Hola, ${firstName}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Puedes consultar la disponibilidad de agenda aquí: [Enlace]. ¡Será un gusto volver a coincidir!`,
+    task_reminder: `¡Hola, ${firstName}! Paso a recordarte con mucho gusto que tienes pendiente completar: [Nombre de la tarea] para el [Fecha]. ¡Cada avance cuenta! Si tienes cualquier duda, responde aquí.`,
+    followup_short: `¡Hola, ${firstName}! Esperamos que hayas tenido una excelente sesión hoy. 🤍 ¿Cómo te has sentido? Si tienes alguna duda o comentario, puedes responder directamente a este mensaje. ¡Gracias!`,
+    birthday_congrats: `¡Feliz cumpleaños, ${firstName}! ✨ Celebramos tu vida y nos da mucha alegría acompañarte en tu proceso. Que este nuevo año esté lleno de paz, salud y momentos bonitos. ¡Disfruta mucho tu día! 🎂🤍`,
+    test: `Hola ${firstName}, te comparto el enlace para completar tu prueba psicológica: [Enlace]. Es muy rápida y nos ayudará a darle continuidad a tu proceso. 📋`,
   };
   return templates[templateId] || '';
 }
