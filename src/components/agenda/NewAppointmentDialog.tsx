@@ -741,6 +741,20 @@ const NewAppointmentDialog = ({
                     toast.success(`Cita con ${formData.patientName} agendada correctamente`);
                 }
 
+                // Pipeline CRM Automation: Move matching lead to 'cita_agendada'
+                if (organization?.id && formData.patientName) {
+                    try {
+                        await supabase
+                            .from('leads')
+                            .update({ status: 'cita_agendada' })
+                            .eq('organization_id', organization.id)
+                            .ilike('name', formData.patientName.trim())
+                            .in('status', ['nuevo_lead', 'contactado']);
+                    } catch (pipelineErr) {
+                        console.warn('Error al auto-actualizar el lead en pipeline:', pipelineErr);
+                    }
+                }
+
                 await logActivity({
                     profile_id: sessionUser!.id,
                     type: 'appointment_created',

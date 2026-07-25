@@ -1,7 +1,7 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Phone, Mail, Loader2, UserPlus } from 'lucide-react';
+import { Phone, Mail, Loader2, UserPlus, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import LeadSourceBadge, { LeadSource } from './LeadSourceBadge';
@@ -30,6 +30,7 @@ const KanbanCard = ({ lead, index, isUpdating }: KanbanCardProps) => {
     const createdAt = lead.created_at
         ? format(parseISO(lead.created_at), "d MMM", { locale: es })
         : null;
+    const cleanPhone = lead.phone ? lead.phone.replace(/[^0-9]/g, '') : null;
 
     return (
         <Draggable draggableId={lead.id} index={index} isDragDisabled={isUpdating}>
@@ -65,6 +66,18 @@ const KanbanCard = ({ lead, index, isUpdating }: KanbanCardProps) => {
                                 <p className="text-xs text-muted-foreground mt-0.5">Desde {createdAt}</p>
                             )}
                         </div>
+                        {cleanPhone && (
+                            <a
+                                href={`https://wa.me/${cleanPhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-7 w-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors shrink-0"
+                                title="Enviar WhatsApp directo"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                            </a>
+                        )}
                     </div>
 
                     {/* Fuente de origen */}
