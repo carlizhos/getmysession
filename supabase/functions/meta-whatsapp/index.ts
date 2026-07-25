@@ -195,12 +195,22 @@ serve(async (req) => {
           let isGeneralFallback = true;
 
           if (isJustLinked) {
-            responseText = `¡Listo, ${currentPatient?.name?.split(' ')[0] || ''}! Tu número ha sido vinculado exitosamente con ${psychologistName} en Saudade. A partir de ahora recibirás tus recordatorios y notificaciones aquí.`;
+            const rawPatientName = currentPatient?.name || '';
+            const cleanPatientFirstName = rawPatientName 
+              ? rawPatientName.split(' ')[0].charAt(0).toUpperCase() + rawPatientName.split(' ')[0].slice(1).toLowerCase() 
+              : 'Paciente';
+
+            responseText = `¡Listo, ${cleanPatientFirstName}! ✨ Tu número ha sido vinculado exitosamente con ${psychologistName} en Saudade. A partir de ahora recibirás tus recordatorios y avisos por aquí.`;
             isGeneralFallback = false;
           } else if (!patientId) {
-            responseText = "Hola, este número no está registrado en Saudade. Por favor, solicita a tu especialista tu enlace de invitación.";
+            responseText = "Hola, este número no está registrado en Saudade. Si eres paciente, por favor solicita a tu especialista tu enlace de invitación o código de vinculación.";
             isGeneralFallback = false;
           } else if (patientId && organizationId && !isJustLinked) {
+            const rawPatientName = currentPatient?.name || '';
+            const cleanPatientFirstName = rawPatientName 
+              ? rawPatientName.split(' ')[0].charAt(0).toUpperCase() + rawPatientName.split(' ')[0].slice(1).toLowerCase() 
+              : 'Paciente';
+
             // Check for appointments
             const { data: appointment } = await supabaseClient
               .from("appointments")
@@ -219,17 +229,17 @@ serve(async (req) => {
 
               if (isConfirm) {
                 await supabaseClient.from("appointments").update({ status: "confirmed" }).eq("id", appointment.id);
-                responseText = `¡Muchas gracias, ${currentPatient?.name?.split(' ')[0] || ''}! Tu cita ha sido confirmada con éxito. 😊`;
+                responseText = `¡Muchas gracias, ${cleanPatientFirstName}! ✨ Tu cita ha sido confirmada con éxito. Estamos listos para recibirte. 😊`;
                 isGeneralFallback = false;
               } else if (isCancel) {
                 const policyHours = appointment.reschedule_policy_hours ?? 24;
                 const hoursDiff = (new Date(appointment.start_time).getTime() - new Date().getTime()) / (1000 * 60 * 60);
 
                 if (hoursDiff < policyHours) {
-                  responseText = `La política requiere al menos ${policyHours} horas de anticipación. Ingresa a tu Portal para ver opciones: ${portalUrl}`;
+                  responseText = `Hola ${cleanPatientFirstName}, la política de cambios requiere al menos ${policyHours} horas de anticipación. Puedes consultar tus opciones en tu Portal: ${portalUrl} o responder a este mensaje.`;
                 } else {
                   await supabaseClient.from("appointments").update({ status: "cancelled" }).eq("id", appointment.id);
-                  responseText = `Tu cita ha sido cancelada. Para reagendar, ingresa aquí: ${portalUrl}`;
+                  responseText = `Tu cita ha sido cancelada. Si deseas reagendar, puedes ingresar aquí: ${portalUrl} o escribirnos por este medio.`;
                 }
                 isGeneralFallback = false;
               }
