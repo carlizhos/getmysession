@@ -153,6 +153,7 @@ const Finance = () => {
   
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfMonth(new Date()));
   const [searchQuery, setSearchQuery] = useState('');
+  const [methodFilter, setMethodFilter] = useState<'all' | 'efectivo' | 'transferencia' | 'stripe'>('all');
 
   // Generate the last 12 months for the dropdown selector
   const monthOptions = Array.from({ length: 12 }).map((_, i) => {
@@ -369,10 +370,14 @@ const Finance = () => {
   // ── Derivados de pagos (con método) ────────────────────────────────────
   const paidPayments = payments.filter(p => p.status === 'paid');
 
-  // Filtros locales aplicados por búsqueda
-  const filteredPaidPayments = paidPayments.filter(p =>
-    p.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtros locales aplicados por búsqueda y método de pago
+  const filteredPaidPayments = paidPayments.filter(p => {
+    const matchesSearch = p.patient_name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (methodFilter === 'all') return true;
+    const pMethod = p.method || 'stripe';
+    return pMethod === methodFilter;
+  });
   const filteredPending = pending.filter(a =>
     a.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1008,7 +1013,43 @@ const Finance = () => {
                           </TabsContent>
 
                           <TabsContent value="cobros" className="mt-0">
-                            <CardContent className="pt-4">
+                            <CardContent className="pt-4 space-y-4">
+                              {/* Payment Method Filter Pills */}
+                              <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border/40">
+                                <Button
+                                  size="sm"
+                                  variant={methodFilter === 'all' ? 'default' : 'outline'}
+                                  onClick={() => setMethodFilter('all')}
+                                  className="text-xs h-7 rounded-full px-3"
+                                >
+                                  Todos ({paidPayments.length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={methodFilter === 'efectivo' ? 'default' : 'outline'}
+                                  onClick={() => setMethodFilter('efectivo')}
+                                  className="text-xs h-7 rounded-full px-3 gap-1 border-success/30 text-success bg-success/5 hover:bg-success/10"
+                                >
+                                  <Wallet className="h-3 w-3" /> Efectivo ({efectivo.length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={methodFilter === 'transferencia' ? 'default' : 'outline'}
+                                  onClick={() => setMethodFilter('transferencia')}
+                                  className="text-xs h-7 rounded-full px-3 gap-1 border-sky-500/30 text-sky-600 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100"
+                                >
+                                  <ArrowLeftRight className="h-3 w-3" /> Transferencia ({transferencia.length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={methodFilter === 'stripe' ? 'default' : 'outline'}
+                                  onClick={() => setMethodFilter('stripe')}
+                                  className="text-xs h-7 rounded-full px-3 gap-1 border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                                >
+                                  <CreditCard className="h-3 w-3" /> Stripe ({stripe.length})
+                                </Button>
+                              </div>
+
                               {isLoading ? (
                                 <div className="flex justify-center py-8">
                                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -1016,7 +1057,7 @@ const Finance = () => {
                               ) : filteredPaidPayments.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                   <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                                  <p>Sin cobros registrados este mes</p>
+                                  <p>Sin cobros registrados para este filtro</p>
                                 </div>
                               ) : (
                                 <div className="space-y-3">
@@ -1041,11 +1082,16 @@ const Finance = () => {
                                               <ArrowUpRight className="h-5 w-5 text-success" />
                                             </div>
                                             <div>
-                                              <div className="flex items-center gap-2">
+                                              <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="font-medium">{p.patient_name}</p>
                                                 {p.category && p.category !== 'sesion' && (
                                                   <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-muted/50 border-none px-1.5 py-0">
                                                     {p.category}
+                                                  </Badge>
+                                                )}
+                                                {p.notes && (
+                                                  <Badge variant="secondary" className="text-[9px] font-normal bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 px-1.5 py-0">
+                                                    {p.notes}
                                                   </Badge>
                                                 )}
                                               </div>
