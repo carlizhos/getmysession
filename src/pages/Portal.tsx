@@ -21,7 +21,8 @@ import {
   Check,
   FileSignature,
   Download,
-  Video
+  Video,
+  CheckSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { psychometricTests } from '@/lib/psychometricTests';
@@ -39,6 +40,14 @@ interface Appointment {
   specialist_prefix: string | null;
   management_token: string;
   reschedule_policy_hours?: number | null;
+  meeting_link?: string | null;
+}
+
+interface PatientTaskItem {
+  id: string;
+  task: string;
+  completed: boolean;
+  assigned_date: string;
 }
 
 interface PatientTest {
@@ -87,11 +96,18 @@ export default function Portal() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [assignedTests, setAssignedTests] = useState<PatientTest[]>([]);
   const [consents, setConsents] = useState<ConsentRecord[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'tests' | 'consents'>('appointments');
+  const [patientTasks, setPatientTasks] = useState<PatientTaskItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'tests' | 'consents' | 'tasks'>('appointments');
   const [loading, setLoading] = useState(true);
   const [loadingTests, setLoadingTests] = useState(false);
   const [loadingConsents, setLoadingConsents] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+
+  const toggleTaskCompletion = (taskId: string) => {
+    setPatientTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+    toast.success('Estado de la tarea actualizado');
+  };
 
   // Signing states
   const [signingConsent, setSigningConsent] = useState<ConsentRecord | null>(null);
@@ -125,7 +141,27 @@ export default function Portal() {
     fetchAppointments(parsedSession.accessToken);
     fetchPatientTests(parsedSession.accessToken);
     fetchPatientConsents(parsedSession.accessToken);
+    fetchPatientTasks(parsedSession.accessToken);
   }, [navigate]);
+
+  const fetchPatientTasks = async (accessToken: string) => {
+    setLoadingTasks(true);
+    try {
+      const { data, error } = await supabase.rpc('get_patient_tasks', {
+        p_access_token: accessToken
+      });
+      if (!error && data) {
+        setPatientTasks(data);
+      } else {
+        setPatientTasks([]);
+      }
+    } catch (err: unknown) {
+      console.warn('Task fetching fallback:', err);
+      setPatientTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   const fetchPatientConsents = async (accessToken: string) => {
     setLoadingConsents(true);
@@ -403,6 +439,8 @@ export default function Portal() {
                 ? 'Mis Citas' 
                 : activeTab === 'tests' 
                 ? 'Mis Pruebas Clínicas' 
+                : activeTab === 'tasks'
+                ? 'Mis Tareas'
                 : 'Mis Documentos'}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -410,11 +448,13 @@ export default function Portal() {
                 ? 'Gestiona tus próximas sesiones y tu historial de atención.' 
                 : activeTab === 'tests'
                 ? 'Resuelve tus evaluaciones psicométricas asignadas y revisa tus resultados históricos.'
+                : activeTab === 'tasks'
+                ? 'Consulta tus tareas y ejercicios recomendados por tu especialista entre sesiones.'
                 : 'Lee y firma de forma electrónica los documentos y consentimientos informados asignados.'}
             </p>
           </div>
 
-          <div className="flex gap-2 bg-muted/20 p-1.5 rounded-xl border border-border/40 shrink-0 self-start sm:self-center">
+          <div className="flex gap-2 bg-muted/20 p-1.5 rounded-xl border border-border/40 shrink-0 self-start sm:self-center flex-wrap">
             <button
               onClick={() => setActiveTab('appointments')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
@@ -427,6 +467,23 @@ export default function Portal() {
               <span>Mis Citas</span>
               {appointments.filter(a => a.status !== 'cancelled' && parseISO(a.start_time) >= new Date()).length > 0 && (
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all relative ${
+                activeTab === 'tasks'
+                  ? 'bg-white text-primary shadow-sm border border-border/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
+              }`}
+            >
+              <CheckSquare className="h-4 w-4" />
+              <span>Mis Tareas</span>
+              {patientTasks.filter(t => !t.completed).length > 0 && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-emerald-600 text-[10px] font-bold text-white px-1 shadow-md shadow-emerald-600/20">
+                  {patientTasks.filter(t => !t.completed).length}
+                </span>
               )}
             </button>
 
@@ -577,6 +634,65 @@ export default function Portal() {
                   </Card>
                 );
               })}
+            </div>
+          )
+        )}
+
+        {/* Tasks Tab Content */}
+        {activeTab === 'tasks' && (
+          loadingTasks ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : patientTasks.length === 0 ? (
+            <Card className="p-12 text-center rounded-2xl border-dashed bg-muted/10 shadow-none">
+              <CheckSquare className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No tienes tareas asignadas</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                Tu especialista no te ha asignado tareas o ejercicios pendientes para entre sesiones.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <Card className="p-6 border-border/60 rounded-2xl bg-white shadow-sm">
+                <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5 text-emerald-600" />
+                  Plan de Acción entre Sesiones
+                </h3>
+                <p className="text-xs text-muted-foreground mb-6">
+                  Marca las tareas conforme las completes para dar seguimiento a tu proceso clínico.
+                </p>
+
+                <div className="space-y-3">
+                  {patientTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => toggleTaskCompletion(t.id)}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                        t.completed
+                          ? 'bg-emerald-50/50 border-emerald-200 text-muted-foreground dark:bg-emerald-950/20'
+                          : 'bg-muted/20 border-border/60 hover:border-primary/40 hover:bg-primary/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                          t.completed ? 'bg-emerald-600 text-white' : 'border-2 border-border bg-white'
+                        }`}>
+                          {t.completed && <Check className="h-4 w-4 stroke-[3]" />}
+                        </div>
+                        <span className={`text-sm font-medium leading-relaxed ${t.completed ? 'line-through opacity-70' : 'text-foreground'}`}>
+                          {t.task}
+                        </span>
+                      </div>
+                      <Badge variant={t.completed ? 'outline' : 'default'} className={`text-[10px] uppercase font-bold shrink-0 ${
+                        t.completed ? 'border-emerald-500/40 text-emerald-700 bg-emerald-50' : 'bg-emerald-600 text-white'
+                      }`}>
+                        {t.completed ? 'Completada' : 'Pendiente'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             </div>
           )
         )}
