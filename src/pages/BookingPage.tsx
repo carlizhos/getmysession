@@ -444,14 +444,20 @@ const BookingPage = () => {
           patientEmail: patientInfo.email,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          sessionType: 'primera_vez',
-          fee: 0,
+          sessionType: selectedService?.name || 'primera_vez',
+          fee: selectedService?.price || 0,
           meetingLink: finalMeetLink,
           meetingPlatform: finalPlatform,
           notes: `Reservado desde Portal Público.\nEmail: ${patientInfo.email}\nTeléfono: ${patientInfo.phone}\nEdad: ${patientInfo.age}\nMotivo: ${patientInfo.reason}\nModalidad: ${modality}`,
           patientTimezone: visitorTimezone
         }
-      }).catch(err => console.error('Error enviando notificación:', err));
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('[BookingPage] notify-appointment invocation error:', error);
+        } else {
+          console.log('[BookingPage] notify-appointment result:', data);
+        }
+      }).catch(err => console.error('[BookingPage] notify-appointment network error:', err));
 
       // 4. Log Activity
       await logActivity({

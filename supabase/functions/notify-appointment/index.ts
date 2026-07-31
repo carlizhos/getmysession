@@ -195,10 +195,25 @@ serve(async (req) => {
 
     if (psychologistId) {
        psychIdToUse = psychologistId;
+       console.log(`[notify-appointment] Resolving psychologist by ID: ${psychologistId}`);
        const { data: { user }, error } = await supabase.auth.admin.getUserById(psychIdToUse);
        if (!error && user) {
           psychEmail = user.email || '';
           psychName = user.user_metadata?.full_name || 'Psicólogo/a';
+          console.log(`[notify-appointment] Resolved via auth.admin: ${psychName} <${psychEmail}>`);
+       } else {
+          console.warn(`[notify-appointment] auth.admin.getUserById failed: ${error?.message || 'user not found'}. Trying profiles table fallback...`);
+          // Fallback: try to get email from profiles table
+          const { data: profileFallback } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', psychologistId)
+            .single();
+          if (profileFallback) {
+            psychEmail = profileFallback.email || '';
+            psychName = profileFallback.full_name || 'Psicólogo/a';
+            console.log(`[notify-appointment] Resolved via profiles fallback: ${psychName} <${psychEmail}>`);
+          }
        }
     } else {
        const authHeader = req.headers.get('Authorization')
@@ -209,14 +224,18 @@ serve(async (req) => {
          { global: { headers: { Authorization: authHeader } } }
        )
        const { data: { user }, error: userError } = await anonClient.auth.getUser()
-       if (userError || !user) throw new Error('Usuario no autenticado')
+       if (userError || !user) throw new Error('Usuario no autenticado: ' + (userError?.message || 'session expired'))
        
        psychIdToUse = user.id;
        psychEmail = user.email || '';
        psychName = user.user_metadata?.full_name || 'Psicólogo/a';
+       console.log(`[notify-appointment] Resolved via auth header: ${psychName} <${psychEmail}>`);
     }
 
-    if (!psychEmail) throw new Error('Could not resolve psychologist info');
+    if (!psychEmail) {
+      console.error(`[notify-appointment] FAILED: Could not resolve psychologist email for ID: ${psychIdToUse}`);
+      throw new Error('Could not resolve psychologist email. Check that the user exists and has an email.');
+    }
 
     const { data: profileData } = await supabase
       .from('profiles')
@@ -288,6 +307,7 @@ serve(async (req) => {
     }
 
     if (psychChannels.includes('email')) {
+      console.log(`[notify-appointment] Sending psychologist email to: ${psychEmail}`);
       const psychHtml = buildPsychologistEmail({ 
         ...sharedVarsBase, 
         dateStr: psychDateStr, 
@@ -305,11 +325,19 @@ serve(async (req) => {
           html: psychHtml,
         }),
       })
-      if (psychRes.ok) results.psychEmailSuccess = true
-      else results.psychEmailError = await psychRes.text()
+      if (psychRes.ok) {
+        results.psychEmailSuccess = true;
+        console.log(`[notify-appointment] ✅ Psychologist email sent successfully to ${psychEmail}`);
+      } else {
+        results.psychEmailError = await psychRes.text();
+        console.error(`[notify-appointment] ❌ Psychologist email FAILED: ${results.psychEmailError}`);
+      }
+    } else {
+      console.log(`[notify-appointment] Psychologist email skipped (channels: ${JSON.stringify(psychChannels)})`);
     }
 
     if (patientChannels.includes('email') && patEmail) {
+      console.log(`[notify-appointment] Sending patient email to: ${patEmail}`);
       const patientHtml = buildPatientEmail({ 
         ...sharedVarsBase, 
         dateStr: patientDateStr, 
@@ -330,8 +358,15 @@ serve(async (req) => {
           html: patientHtml,
         }),
       })
-      if (patRes.ok) results.patientEmailSuccess = true
-      else results.patientEmailError = await patRes.text()
+      if (patRes.ok) {
+        results.patientEmailSuccess = true;
+        console.log(`[notify-appointment] ✅ Patient email sent successfully to ${patEmail}`);
+      } else {
+        results.patientEmailError = await patRes.text();
+        console.error(`[notify-appointment] ❌ Patient email FAILED: ${results.patientEmailError}`);
+      }
+    } else {
+      console.log(`[notify-appointment] Patient email skipped (channels: ${JSON.stringify(patientChannels)}, patEmail: ${patEmail || 'N/A'})`);
     }
 
     return new Response(

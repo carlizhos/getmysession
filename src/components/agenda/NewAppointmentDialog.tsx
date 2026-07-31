@@ -780,8 +780,14 @@ const NewAppointmentDialog = ({
                         meetingPlatform: formData.meetingPlatform || null,
                         notes: `Edad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                     },
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.error('[NewAppointmentDialog] notify-appointment error:', error);
+                    } else {
+                        console.log('[NewAppointmentDialog] notify-appointment result:', data);
+                    }
                 }).catch((err: any) => {
-                    console.warn('Email de notificación no enviado:', err.message);
+                    console.warn('[NewAppointmentDialog] notify-appointment network error:', err.message);
                 });
             }
 

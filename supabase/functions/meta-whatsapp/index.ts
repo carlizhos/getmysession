@@ -402,7 +402,17 @@ serve(async (req) => {
 
             const data = await response.json();
             if (data.error) {
-              throw new Error(data.error.message);
+              const errCode = data.error.code;
+              const errMsg = data.error.message || 'Unknown Meta API error';
+              // Detect expired or invalid token
+              if (errCode === 190 || errMsg.includes('access token') || errMsg.includes('OAuthException') || response.status === 401) {
+                console.error("🔴 META_ACCESS_TOKEN expired or revoked. Please regenerate from Meta for Developers > WhatsApp > API Setup and update Supabase Secrets.");
+                return new Response(JSON.stringify({ 
+                  error: 'META_ACCESS_TOKEN expired. Regenerate from Meta for Developers and update Supabase Secrets.',
+                  meta_error: errMsg 
+                }), { status: 401, headers: corsHeaders });
+              }
+              throw new Error(errMsg);
             }
 
             if (data.messages && data.messages[0]) {
