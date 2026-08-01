@@ -779,22 +779,24 @@ const NewAppointmentDialog = ({
                     organization_id: organization?.id,
                 });
 
-                // Send email notifications (non-blocking): psychologist + patient confirmation
                 const { data: { session } } = await supabase.auth.getSession();
                 supabase.functions.invoke('notify-appointment', {
                     headers: {
                         Authorization: `Bearer ${session?.access_token}`
                     },
                     body: {
+                        psychologistId: sessionUser?.id,
                         patientId: formData.patientId || null,
                         patientName: formData.patientName,
                         startTime: startDateTime.toISOString(),
                         endTime: endDateTime.toISOString(),
                         sessionType: formData.type || 'individual',
-                        fee: formData.fee || 0,
+                        fee: formData.fee ? parseFloat(formData.fee) : 0,
+                        modality: formData.modality,
+                        location: formData.location || null,
                         meetingLink: finalMeetingLink,
                         meetingPlatform: formData.meetingPlatform || null,
-                        notes: `Edad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
+                        notes: `Edad: ${formData.patientAge || 'N/A'}\nMotivo: ${formData.reasonForConsultation || 'N/A'}\nNotas: ${formData.notes || 'Ninguna'}`,
                     },
                 }).then(({ data, error }) => {
                     if (error) {

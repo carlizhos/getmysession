@@ -420,7 +420,7 @@ serve(async (req) => {
       }
     }
 
-    const sharedVarsBase = { psychologistName: psychName, psychologistTitle, patientName: patName, typeLabel, meetingLink, meetingPlatform, notes, fee, modality, location }
+    const sharedVarsBase = { psychologistName: psychName, psychologistTitle, patientName: patName, typeLabel, meetingLink, meetingPlatform, notes, fee: fee != null ? Number(fee) : 0, modality, location }
 
     const results: any = {
       psychEmailSuccess: false,
