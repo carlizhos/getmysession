@@ -62,6 +62,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { AlertTriangle } from 'lucide-react';
 import { logActivity } from '@/lib/activityLogger';
+import { buildUTCFromClinicTime, getVisitorTimezone } from '@/lib/timezone';
 
 
 
@@ -247,10 +248,22 @@ const NewAppointmentDialog = ({
                 status: editingAppointment.status || 'scheduled',
                 color: editingAppointment.color || 'violet',
                 startTime: (() => {
-                    const m = parseInt(format(start, 'mm'));
-                    const snapped = Math.round(m / 5) * 5;
-                    const mm = String(Math.min(snapped, 55)).padStart(2, '0');
-                    return `${format(start, 'HH')}:${mm}`;
+                    const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
+                    try {
+                        const parts = new Intl.DateTimeFormat('en-US', {
+                            timeZone: clinicTz,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        }).formatToParts(start);
+                        const h = parts.find(p => p.type === 'hour')?.value || '09';
+                        const m = parts.find(p => p.type === 'minute')?.value || '00';
+                        const cleanH = h === '24' ? '00' : h;
+                        const snappedM = String(Math.round(parseInt(m) / 5) * 5 % 60).padStart(2, '0');
+                        return `${cleanH}:${snappedM}`;
+                    } catch {
+                        return format(start, 'HH:mm');
+                    }
                 })(),
                 fee: editingAppointment.fee != null ? String(editingAppointment.fee) : '',
                 meetingLink: editingAppointment.meetingLink || '',
@@ -330,7 +343,8 @@ const NewAppointmentDialog = ({
             const { data: { user: sessionUser } } = await supabase.auth.getUser();
 
             const dateStr = format(date, 'yyyy-MM-dd');
-            const startDateTime = new Date(`${dateStr}T${formData.startTime}:00`);
+            const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
+            const startDateTime = buildUTCFromClinicTime(date, formData.startTime, clinicTz);
 
             // 1. Validar días laborables y festivos
             const weekday = date.getDay();
