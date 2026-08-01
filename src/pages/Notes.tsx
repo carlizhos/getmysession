@@ -659,12 +659,48 @@ const Notes = () => {
                               />
                             </div>
                           ) : (
-                            <div 
-                              className="text-[15px] bg-transparent whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 prose prose-sm max-w-none prose-headings:text-primary prose-a:text-primary prose-p:mb-4"
-                              dangerouslySetInnerHTML={{ 
-                                __html: DOMPurify.sanitize(selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.') 
-                              }}
-                            />
+                            <div className="space-y-6">
+                              <div 
+                                className="text-[15px] bg-transparent whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 prose prose-sm max-w-none prose-headings:text-primary prose-a:text-primary prose-p:mb-4"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: DOMPurify.sanitize(selectedNoteData.agenda?.[0]?.thoughts || 'Sin reporte detallado registrado.') 
+                                }}
+                              />
+
+                              {/* Structured Sections */}
+                              {selectedNoteData.diagnosis && (
+                                <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-border/50">
+                                  <h5 className="text-xs font-black uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
+                                    🩺 Impresión Diagnóstica / CIE-10
+                                  </h5>
+                                  <p className="text-sm text-foreground leading-relaxed">
+                                    {typeof selectedNoteData.diagnosis === 'string' ? selectedNoteData.diagnosis : JSON.stringify(selectedNoteData.diagnosis)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {selectedNoteData.action_plan && (
+                                <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-border/50">
+                                  <h5 className="text-xs font-black uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
+                                    🎯 Plan de Acción & Tareas
+                                  </h5>
+                                  <p className="text-sm text-foreground leading-relaxed">
+                                    {typeof selectedNoteData.action_plan === 'string' ? selectedNoteData.action_plan : JSON.stringify(selectedNoteData.action_plan)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {selectedNoteData.mental_exam && (
+                                <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-border/50">
+                                  <h5 className="text-xs font-black uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
+                                    🧠 Examen del Estado Mental
+                                  </h5>
+                                  <p className="text-sm text-foreground leading-relaxed">
+                                    {typeof selectedNoteData.mental_exam === 'string' ? selectedNoteData.mental_exam : JSON.stringify(selectedNoteData.mental_exam)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
 
