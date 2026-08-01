@@ -85,6 +85,17 @@ const Notes = () => {
     }
     if (nId) {
       setSelectedNote(nId);
+      supabase
+        .from('session_notes')
+        .select('patient_id, patient_name')
+        .eq('id', nId)
+        .single()
+        .then(({ data }) => {
+          if (data?.patient_id) {
+            setSelectedPatient(data.patient_id);
+            if (data.patient_name) setSelectedPatientName(data.patient_name);
+          }
+        });
     }
     if (newNote === 'true') {
       setIsCreatingNote(true);

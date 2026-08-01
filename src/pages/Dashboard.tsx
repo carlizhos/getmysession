@@ -399,7 +399,7 @@ const Dashboard = () => {
                   recentNotes.map((note, i) => (
                     <div
                       key={note.id}
-                      onClick={() => navigate('/notes')}
+                      onClick={() => navigate(`/notes?noteId=${note.id}`)}
                       className="group rounded-xl border border-white/20 dark:border-white/5 bg-white/30 dark:bg-white/5 p-4 transition-all duration-200 hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-soft cursor-pointer"
                       style={{ animationDelay: `${i * 100}ms` }}
                     >
