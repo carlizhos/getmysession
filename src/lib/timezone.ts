@@ -62,13 +62,41 @@ export function getVisitorTimezone(): string {
   }
 }
 
+const TIMEZONE_FRIENDLY_NAMES: Record<string, string> = {
+  'America/Los_Angeles': 'Hora del Pacífico',
+  'America/Tijuana': 'Hora del Pacífico',
+  'America/Ensenada': 'Hora del Pacífico',
+  'America/Hermosillo': 'Hora del Pacífico (Sonora)',
+  'America/Mazatlan': 'Hora de la Montaña',
+  'America/Chihuahua': 'Hora de la Montaña',
+  'America/Denver': 'Hora de la Montaña',
+  'America/Phoenix': 'Hora de la Montaña',
+  'America/Mexico_City': 'Hora del Centro',
+  'America/Monterrey': 'Hora del Centro',
+  'America/Guadalajara': 'Hora del Centro',
+  'America/Merida': 'Hora del Centro',
+  'America/Chicago': 'Hora del Centro',
+  'America/Cancun': 'Hora del Este',
+  'America/New_York': 'Hora del Este',
+  'America/Miami': 'Hora del Este',
+  'America/Bogota': 'Hora de Colombia',
+  'America/Lima': 'Hora de Perú',
+  'America/Buenos_Aires': 'Hora de Argentina',
+  'America/Santiago': 'Hora de Chile',
+  'Europe/Madrid': 'Hora de España (CET)',
+};
+
 /**
- * Genera un nombre amigable legible de zona horaria.
- * @example "America/Mexico_City" → "Ciudad de México (GMT-6)"
- * @example "Europe/Paris" → "París (GMT+2)"
+ * Genera un nombre amigable legible de zona horaria según estándares de la industria (Ej. Hora del Pacífico).
+ * @example "America/Los_Angeles" → "Hora del Pacífico"
+ * @example "America/Mexico_City" → "Hora del Centro"
  */
 export function getTimezoneFriendlyLabel(tz: string): string {
+  if (!tz) return 'Hora local';
+  if (TIMEZONE_FRIENDLY_NAMES[tz]) return TIMEZONE_FRIENDLY_NAMES[tz];
   const cityName = TIMEZONE_CITY_NAMES[tz] || tz.split('/').pop()?.replace(/_/g, ' ') || tz;
+  if (cityName.toLowerCase() === 'los angeles' || cityName.toLowerCase() === 'tijuana') return 'Hora del Pacífico';
+  if (cityName.toLowerCase() === 'ciudad de méxico' || cityName.toLowerCase() === 'mexico city') return 'Hora del Centro';
   const offsetStr = getTimezoneOffsetLabel(tz);
   return `${cityName} (${offsetStr})`;
 }

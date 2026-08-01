@@ -23,14 +23,32 @@ function normalizeMexicanPhone(phoneStr: string): string {
 
 function getTimezoneFriendlyLabel(tz: string) {
   try {
-    const parts = tz.split('/');
-    if (parts.length > 1) {
-      const city = parts[parts.length - 1].replace(/_/g, ' ');
-      return `(Hora de ${city})`;
-    }
-    return `(${tz})`;
+    const cleanTz = (tz || '').trim();
+    const knownZones: Record<string, string> = {
+      'America/Los_Angeles': 'Hora del Pacífico',
+      'America/Tijuana': 'Hora del Pacífico',
+      'America/Ensenada': 'Hora del Pacífico',
+      'America/Hermosillo': 'Hora del Pacífico (Sonora)',
+      'America/Mazatlan': 'Hora de la Montaña',
+      'America/Chihuahua': 'Hora de la Montaña',
+      'America/Denver': 'Hora de la Montaña',
+      'America/Phoenix': 'Hora de la Montaña',
+      'America/Mexico_City': 'Hora del Centro',
+      'America/Monterrey': 'Hora del Centro',
+      'America/Guadalajara': 'Hora del Centro',
+      'America/Merida': 'Hora del Centro',
+      'America/Cancun': 'Hora del Este',
+      'America/Bogota': 'Hora de Colombia',
+    };
+    if (knownZones[cleanTz]) return `(${knownZones[cleanTz]})`;
+
+    const parts = cleanTz.split('/');
+    let city = parts.length > 1 ? parts[parts.length - 1].replace(/_/g, ' ') : cleanTz;
+    if (city.toLowerCase() === 'los angeles' || city.toLowerCase() === 'tijuana') return '(Hora del Pacífico)';
+    if (city.toLowerCase() === 'mexico city' || city.toLowerCase() === 'ciudad de mexico') return '(Hora del Centro)';
+    return `(Hora de ${city})`;
   } catch (e) {
-    return '';
+    return '(Hora del Pacífico)';
   }
 }
 
