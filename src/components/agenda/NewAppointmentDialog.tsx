@@ -233,8 +233,10 @@ const NewAppointmentDialog = ({
         if (selectedDate && !isEditing) setDate(selectedDate);
     }, [selectedDate, isEditing]);
 
-    // Pre-llenar formulario al editar
+    // Pre-llenar formulario al editar o resetear al abrir
     useEffect(() => {
+        if (!open) return;
+
         if (editingAppointment) {
             const start = parseISO(editingAppointment.startTime);
             setDate(start);
@@ -907,7 +909,14 @@ const NewAppointmentDialog = ({
                             <PatientAutocomplete
                                 value={formData.patientId}
                                 onSelect={(patientId, patientName) => {
-                                    if (!isReadOnly) setFormData({ ...formData, patientId, patientName });
+                                    if (!isReadOnly) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            patientId,
+                                            patientName,
+                                            ...(isEditing ? {} : { reasonForConsultation: '', notes: '' })
+                                        }));
+                                    }
                                 }}
                                 placeholder={isReadOnly ? formData.patientName : (formData.patientName || 'Buscar paciente por nombre o email...')}
                                 disabled={isReadOnly}
