@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -124,11 +125,11 @@ const OnboardingModal = () => {
         setDismissed(true);
     };
 
-    return (
+    return createPortal(
         /* Backdrop */
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
             {/* Modal card */}
-            <div className="w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl overflow-hidden">
+            <div className="w-full max-w-md max-h-[90vh] flex flex-col rounded-3xl border border-border bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header */}
                 <div className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/5 px-6 pt-6 pb-5 border-b border-border">
@@ -238,7 +239,8 @@ const OnboardingModal = () => {
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
