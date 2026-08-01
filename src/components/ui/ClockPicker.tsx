@@ -45,9 +45,10 @@ interface ClockPickerProps {
     disabled?: boolean;
     minTime?: string;        // "HH:MM" 24h, e.g. "08:00"
     maxTime?: string;        // "HH:MM" 24h, e.g. "17:00"
+    isSlotOccupied?: (timeStr: string) => boolean;
 }
 
-const ClockPicker = ({ value, onChange, disabled, minTime, maxTime }: ClockPickerProps) => {
+const ClockPicker = ({ value, onChange, disabled, minTime, maxTime, isSlotOccupied }: ClockPickerProps) => {
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState<Mode>('hours');
 
@@ -57,23 +58,38 @@ const ClockPicker = ({ value, onChange, disabled, minTime, maxTime }: ClockPicke
     const { hour12, period } = to12h(hour24);
 
     // Compute allowed hour range in 24h for disabling numbers
-    const minH24 = minTime ? parseInt(minTime.split(':')[0]) : 0;
-    const maxH24 = maxTime ? parseInt(maxTime.split(':')[0]) : 23;
+    const minH24 = minTime ? parseInt((minTime || '08:00').split(':')[0]) : 0;
+    const maxH24 = maxTime ? parseInt((maxTime || '17:00').split(':')[0]) : 23;
+
     const isHourDisabled = (h12: number) => {
         const h24 = to24h(h12, period);
-        return h24 < minH24 || h24 > maxH24;
+        if (h24 < minH24 || h24 > maxH24) return true;
+        if (isSlotOccupied) {
+            const hh = String(h24).padStart(2, '0');
+            const allOccupied = MINUTE_ITEMS.every(m => {
+                const mm = String(m).padStart(2, '0');
+                return isSlotOccupied(`${hh}:${mm}`);
+            });
+            if (allOccupied) return true;
+        }
+        return false;
     };
 
     const isMinuteDisabled = (m: number) => {
         const h24 = to24h(hour12, period);
         if (h24 < minH24 || h24 > maxH24) return true;
         if (h24 === minH24) {
-            const minM = minTime ? parseInt(minTime.split(':')[1]) : 0;
+            const minM = minTime ? parseInt((minTime || '08:00').split(':')[1]) : 0;
             if (m < minM) return true;
         }
         if (h24 === maxH24) {
-            const maxM = maxTime ? parseInt(maxTime.split(':')[1]) : 59;
+            const maxM = maxTime ? parseInt((maxTime || '17:00').split(':')[1]) : 59;
             if (m > maxM) return true;
+        }
+        if (isSlotOccupied) {
+            const hh = String(h24).padStart(2, '0');
+            const mm = String(m).padStart(2, '0');
+            if (isSlotOccupied(`${hh}:${mm}`)) return true;
         }
         return false;
     };

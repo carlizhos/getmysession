@@ -61,8 +61,9 @@ import ClockPicker from '@/components/ui/ClockPicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { AlertTriangle } from 'lucide-react';
+import { useCallback } from 'react';
 import { logActivity } from '@/lib/activityLogger';
-import { buildUTCFromClinicTime, getVisitorTimezone } from '@/lib/timezone';
+import { buildUTCFromClinicTime, getVisitorTimezone, formatClinicTime } from '@/lib/timezone';
 
 
 
@@ -228,6 +229,96 @@ const NewAppointmentDialog = ({
         reasonForConsultation: '',
         serviceId: '',
     });
+
+    // Citas existentes en la fecha seleccionada para deshabilitar franjas en tiempo real
+    const [existingAppointmentsForDate, setExistingAppointmentsForDate] = useState<any[]>([]);
+    const [patientSuggestedTime, setPatientSuggestedTime] = useState<{ time: string; reason: string } | null>(null);
+
+    // Obtener citas del día seleccionado
+    useEffect(() => {
+        if (!open || !date || !user) {
+            setExistingAppointmentsForDate([]);
+            return;
+        }
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const startOfDayUtc = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
+        const endOfDayUtc = new Date(`${dateStr}T23:59:59.999Z`).toISOString();
+
+        supabase
+            .from('appointments')
+            .select('id, start_time, end_time, patient_name, status')
+            .eq('user_id', user.id)
+            .neq('status', 'cancelled')
+            .gte('start_time', startOfDayUtc)
+            .lte('start_time', endOfDayUtc)
+            .then(({ data, error }) => {
+                if (!error && data) {
+                    setExistingAppointmentsForDate(data);
+                }
+            });
+    }, [open, date, user]);
+
+    // Analizar historial del paciente para sugerir horario habitual
+    useEffect(() => {
+        if (!open || !formData.patientId || !user) {
+            setPatientSuggestedTime(null);
+            return;
+        }
+
+        supabase
+            .from('appointments')
+            .select('start_time')
+            .eq('user_id', user.id)
+            .eq('patient_id', formData.patientId)
+            .neq('status', 'cancelled')
+            .order('created_at', { ascending: false })
+            .limit(10)
+            .then(({ data }) => {
+                if (!data || data.length === 0) {
+                    setPatientSuggestedTime(null);
+                    return;
+                }
+
+                const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
+                const counts: Record<string, number> = {};
+                data.forEach(apt => {
+                    const t = formatClinicTime(parseISO(apt.start_time), clinicTz);
+                    counts[t] = (counts[t] || 0) + 1;
+                });
+
+                let topTime = '';
+                let maxCount = 0;
+                Object.entries(counts).forEach(([t, count]) => {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        topTime = t;
+                    }
+                });
+
+                if (topTime) {
+                    setPatientSuggestedTime({
+                        time: topTime,
+                        reason: `Horario habitual (${maxCount} ${maxCount === 1 ? 'sesión previa' : 'sesiones previas'} a las ${topTime})`
+                    });
+                }
+            });
+    }, [open, formData.patientId, user, organization]);
+
+    // Verificador de solapamiento en tiempo real para cualquier hora "HH:mm"
+    const getOverlappingAppointment = useCallback((timeStr: string) => {
+        if (!date || existingAppointmentsForDate.length === 0) return null;
+        const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
+        const candidateStart = buildUTCFromClinicTime(date, timeStr, clinicTz);
+        const duration = services.find(s => s.id === formData.serviceId)?.duration || 60;
+        const candidateEnd = new Date(candidateStart.getTime() + duration * 60 * 1000);
+
+        return existingAppointmentsForDate.find(apt => {
+            if (isEditing && apt.id === editingAppointment?.id) return false;
+            const aptStart = parseISO(apt.start_time);
+            const aptEnd = parseISO(apt.end_time);
+            return candidateStart < aptEnd && candidateEnd > aptStart;
+        }) || null;
+    }, [date, existingAppointmentsForDate, services, formData.serviceId, isEditing, editingAppointment, organization]);
 
     // Sincronizar fecha cuando cambia selectedDate
     useEffect(() => {
@@ -1076,10 +1167,36 @@ const NewAppointmentDialog = ({
                             </Select>
                         </div>
 
-                        {/* Horario */}
-                        <div className="space-y-2">
-                            <Label>Hora de inicio *</Label>
-                            <div className="flex items-center gap-2">
+                        {/* Horario con Disponibilidad e Historial en Tiempo Real */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label>Hora de inicio *</Label>
+                                <span className="text-xs text-muted-foreground font-medium">
+                                    Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min
+                                </span>
+                            </div>
+
+                            {/* Sugerencia inteligente basada en historial del paciente */}
+                            {patientSuggestedTime && (
+                                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs animate-in fade-in">
+                                    <div className="flex items-center gap-1.5 font-medium">
+                                        <Sparkles className="h-4 w-4 text-purple-500 flex-shrink-0 animate-pulse" />
+                                        <span>✨ <strong>Sugerencia por Historial:</strong> {patientSuggestedTime.reason}</span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs px-2.5 border-purple-500/30 hover:bg-purple-500/20 font-bold"
+                                        onClick={() => setFormData(prev => ({ ...prev, startTime: patientSuggestedTime.time }))}
+                                    >
+                                        Usar {patientSuggestedTime.time}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Reloj Picker */}
+                            <div className="flex items-center gap-3">
                                 {(() => {
                                     const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                                     const weekday = (date || new Date()).getDay();
@@ -1088,7 +1205,6 @@ const NewAppointmentDialog = ({
 
                                     if (isTodayDate) {
                                         const now = new Date();
-                                        // Round up to next 5 minutes to match picker increments
                                         const roundedM = Math.ceil(now.getMinutes() / 5) * 5;
                                         const h = roundedM >= 60 ? now.getHours() + 1 : now.getHours();
                                         const m = roundedM % 60;
@@ -1103,10 +1219,82 @@ const NewAppointmentDialog = ({
                                             disabled={isSubmitting || isReadOnly}
                                             minTime={effectiveMin}
                                             maxTime={config.fin}
+                                            isSlotOccupied={(t) => !!getOverlappingAppointment(t)}
                                         />
                                     );
                                 })()}
-                                <span className="text-sm text-muted-foreground">— Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min</span>
+                            </div>
+
+                            {/* Alerta de Solapamiento en Tiempo Real */}
+                            {(() => {
+                                const overlappingApt = getOverlappingAppointment(formData.startTime);
+                                if (!overlappingApt) return null;
+
+                                const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
+                                const aptStartFmt = formatClinicTime(parseISO(overlappingApt.start_time), clinicTz);
+                                const aptEndFmt = formatClinicTime(parseISO(overlappingApt.end_time), clinicTz);
+
+                                return (
+                                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium animate-in fade-in">
+                                        <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                        <span>
+                                            <strong>Horario Ocupado:</strong> Ya existe la cita de <strong>{overlappingApt.patient_name}</strong> ({aptStartFmt} – {aptEndFmt}). Selecciona otra hora libre.
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Chips de Franjas Horarias Disponibles / Ocupadas */}
+                            <div className="space-y-1.5 pt-1">
+                                <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                    <span>Horarios del Día ({format(date || new Date(), 'EEEE d', { locale: es })}):</span>
+                                    <span className="text-[10px] text-muted-foreground/70 lowercase font-normal">🟢 disponible | 🔴 ocupado</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-2xl border border-border bg-muted/20 scrollbar-thin">
+                                    {(() => {
+                                        const weekday = (date || new Date()).getDay();
+                                        const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
+                                        const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+                                        const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
+
+                                        const slots: string[] = [];
+                                        for (let h = startH; h <= endH; h++) {
+                                            const hh = String(h).padStart(2, '0');
+                                            slots.push(`${hh}:00`);
+                                            if (h < endH) slots.push(`${hh}:30`);
+                                        }
+
+                                        return slots.map(slot => {
+                                            const occupied = getOverlappingAppointment(slot);
+                                            const isSelected = formData.startTime === slot;
+                                            const isSuggested = patientSuggestedTime?.time === slot;
+
+                                            return (
+                                                <button
+                                                    key={slot}
+                                                    type="button"
+                                                    disabled={!!occupied || isReadOnly}
+                                                    onClick={() => setFormData(prev => ({ ...prev, startTime: slot }))}
+                                                    className={cn(
+                                                        'px-2.5 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 border',
+                                                        occupied
+                                                            ? 'bg-red-500/10 text-red-400 border-red-500/20 cursor-not-allowed opacity-60 line-through'
+                                                            : isSelected
+                                                                ? 'bg-primary text-primary-foreground border-primary shadow-sm scale-105'
+                                                                : isSuggested
+                                                                    ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40 hover:bg-purple-500/25'
+                                                                    : 'bg-background hover:bg-muted text-foreground border-border'
+                                                    )}
+                                                    title={occupied ? `Ocupado por ${occupied.patient_name}` : `Seleccionar ${slot}`}
+                                                >
+                                                    {slot}
+                                                    {occupied && <span className="text-[9px] text-red-500 font-bold ml-0.5">Ocupado</span>}
+                                                    {isSuggested && !occupied && <Sparkles className="h-3 w-3 text-purple-500 ml-0.5 inline" />}
+                                                </button>
+                                            );
+                                        });
+                                    })()}
+                                </div>
                             </div>
                         </div>
 
@@ -1392,7 +1580,11 @@ const NewAppointmentDialog = ({
                                 {isReadOnly ? 'Cerrar' : isEditing ? 'Cerrar' : 'Cancelar'}
                             </Button>
                             {!isReadOnly && (
-                                <Button type="submit" variant="zen" disabled={isSubmitting}>
+                                <Button
+                                    type="submit"
+                                    variant="zen"
+                                    disabled={isSubmitting || !!getOverlappingAppointment(formData.startTime) || !!getDateWarning(date)}
+                                >
                                     {isSubmitting
                                         ? (isEditing ? 'Guardando...' : 'Creando...')
                                         : (isEditing ? 'Guardar cambios' : 'Crear Cita')}
