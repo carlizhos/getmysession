@@ -15,6 +15,7 @@ interface MetricCardProps {
   variant?: 'default' | 'zen' | 'success' | 'warning';
   className?: string;
   loading?: boolean;
+  onClick?: () => void;
 }
 
 const MetricCard = ({ 
@@ -25,7 +26,8 @@ const MetricCard = ({
   trend,
   variant = 'default',
   className,
-  loading = false
+  loading = false,
+  onClick
 }: MetricCardProps) => {
   const variantStyles = {
     default: 'bg-slate-100/50 dark:bg-slate-800/50',
@@ -42,7 +44,15 @@ const MetricCard = ({
   };
 
   return (
-    <Card variant="glass" className={cn("animate-fade-in border-white/20 dark:border-white/5", className)}>
+    <Card 
+      variant="glass" 
+      onClick={onClick}
+      className={cn(
+        "animate-fade-in border-white/20 dark:border-white/5", 
+        onClick && "cursor-pointer hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200",
+        className
+      )}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}

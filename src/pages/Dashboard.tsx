@@ -15,13 +15,24 @@ import {
   AlertCircle,
   FileText,
   ArrowRight,
-  Plus
+  Plus,
+  Pencil
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
@@ -82,6 +93,26 @@ const Dashboard = () => {
   const [chartData, setChartData] = useState<RevenuePoint[]>([]);
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Editable monthly session goal
+  const [sessionGoal, setSessionGoal] = useState<number>(() => {
+    const saved = localStorage.getItem('saudade_session_goal');
+    return saved ? parseInt(saved, 10) : 40;
+  });
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [goalInput, setGoalInput] = useState(sessionGoal.toString());
+
+  const handleSaveGoal = () => {
+    const parsed = parseInt(goalInput, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      toast.error('Ingresa una meta válida mayor a 0');
+      return;
+    }
+    setSessionGoal(parsed);
+    localStorage.setItem('saudade_session_goal', parsed.toString());
+    toast.success(`Meta mensual actualizada a ${parsed} sesiones`);
+    setIsGoalDialogOpen(false);
+  };
 
   const fetchAll = useCallback(async () => {
     if (!organization?.id) return;
@@ -239,6 +270,7 @@ const Dashboard = () => {
             icon={DollarSign}
             trend={{ value: revenueGrowth, isPositive: revenueGrowth >= 0 }}
             variant="zen"
+            onClick={() => navigate('/finance')}
           />
           <MetricCard
             title="Pacientes Activos"
@@ -247,15 +279,17 @@ const Dashboard = () => {
             loading={loading}
             icon={Users}
             variant="default"
+            onClick={() => navigate('/patients')}
           />
           <MetricCard
             title="Sesiones Completadas"
             value={stats?.completedSessions ?? 0}
-            subtitle={`Meta: ${SESSION_GOAL}`}
+            subtitle={`Meta: ${sessionGoal}`}
             loading={loading}
             icon={TrendingUp}
-            trend={{ value: Math.round(((stats?.completedSessions ?? 0) / SESSION_GOAL) * 100), isPositive: true }}
+            trend={{ value: Math.round(((stats?.completedSessions ?? 0) / sessionGoal) * 100), isPositive: true }}
             variant="success"
+            onClick={() => navigate('/agenda')}
           />
           <MetricCard
             title="Citas Hoy"
@@ -264,6 +298,7 @@ const Dashboard = () => {
             loading={loading}
             icon={Calendar}
             variant="default"
+            onClick={() => navigate('/agenda')}
           />
         </div>
 
@@ -290,28 +325,56 @@ const Dashboard = () => {
                     {loading ? <Skeleton className="h-6 w-24" /> : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" className="bg-white/50 backdrop-blur-sm">Ver detalles</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white/50 backdrop-blur-sm hover:bg-white font-semibold"
+                  onClick={() => navigate('/finance')}
+                >
+                  Ver detalles
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Progreso de sesiones */}
+            {/* Progreso de sesiones con meta editable */}
             <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-base text-slate-700 dark:text-slate-200">Sesiones del Mes</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary gap-1 px-2 font-bold hover:bg-primary/10"
+                  onClick={() => {
+                    setGoalInput(sessionGoal.toString());
+                    setIsGoalDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="h-3 w-3" /> Editar Meta
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-2xl font-bold flex items-center h-8">
                     {loading ? <Skeleton className="h-6 w-12" /> : stats?.completedSessions ?? 0}
                   </span>
-                  <Badge variant="zen" className="bg-primary/10 text-primary border-none">Meta: {SESSION_GOAL}</Badge>
+                  <Badge 
+                    variant="zen" 
+                    className="bg-primary/10 text-primary border-none cursor-pointer hover:bg-primary/20 transition-all gap-1"
+                    onClick={() => {
+                      setGoalInput(sessionGoal.toString());
+                      setIsGoalDialogOpen(true);
+                    }}
+                  >
+                    Meta: {sessionGoal}
+                    <Pencil className="h-2.5 w-2.5" />
+                  </Badge>
                 </div>
                 <Progress
-                  value={((stats?.completedSessions ?? 0) / SESSION_GOAL) * 100}
+                  value={((stats?.completedSessions ?? 0) / sessionGoal) * 100}
                   className="h-2 bg-slate-100 dark:bg-slate-800"
                 />
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-3 font-medium">
-                  {SESSION_GOAL - (stats?.completedSessions ?? 0)} sesiones restantes para la meta
+                  {Math.max(0, sessionGoal - (stats?.completedSessions ?? 0))} sesiones restantes para la meta
                 </p>
               </CardContent>
             </Card>
@@ -320,7 +383,12 @@ const Dashboard = () => {
             <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-slate-800 dark:text-slate-100">Últimas Notas</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary/80 hover:bg-primary/10 transition-all duration-300 group/btn">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-1.5 text-primary hover:text-primary/80 hover:bg-primary/10 transition-all duration-300 group/btn font-bold"
+                  onClick={() => navigate('/notes')}
+                >
                   Ver todas <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                 </Button>
               </CardHeader>
@@ -333,7 +401,7 @@ const Dashboard = () => {
                       <FileText className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <p className="text-slate-500 text-sm mb-4">No hay notas recientes</p>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/notes')}>
+                    <Button variant="outline" size="sm" className="gap-1.5 font-bold" onClick={() => navigate('/notes')}>
                       <Plus className="h-4 w-4" /> Crear nueva nota
                     </Button>
                   </div>
@@ -341,7 +409,8 @@ const Dashboard = () => {
                   recentNotes.map((note, i) => (
                     <div
                       key={note.id}
-                      className="group rounded-xl border border-white/20 dark:border-white/5 bg-white/30 dark:bg-white/5 p-4 transition-all duration-200 hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-soft"
+                      onClick={() => navigate('/notes')}
+                      className="group rounded-xl border border-white/20 dark:border-white/5 bg-white/30 dark:bg-white/5 p-4 transition-all duration-200 hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-soft cursor-pointer"
                       style={{ animationDelay: `${i * 100}ms` }}
                     >
                       <div className="flex items-start justify-between mb-1">
@@ -365,6 +434,45 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
+
+        {/* Modal para Editar Meta Mensual de Sesiones */}
+        <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
+          <DialogContent className="sm:max-w-md rounded-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-primary" /> Editar Meta Mensual de Citas
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-3">
+              <div className="space-y-2">
+                <Label htmlFor="goalInput" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Número de Sesiones Meta por Mes
+                </Label>
+                <Input
+                  id="goalInput"
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={goalInput}
+                  onChange={(e) => setGoalInput(e.target.value)}
+                  placeholder="Ej. 40"
+                  className="h-11 rounded-xl text-lg font-bold text-center"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Esta meta se usará para calcular tu porcentaje de cumplimiento en el resumen del Dashboard.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" onClick={() => setIsGoalDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button variant="zen" onClick={handleSaveGoal} className="font-bold">
+                Guardar Meta
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
