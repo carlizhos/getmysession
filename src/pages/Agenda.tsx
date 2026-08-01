@@ -87,8 +87,13 @@ const AgendaPage = () => {
   const { cancelAppointment } = useMutateAppointments();
 
   const getDayConfig = (date: Date) => {
-    if (!horario?.dias) return { inicio: '08:00', fin: '17:00' };
-    return horario.dias[date.getDay()] || { inicio: '08:00', fin: '17:00' };
+    if (!horario?.dias) return { inicio: '08:00', fin: '17:00', activo: true };
+    const dayConfig = horario.dias[date.getDay()];
+    return {
+      inicio: dayConfig?.inicio || '08:00',
+      fin: dayConfig?.fin || '17:00',
+      activo: dayConfig?.activo ?? true,
+    };
   };
 
   const isWorkingDay = (date: Date) => {
@@ -141,8 +146,8 @@ const AgendaPage = () => {
     
     if (viewMode === 'day') {
       const config = getDayConfig(currentDate);
-      const startH = parseInt(config.inicio.split(':')[0]);
-      const endH = parseInt(config.fin.split(':')[0]);
+      const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+      const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
       const length = Math.max(1, endH - startH + 1);
       return Array.from({ length }, (_, i) => i + startH);
     }
@@ -153,14 +158,16 @@ const AgendaPage = () => {
     let hasActive = false;
     
     Object.values(horario.dias).forEach((d: DayConfig) => {
-      if (d.activo) {
+      if (d?.activo) {
         hasActive = true;
-        minStart = Math.min(minStart, parseInt(d.inicio.split(':')[0]));
-        maxEnd = Math.max(maxEnd, parseInt(d.fin.split(':')[0]));
+        const s = parseInt((d.inicio || '08:00').split(':')[0]);
+        const e = parseInt((d.fin || '17:00').split(':')[0]);
+        if (!isNaN(s)) minStart = Math.min(minStart, s);
+        if (!isNaN(e)) maxEnd = Math.max(maxEnd, e);
       }
     });
 
-    if (!hasActive) return Array.from({ length: 12 }, (_, i) => i + 8);
+    if (!hasActive || minStart >= maxEnd) return Array.from({ length: 12 }, (_, i) => i + 8);
     const length = Math.max(1, maxEnd - minStart + 1);
     return Array.from({ length }, (_, i) => i + minStart);
   })();
@@ -570,8 +577,8 @@ const AgendaPage = () => {
 
                               const working = isWorkingDay(day);
                               const config = getDayConfig(day);
-                              const startH = parseInt(config.inicio.split(':')[0]);
-                              const endH = parseInt(config.fin.split(':')[0]);
+                              const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+                              const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
                               
                               const dayBlocked = isNonWorkingDay(day) || !working;
                               const isOutsideHours = hour < startH || hour > endH;

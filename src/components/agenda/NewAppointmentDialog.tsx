@@ -362,9 +362,9 @@ const NewAppointmentDialog = ({
             }
 
             // Validar horas del día específico
-            const [hMin, mMin] = config.inicio.split(':').map(Number);
-            const [hMax, mMax] = config.fin.split(':').map(Number);
-            const [hSel, mSel] = formData.startTime.split(':').map(Number);
+            const [hMin, mMin] = (config?.inicio || '08:00').split(':').map(Number);
+            const [hMax, mMax] = (config?.fin || '17:00').split(':').map(Number);
+            const [hSel, mSel] = (formData.startTime || '09:00').split(':').map(Number);
 
             if (hSel < hMin || (hSel === hMin && mSel < mMin) || hSel > hMax || (hSel === hMax && mSel > mMax)) {
                 toast.error(`La hora seleccionada está fuera del horario de este día (${config.inicio} - ${config.fin})`);
@@ -908,7 +908,7 @@ const NewAppointmentDialog = ({
 
                                                 // 4. Today if past end hour
                                                 if (isoDate === format(now, 'yyyy-MM-dd')) {
-                                                    const [finH, finM] = config.fin.split(':').map(Number);
+                                                    const [finH, finM] = (config?.fin || '17:00').split(':').map(Number);
                                                     if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
                                                 }
                                                 return false;
