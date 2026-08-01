@@ -2,6 +2,7 @@ import { format, parseISO, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Clock, MapPin, Video, Repeat, CreditCard, CircleDollarSign, CheckCircle, Timer, XCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getClinicHour, formatClinicTime } from '@/lib/timezone';
 
 interface DayViewProps {
     currentDate: Date;
@@ -11,6 +12,7 @@ interface DayViewProps {
     timeSlots?: number[];
     isWorkingDay?: boolean;
     onEditAppointment?: (apt: any) => void;
+    clinicTimezone?: string;
 }
 
 const STATUS_ICON: Record<string, any> = {
@@ -37,7 +39,8 @@ const STATUS_LABEL: Record<string, string> = {
     cancelled: 'Cancelada',
 };
 
-const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, timeSlots: propTimeSlots, isWorkingDay, onEditAppointment }: DayViewProps) => {
+const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, timeSlots: propTimeSlots, isWorkingDay, onEditAppointment, clinicTimezone }: DayViewProps) => {
+    const tz = clinicTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timeSlots = propTimeSlots || Array.from({ length: 24 }, (_, i) => i); // Fallback to 24h
     const now = new Date();
     const isCurrentDay = isToday(currentDate);
@@ -48,7 +51,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
 
     const getAppointmentsForHour = (hour: number) => {
         return appointments.filter(
-            apt => parseISO(apt.start_time).getHours() === hour
+            apt => getClinicHour(parseISO(apt.start_time), tz) === hour
         );
     };
 
@@ -138,7 +141,7 @@ const DayView = ({ currentDate, appointments, getStatusColor, getChipStyle, time
                                             <div className="flex items-center gap-3">
                                                 <div className="flex items-center gap-1 text-[10px] font-semibold opacity-80">
                                                     <Clock className="h-3 w-3" />
-                                                    <span>{format(parseISO(apt.start_time), 'h:mm a')}</span>
+                                                    <span>{formatClinicTime(parseISO(apt.start_time), tz)}</span>
                                                     {apt.isRecurring && (
                                                         <div className="ml-1 bg-slate-500/10 p-0.5 rounded">
                                                             <Repeat className="h-2.5 w-2.5 text-slate-600" />

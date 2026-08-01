@@ -166,18 +166,108 @@ export function buildUTCFromClinicTime(
     0
   ));
 
-  // Step 2: Ask "when UTC clock shows 10:00, what does the clinic clock show?"
-  //         For Mexico City (UTC-6): clinic shows 04:00
-  const clinicStr = tempUtc.toLocaleString('en-US', { timeZone: clinicTimezone });
-  const clinicLocal = new Date(clinicStr);
+  // Step 2: Use Intl.DateTimeFormat.formatToParts to get the clinic wall-clock
+  //         components when UTC shows this time — entirely browser-timezone independent.
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: clinicTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(tempUtc);
+  const vals: Record<string, number> = {};
+  parts.forEach(p => {
+    if (p.type !== 'literal') vals[p.type] = parseInt(p.value);
+  });
 
-  // Step 3: The offset = tempUtc - clinicLocal
-  //         For Mexico City: 10:00Z - 04:00 = +6 hours
-  const offsetMs = tempUtc.getTime() - clinicLocal.getTime();
+  // Step 3: Build a pure-UTC timestamp from the clinic wall-clock components
+  //         (this avoids the bug where new Date(string) parses in browser-local tz)
+  const clinicWallAsUtc = Date.UTC(
+    vals.year,
+    vals.month - 1,
+    vals.day,
+    vals.hour === 24 ? 0 : vals.hour,
+    vals.minute,
+    vals.second || 0
+  );
 
-  // Step 4: Correct UTC = scratch_UTC + offset
-  //         10:00Z + 6h = 16:00Z (which is 10:00 in Mexico City) ✓
+  // Step 4: offset = tempUtc - clinicWallAsUtc
+  //         For Tijuana (UTC-7): 09:00Z - 02:00Z = +7 hours
+  const offsetMs = tempUtc.getTime() - clinicWallAsUtc;
+
+  // Step 5: Correct UTC = scratch_UTC + offset
+  //         09:00Z + 7h = 16:00Z (which is 09:00 in Tijuana) ✓
   return new Date(tempUtc.getTime() + offsetMs);
+}
+
+/**
+ * Returns the hour (0-23) in the clinic timezone for a given UTC Date.
+ * Browser-timezone independent.
+ *
+ * @example
+ * // 16:00Z in Tijuana (UTC-7) = 9
+ * getClinicHour(new Date("2026-08-01T16:00:00Z"), "America/Tijuana") // 9
+ */
+export function getClinicHour(utcDate: Date, clinicTimezone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: clinicTimezone,
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(utcDate);
+  const h = parts.find(p => p.type === 'hour')?.value || '0';
+  return parseInt(h) === 24 ? 0 : parseInt(h);
+}
+
+/**
+ * Formats a UTC Date as "HH:mm" in the clinic timezone.
+ * Browser-timezone independent.
+ *
+ * @example
+ * formatClinicTime(new Date("2026-08-01T16:00:00Z"), "America/Tijuana") // "09:00"
+ */
+export function formatClinicTime(utcDate: Date, clinicTimezone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: clinicTimezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(utcDate);
+  const h = parts.find(p => p.type === 'hour')?.value || '00';
+  const m = parts.find(p => p.type === 'minute')?.value || '00';
+  const cleanH = h === '24' ? '00' : h;
+  return `${cleanH}:${m}`;
+}
+
+/**
+ * Returns the clinic-timezone Date parts (year, month, day) for a given UTC Date.
+ * Useful for isSameDay comparisons in the clinic timezone.
+ */
+export function getClinicDateParts(utcDate: Date, clinicTimezone: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: clinicTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(utcDate);
+  const vals: Record<string, number> = {};
+  parts.forEach(p => {
+    if (p.type !== 'literal') vals[p.type] = parseInt(p.value);
+  });
+  return { year: vals.year, month: vals.month, day: vals.day };
+}
+
+/**
+ * Checks if a UTC date falls on the same calendar day in the clinic timezone.
+ */
+export function isSameDayInClinic(utcDate: Date, localDate: Date, clinicTimezone: string): boolean {
+  const clinic = getClinicDateParts(utcDate, clinicTimezone);
+  return clinic.year === localDate.getFullYear()
+    && clinic.month === (localDate.getMonth() + 1)
+    && clinic.day === localDate.getDate();
 }
 
 /**

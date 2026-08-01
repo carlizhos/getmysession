@@ -63,7 +63,7 @@ import { LayoutList, CalendarDays } from 'lucide-react';
 import DayView from '@/components/agenda/DayView';
 import MonthView from '@/components/agenda/MonthView';
 import { Appointment } from '@/types';
-import { getTimezoneFriendlyLabel } from '@/lib/timezone';
+import { getTimezoneFriendlyLabel, getClinicHour, formatClinicTime, getVisitorTimezone } from '@/lib/timezone';
 import { useSchedule, useAppointments, useMutateAppointments, ScheduleConfig } from '@/hooks/useAgenda';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -71,6 +71,7 @@ type ViewMode = 'day' | 'week' | 'month';
 const AgendaPage = () => {
   const { user } = useAuth();
   const { organization } = useOrganization();
+  const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -475,6 +476,7 @@ const AgendaPage = () => {
                 }}
                 onCancelAppointment={handleCancelAppointment}
                 onRescheduleAppointment={handleRescheduleAppointment}
+                clinicTimezone={clinicTz}
               />
             )}
             {viewType === 'calendar' && <>
@@ -486,6 +488,7 @@ const AgendaPage = () => {
                 getStatusColor={getStatusColor}
                 timeSlots={timeSlots}
                 isWorkingDay={isWorkingDay(currentDate)}
+                clinicTimezone={clinicTz}
                 onEditAppointment={(apt) => {
                   setEditingAppointment(apt);
                   setIsNewAppointmentOpen(true);
@@ -560,7 +563,7 @@ const AgendaPage = () => {
                             </div>
                             {weekDays.map(day => {
                               const dayAppointments = getAppointmentsForDay(day).filter(
-                                apt => parseISO(apt.start_time).getHours() === hour
+                                apt => getClinicHour(parseISO(apt.start_time), clinicTz) === hour
                               );
                               const isTodayColumn = isToday(day);
                               const showTimeIndicator = isTodayColumn && isCurrentHour && timeIndicatorPosition !== null;
@@ -627,7 +630,7 @@ const AgendaPage = () => {
                                       {/* Row 2: Time & Recurrence */}
                                       <div className="flex items-center gap-1 text-[9px] font-semibold opacity-80">
                                         <Clock className="h-2.5 w-2.5" />
-                                        <span>{format(parseISO(apt.start_time), 'HH:mm')}</span>
+                                        <span>{formatClinicTime(parseISO(apt.start_time), clinicTz)}</span>
                                         {apt.isRecurring && (
                                           <Repeat className="h-2 w-2 text-blue-600" title="Recurrente" />
                                         )}

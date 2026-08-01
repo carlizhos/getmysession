@@ -1,18 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Brain, Mail, ArrowLeft, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
+    const [cooldownTimer, setCooldownTimer] = useState<number>(0);
+
+    useEffect(() => {
+        if (cooldownTimer <= 0) return;
+        const interval = setInterval(() => {
+            setCooldownTimer(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [cooldownTimer]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!email) {
+            toast.error('Por favor ingresa tu correo electrónico');
+            return;
+        }
+        if (cooldownTimer > 0) {
+            toast.warning(`Por favor espera ${cooldownTimer} segundos antes de solicitar otro correo de recuperación.`);
+            return;
+        }
+
         setLoading(true);
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -20,6 +38,8 @@ const ForgotPassword = () => {
             });
             if (error) throw error;
             setSent(true);
+            setCooldownTimer(60);
+            toast.success('✨ Enlace enviado. Revisa tu correo y espera 60 segundos antes de solicitar otro.');
         } catch (err: unknown) {
             const error = err as Error;
             toast.error('Error: ' + error.message);
@@ -56,20 +76,41 @@ const ForgotPassword = () => {
                                 <div>
                                     <p className="font-semibold text-lg">¡Email enviado!</p>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        Hemos enviado un link a <span className="font-medium text-foreground">{email}</span>.
-                                        Puede tardar unos minutos.
+                                        Hemos enviado un enlace a <span className="font-medium text-foreground">{email}</span>.
+                                        Puede tardar unos instantes en llegar.
                                     </p>
                                 </div>
                             </div>
-                            <p className="text-sm text-center text-muted-foreground">
-                                ¿No llegó el correo?{' '}
-                                <button
-                                    onClick={() => setSent(false)}
-                                    className="text-primary font-medium hover:underline"
+
+                            <div className="text-center space-y-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={cooldownTimer > 0 || loading}
+                                    onClick={handleSubmit}
+                                    className="w-full h-11 text-xs font-bold gap-2 rounded-xl"
                                 >
-                                    Intentar de nuevo
+                                    {cooldownTimer > 0 ? (
+                                        <>
+                                            <Clock className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+                                            Reenviar correo en {cooldownTimer}s
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                                            Reenviar correo de recuperación
+                                        </>
+                                    )}
+                                </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setSent(false)}
+                                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                                >
+                                    ← Cambiar correo electrónico
                                 </button>
-                            </p>
+                            </div>
                         </div>
                     ) : (
                         /* Form State */
@@ -93,9 +134,15 @@ const ForgotPassword = () => {
                                 type="submit"
                                 className="w-full"
                                 variant="zen"
-                                disabled={loading}
+                                disabled={loading || cooldownTimer > 0}
                             >
-                                {loading ? 'Enviando...' : 'Enviar link de recuperación'}
+                                {loading ? (
+                                    'Enviando...'
+                                ) : cooldownTimer > 0 ? (
+                                    `Solicitar de nuevo en ${cooldownTimer}s`
+                                ) : (
+                                    'Enviar link de recuperación'
+                                )}
                             </Button>
                         </form>
                     )}

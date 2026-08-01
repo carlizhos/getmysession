@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format, parseISO, isToday, isYesterday, isTomorrow } from 'date-fns';
+import { formatClinicTime } from '@/lib/timezone';
 import { es } from 'date-fns/locale';
 import {
     Clock,
@@ -31,6 +32,7 @@ interface AgendaListViewProps {
     onEditAppointment: (apt: Appointment) => void;
     onCancelAppointment: (id: string) => void;
     onRescheduleAppointment: (apt: Appointment) => void;
+    clinicTimezone?: string;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -125,6 +127,7 @@ const AppointmentRow = ({
     onEdit: (apt: Appointment) => void;
     onCancel: (id: string) => void;
     onReschedule: (apt: Appointment) => void;
+    clinicTimezone?: string;
 }) => {
     const [expanded, setExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -144,8 +147,9 @@ const AppointmentRow = ({
 
     const cfg = STATUS_CONFIG[apt.status] || STATUS_CONFIG.scheduled;
     const StatusIcon = STATUS_ICON[apt.status] || Clock;
-    const startFmt = format(parseISO(apt.start_time), 'hh:mm a');
-    const endFmt = format(parseISO(apt.end_time), 'hh:mm a');
+    const tz = clinicTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const startFmt = formatClinicTime(parseISO(apt.start_time), tz);
+    const endFmt = formatClinicTime(parseISO(apt.end_time), tz);
 
     return (
         <div
@@ -412,7 +416,8 @@ const AgendaListView = ({
     appointments, 
     onEditAppointment,
     onCancelAppointment,
-    onRescheduleAppointment
+    onRescheduleAppointment,
+    clinicTimezone
 }: AgendaListViewProps) => {
     const grouped = appointments.reduce((acc: Record<string, Appointment[]>, apt) => {
         const dateKey = apt.start_time.slice(0, 10);
@@ -486,6 +491,7 @@ const AgendaListView = ({
                                         onEdit={onEditAppointment}
                                         onCancel={onCancelAppointment}
                                         onReschedule={onRescheduleAppointment}
+                                        clinicTimezone={clinicTimezone}
                                     />
                                 ))}
                             </div>
