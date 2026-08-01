@@ -344,7 +344,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Saudade <onboarding@resend.dev>',
+          from: 'Saudade <notificaciones@saudade.mx>',
           to: [psychEmail],
           subject: `📅 Nueva cita: ${patientName} — ${psychDateStr}`,
           html: psychHtml,
@@ -377,7 +377,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Saudade <onboarding@resend.dev>',
+          from: 'Saudade <notificaciones@saudade.mx>',
           to: [patEmail],
           subject: `✅ Confirmación de cita — ${patientDateStr}`,
           html: patientHtml,

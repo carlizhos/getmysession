@@ -224,7 +224,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Saudade <onboarding@resend.dev>',
+        from: 'Saudade <notificaciones@saudade.mx>',
         to: [email],
         subject: '✨ Tu enlace de acceso seguro a Saudade',
         html: htmlContent,
