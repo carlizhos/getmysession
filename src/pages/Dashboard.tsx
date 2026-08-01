@@ -338,19 +338,8 @@ const Dashboard = () => {
 
             {/* Progreso de sesiones con meta editable */}
             <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-base text-slate-700 dark:text-slate-200">Sesiones del Mes</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-primary gap-1 px-2 font-bold hover:bg-primary/10"
-                  onClick={() => {
-                    setGoalInput(sessionGoal.toString());
-                    setIsGoalDialogOpen(true);
-                  }}
-                >
-                  <Pencil className="h-3 w-3" /> Editar Meta
-                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
@@ -359,14 +348,15 @@ const Dashboard = () => {
                   </span>
                   <Badge 
                     variant="zen" 
-                    className="bg-primary/10 text-primary border-none cursor-pointer hover:bg-primary/20 transition-all gap-1"
+                    title="Haz clic para cambiar la meta mensual"
+                    className="bg-primary/10 hover:bg-primary/20 text-primary border-none cursor-pointer transition-all duration-200 hover:scale-105 shadow-xs gap-1.5 px-3 py-1 font-bold group"
                     onClick={() => {
                       setGoalInput(sessionGoal.toString());
                       setIsGoalDialogOpen(true);
                     }}
                   >
-                    Meta: {sessionGoal}
-                    <Pencil className="h-2.5 w-2.5" />
+                    <span>Meta: {sessionGoal}</span>
+                    <Pencil className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
                   </Badge>
                 </div>
                 <Progress
