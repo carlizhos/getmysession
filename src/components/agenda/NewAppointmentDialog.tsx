@@ -959,56 +959,6 @@ const NewAppointmentDialog = ({
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                        {/* Fecha */}
-                        <div className="space-y-2">
-                            <Label htmlFor="date">Fecha</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            'w-full justify-start text-left font-normal',
-                                            !date && 'text-muted-foreground'
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date ? format(date, 'PPP', { locale: es }) : 'Selecciona una fecha'}
-                                    </Button>
-                                </PopoverTrigger>
-                                {!isReadOnly && (
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={date}
-                                            onSelect={setDate}
-                                            locale={es}
-                                            initialFocus
-                                            disabled={(d) => {
-                                                const now = new Date();
-                                                // 1. Past days
-                                                if (isBefore(startOfDay(d), startOfDay(now))) return true;
-
-                                                // 2. Specific Non-working days (holidays)
-                                                const isoDate = format(d, 'yyyy-MM-dd');
-                                                if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
-
-                                                // 3. Regular non-working weekdays
-                                                const weekday = d.getDay();
-                                                const config = horarioConfig.dias?.[weekday];
-                                                if (!config?.activo) return true;
-
-                                                // 4. Today if past end hour
-                                                if (isoDate === format(now, 'yyyy-MM-dd')) {
-                                                    const [finH, finM] = (config?.fin || '17:00').split(':').map(Number);
-                                                    if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
-                                                }
-                                                return false;
-                                            }}
-                                        />
-                                    </PopoverContent>
-                                )}
-                            </Popover>
-                        </div>
 
                         {/* Paciente */}
                         <div className="space-y-2">
@@ -1167,19 +1117,81 @@ const NewAppointmentDialog = ({
                             </Select>
                         </div>
 
-                        {/* Horario con Disponibilidad e Historial en Tiempo Real */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <Label>Hora de inicio *</Label>
-                                <span className="text-xs text-muted-foreground font-medium">
-                                    Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min
-                                </span>
+                        {/* ── Card Unificada de Fecha y Horario (Estilo Calendly / Google Calendar) ── */}
+                        <div className="p-4 rounded-2xl border border-border bg-card shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
+                                <CalendarIcon className="h-4 w-4 text-primary" />
+                                <h3 className="text-sm font-bold tracking-tight">Fecha y Horario de la Cita</h3>
                             </div>
 
-                            {/* Sugerencia inteligente basada en historial del paciente */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Botón Selector de Fecha */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">Fecha de la Cita *</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={isSubmitting || isReadOnly}
+                                                className={cn(
+                                                    'w-full justify-start text-left font-semibold h-11 rounded-xl border-border bg-background shadow-xs',
+                                                    !date && 'text-muted-foreground'
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2.5 h-4 w-4 text-primary" />
+                                                {date ? format(date, 'EEEE d "de" MMMM', { locale: es }) : 'Selecciona una fecha'}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        {!isReadOnly && (
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={date}
+                                                    onSelect={setDate}
+                                                    locale={es}
+                                                    initialFocus
+                                                    disabled={(d) => {
+                                                        const now = new Date();
+                                                        if (isBefore(startOfDay(d), startOfDay(now))) return true;
+                                                        const isoDate = format(d, 'yyyy-MM-dd');
+                                                        if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
+                                                        const weekday = d.getDay();
+                                                        const config = horarioConfig.dias?.[weekday];
+                                                        if (!config?.activo) return true;
+                                                        if (isoDate === format(now, 'yyyy-MM-dd')) {
+                                                            const [finH, finM] = (config?.fin || '17:00').split(':').map(Number);
+                                                            if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
+                                                        }
+                                                        return false;
+                                                    }}
+                                                />
+                                            </PopoverContent>
+                                        )}
+                                    </Popover>
+                                </div>
+
+                                {/* Botón Selector de Hora */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-semibold">Hora de Inicio *</Label>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min
+                                        </span>
+                                    </div>
+                                    <ClockPicker
+                                        value={formData.startTime}
+                                        onChange={(v) => !isReadOnly && setFormData({ ...formData, startTime: v })}
+                                        disabled={isSubmitting || isReadOnly}
+                                        isSlotOccupied={(t) => !!getOverlappingAppointment(t)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Sugerencia de IA basada en historial del paciente */}
                             {patientSuggestedTime && (
-                                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs animate-in fade-in">
-                                    <div className="flex items-center gap-1.5 font-medium">
+                                <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs animate-in fade-in">
+                                    <div className="flex items-center gap-2 font-medium">
                                         <Sparkles className="h-4 w-4 text-purple-500 flex-shrink-0 animate-pulse" />
                                         <span>✨ <strong>Sugerencia por Historial:</strong> {patientSuggestedTime.reason}</span>
                                     </div>
@@ -1187,7 +1199,7 @@ const NewAppointmentDialog = ({
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 text-xs px-2.5 border-purple-500/30 hover:bg-purple-500/20 font-bold"
+                                        className="h-7 text-xs px-2.5 border-purple-500/30 hover:bg-purple-500/20 font-bold flex-shrink-0"
                                         onClick={() => setFormData(prev => ({ ...prev, startTime: patientSuggestedTime.time }))}
                                     >
                                         Usar {patientSuggestedTime.time}
@@ -1195,37 +1207,7 @@ const NewAppointmentDialog = ({
                                 </div>
                             )}
 
-                            {/* Reloj Picker */}
-                            <div className="flex items-center gap-3">
-                                {(() => {
-                                    const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-                                    const weekday = (date || new Date()).getDay();
-                                    const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
-                                    let effectiveMin = config.inicio;
-
-                                    if (isTodayDate) {
-                                        const now = new Date();
-                                        const roundedM = Math.ceil(now.getMinutes() / 5) * 5;
-                                        const h = roundedM >= 60 ? now.getHours() + 1 : now.getHours();
-                                        const m = roundedM % 60;
-                                        const currentHM = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                                        if (currentHM > effectiveMin) effectiveMin = currentHM;
-                                    }
-
-                                    return (
-                                        <ClockPicker
-                                            value={formData.startTime}
-                                            onChange={(v) => !isReadOnly && setFormData({ ...formData, startTime: v })}
-                                            disabled={isSubmitting || isReadOnly}
-                                            minTime={effectiveMin}
-                                            maxTime={config.fin}
-                                            isSlotOccupied={(t) => !!getOverlappingAppointment(t)}
-                                        />
-                                    );
-                                })()}
-                            </div>
-
-                            {/* Alerta de Solapamiento en Tiempo Real */}
+                            {/* Banner de Solapamiento en Tiempo Real */}
                             {(() => {
                                 const overlappingApt = getOverlappingAppointment(formData.startTime);
                                 if (!overlappingApt) return null;
@@ -1235,22 +1217,25 @@ const NewAppointmentDialog = ({
                                 const aptEndFmt = formatClinicTime(parseISO(overlappingApt.end_time), clinicTz);
 
                                 return (
-                                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium animate-in fade-in">
-                                        <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                        <span>
-                                            <strong>Horario Ocupado:</strong> Ya existe la cita de <strong>{overlappingApt.patient_name}</strong> ({aptStartFmt} – {aptEndFmt}). Selecciona otra hora libre.
-                                        </span>
+                                    <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium animate-in fade-in">
+                                        <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                                        <div className="space-y-0.5">
+                                            <p className="font-bold text-sm">⛔ Horario Ocupado (No disponible)</p>
+                                            <p className="opacity-90">
+                                                Ya existe una cita agendada con <strong>{overlappingApt.patient_name}</strong> de {aptStartFmt} a {aptEndFmt}. Elige otra fecha u hora para continuar.
+                                            </p>
+                                        </div>
                                     </div>
                                 );
                             })()}
 
-                            {/* Chips de Franjas Horarias Disponibles / Ocupadas */}
+                            {/* Franjas Horarias Disponibles (Quick Chips) */}
                             <div className="space-y-1.5 pt-1">
                                 <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                                     <span>Horarios del Día ({format(date || new Date(), 'EEEE d', { locale: es })}):</span>
                                     <span className="text-[10px] text-muted-foreground/70 lowercase font-normal">🟢 disponible | 🔴 ocupado</span>
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-2xl border border-border bg-muted/20 scrollbar-thin">
+                                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-xl border border-border bg-muted/20 scrollbar-thin">
                                     {(() => {
                                         const weekday = (date || new Date()).getDay();
                                         const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };

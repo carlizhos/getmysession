@@ -747,6 +747,7 @@ const AgendaPage = () => {
             if (!open) setEditingAppointment(null);
           }}
           selectedDate={selectedDate}
+          existingAppointments={appointments}
           onAppointmentAdded={() => {
             refetchAppointments();
             setEditingAppointment(null);
