@@ -77,109 +77,205 @@ function getTimezoneFriendlyLabel(tz: string, date?: Date) {
 }
 
 function buildPsychologistEmail({
-  psychologistName, patientName, dateStr, startStr, endStr, tzLabel,
-  typeLabel, fee, meetingLink, meetingPlatform, notes, modality
+  psychologistName, psychologistTitle, patientName, dateStr, startStr, endStr, tzLabel,
+  typeLabel, fee, meetingLink, meetingPlatform, notes, modality, location
 }: Record<string, any>) {
-  const platformRow = meetingPlatform && meetingLink
-    ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Videollamada</td><td style="padding:8px 0;font-size:14px;"><a href="${meetingLink}" style="color:#7c3aed;">${meetingPlatform.charAt(0).toUpperCase() + meetingPlatform.slice(1)} — Unirse</a></td></tr>`
-    : ''
-  const notesRow = notes
-    ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Notas</td><td style="padding:8px 0;font-size:14px;color:#374151;">${notes}</td></tr>`
-    : ''
+  const titleDisplay = psychologistTitle ? `${psychologistTitle} ` : ''
+  const isOnline = modality === 'online' || !!meetingLink
+  const modalityLabel = isOnline 
+    ? `🌐 Videollamada (${meetingPlatform ? meetingPlatform.charAt(0).toUpperCase() + meetingPlatform.slice(1) : 'En línea'})` 
+    : `📍 Presencial ${location ? `(${location})` : ''}`
+
+  const notesBlock = notes ? `
+    <div style="background-color: #F8FAFC; border-left: 4px solid #0284C7; border-radius: 8px; padding: 14px 16px; margin-top: 20px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0284C7; margin-bottom: 4px;">Motivo / Notas del Paciente</div>
+      <div style="font-size: 13px; color: #334155; line-height: 1.5; white-space: pre-wrap;">${notes}</div>
+    </div>
+  ` : ''
+
+  const meetingBtn = isOnline && meetingLink ? `
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="${meetingLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF !important; text-decoration: none; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);">
+        Unirse a la Videollamada →
+      </a>
+    </div>
+  ` : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 0;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);padding:32px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,0.8);font-size:12px;letter-spacing:2px;text-transform:uppercase;">SAUDADE</p>
-          <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;">📅 Nueva cita agendada</h1>
-        </td></tr>
-        <tr><td style="padding:32px 40px;">
-          <p style="margin:0 0 8px;color:#374151;font-size:15px;">Hola, <strong>${psychologistName}</strong></p>
-          <p style="margin:0 0 28px;color:#6b7280;font-size:14px;">Se ha agendado una nueva cita.</p>
-          <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:24px;margin-bottom:24px;">
-            <p style="margin:0 0 4px;font-size:12px;color:#7c3aed;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Detalles de la cita</p>
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Paciente</td><td style="padding:8px 0;font-size:15px;font-weight:600;color:#1f2937;">${patientName}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;color:#374151;">${dateStr}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr} (${tzLabel})</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tipo</td><td style="padding:8px 0;font-size:14px;color:#374151;">${typeLabel}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tarifa</td><td style="padding:8px 0;font-size:14px;color:#374151;">$${Number(fee || 0).toLocaleString('es-MX')}</td></tr>
-              ${platformRow}
-              ${notesRow}
-            </table>
-          </div>
-        </td></tr>
-        <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Saudade © ${new Date().getFullYear()}</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva cita en tu agenda</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; padding: 40px 16px; background-color: #F8FAFC; }
+    .card { max-width: 520px; margin: 0 auto; background-color: #FFFFFF; border-radius: 24px; border: 1px solid #E2E8F0; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); padding: 40px; }
+    .badge { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 14px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); }
+    .badge-text { color: #FFFFFF; font-size: 20px; font-weight: 900; }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; margin: 0 0 8px 0; line-height: 1.3; }
+    p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px 0; }
+    .info-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px; margin: 24px 0; }
+    .btn-secondary { display: inline-block; background-color: #F1F5F9; color: #0F172A !important; text-decoration: none; font-size: 13px; font-weight: 700; padding: 12px 24px; border-radius: 12px; border: 1px solid #E2E8F0; }
+    .footer { text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #F1F5F9; font-size: 11px; color: #94A3B8; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="badge">
+        <span class="badge-text">S.</span>
+      </div>
+
+      <h1>🔔 Nueva Cita Agendada</h1>
+      <p>Hola, <strong>${titleDisplay}${psychologistName}</strong>. Se ha agendado una nueva sesión en tu agenda clínica.</p>
+
+      <div class="info-box">
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #0284C7; margin-bottom: 14px;">Detalles de la Sesión</div>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500; width: 110px;">Paciente</td>
+            <td style="padding: 8px 0; font-size: 14px; color: #0F172A; font-weight: 700;">${patientName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Fecha</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${dateStr}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Horario</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${startStr} – ${endStr} (${tzLabel})</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Servicio</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${typeLabel} (${fee ? `$${Number(fee).toLocaleString('es-MX')} MXN` : 'Sin costo'})</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Modalidad</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${modalityLabel}</td>
+          </tr>
+        </table>
+
+        ${notesBlock}
+      </div>
+
+      ${meetingBtn}
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://saudade.app/agenda" target="_blank" class="btn-secondary">Abrir Agenda en Saudade 🚀</a>
+      </div>
+
+      <div class="footer">
+        <strong>Saudade</strong> · Plataforma de Gestión Clínica e Inteligencia Terapéutica<br>
+        Alineado con los estándares de la NOM-024-SSA3-2012
+      </div>
+    </div>
+  </div>
 </body>
 </html>`
 }
 
 function buildPatientEmail({
   psychologistName, psychologistTitle, patientName, dateStr, startStr, endStr, tzLabel,
-  typeLabel, meetingLink, meetingPlatform, utcStart, utcEnd, patientTz
+  typeLabel, meetingLink, meetingPlatform, utcStart, utcEnd, patientTz, modality, location
 }: Record<string, any>) {
-  const platformSection = meetingPlatform && meetingLink
-    ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Videollamada</td><td style="padding:8px 0;font-size:14px;"><a href="${meetingLink}" style="color:#7c3aed;">${meetingPlatform.charAt(0).toUpperCase() + meetingPlatform.slice(1)} — Unirse a la sesión</a></td></tr>`
-    : ''
-
   const titleDisplay = psychologistTitle ? `${psychologistTitle} ` : ''
+  const isOnline = modality === 'online' || !!meetingLink
   const eventTitle = encodeURIComponent(`Cita con ${titleDisplay}${psychologistName}`);
   const eventDetails = encodeURIComponent(`Cita de ${typeLabel}.\nEnlace: ${meetingLink || 'Pendiente'}`);
   const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${utcStart}/${utcEnd}&ctz=${patientTz}&details=${eventDetails}`;
   const outlookCalendarUrl = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${eventTitle}&startdt=${utcStart}&enddt=${utcEnd}&body=${eventDetails}`;
 
-  const calendarSection = `
-    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
-      <a href="${googleCalendarUrl}" style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;border:1px solid #e5e7eb;">📅 Añadir a Google Calendar</a>
-      <a href="${outlookCalendarUrl}" style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;border:1px solid #e5e7eb;">📅 Añadir a Outlook</a>
+  const locationBlock = !isOnline && location ? `
+    <tr>
+      <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500; width: 110px;">Lugar</td>
+      <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">
+        ${location}<br>
+        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}" target="_blank" style="color: #0D9488; text-decoration: underline; font-size: 12px;">Ver mapa 📍</a>
+      </td>
+    </tr>
+  ` : ''
+
+  const meetingBtn = isOnline && meetingLink ? `
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="${meetingLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0D9488 0%, #059669 100%); color: #FFFFFF !important; text-decoration: none; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);">
+        Unirse a la Sesión en Línea →
+      </a>
     </div>
-  `
+  ` : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 0;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#059669 0%,#047857 100%);padding:32px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,0.8);font-size:12px;letter-spacing:2px;text-transform:uppercase;">SAUDADE</p>
-          <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;">✅ Cita confirmada</h1>
-        </td></tr>
-        <tr><td style="padding:32px 40px;">
-          <p style="margin:0 0 8px;color:#374151;font-size:15px;">Hola, <strong>${patientName}</strong></p>
-          <p style="margin:0 0 28px;color:#6b7280;font-size:14px;">Tu cita ha sido confirmada. Aquí tienes los detalles:</p>
-          <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:24px;margin-bottom:24px;">
-            <p style="margin:0 0 4px;font-size:12px;color:#059669;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Detalles de tu cita</p>
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Profesional</td><td style="padding:8px 0;font-size:15px;font-weight:600;color:#1f2937;">${titleDisplay}${psychologistName}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;color:#374151;">${dateStr}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Horario</td><td style="padding:8px 0;font-size:14px;color:#374151;">${startStr} – ${endStr} (${tzLabel})</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tipo de sesión</td><td style="padding:8px 0;font-size:14px;color:#374151;">${typeLabel}</td></tr>
-              ${platformSection}
-            </table>
-            ${calendarSection}
-          </div>
-          <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:24px;">
-            <p style="margin:0;font-size:13px;color:#92400e;">💡 <strong>Recuerda:</strong> Si necesitas cancelar o reprogramar, comunícate con tu psicólogo/a con anticipación.</p>
-          </div>
-        </td></tr>
-        <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Saudade © ${new Date().getFullYear()}</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmación de Cita</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; -webkit-font-smoothing: antialiased; }
+    .wrapper { width: 100%; padding: 40px 16px; background-color: #F8FAFC; }
+    .card { max-width: 520px; margin: 0 auto; background-color: #FFFFFF; border-radius: 24px; border: 1px solid #E2E8F0; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); padding: 40px; }
+    .badge { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: linear-gradient(135deg, #0D9488 0%, #059669 100%); border-radius: 14px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2); }
+    .badge-text { color: #FFFFFF; font-size: 20px; font-weight: 900; }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; margin: 0 0 8px 0; line-height: 1.3; }
+    p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px 0; }
+    .info-box { background-color: #F0FDF4; border: 1px solid #DCFCE7; border-radius: 16px; padding: 24px; margin: 24px 0; }
+    .cal-pill { display: inline-block; background-color: #FFFFFF; color: #334155; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 10px; border: 1px solid #E2E8F0; margin: 4px 4px 4px 0; }
+    .notice-box { background-color: #FEFCE8; border: 1px solid #FEF08A; border-radius: 12px; padding: 14px 16px; font-size: 12.5px; color: #854D0E; line-height: 1.5; margin-top: 24px; }
+    .footer { text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #F1F5F9; font-size: 11px; color: #94A3B8; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="badge">
+        <span class="badge-text">✓</span>
+      </div>
+
+      <h1>✨ Cita Confirmada</h1>
+      <p>Hola, <strong>${patientName}</strong>. Tu sesión terapéutica ha sido agendada con éxito.</p>
+
+      <div class="info-box">
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #0D9488; margin-bottom: 14px;">Resumen de tu Cita</div>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500; width: 110px;">Especialista</td>
+            <td style="padding: 8px 0; font-size: 14px; color: #0F172A; font-weight: 700;">${titleDisplay}${psychologistName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Fecha</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${dateStr}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Horario</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${startStr} – ${endStr} (${tzLabel})</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 13px; color: #64748B; font-weight: 500;">Sesión</td>
+            <td style="padding: 8px 0; font-size: 13px; color: #0F172A; font-weight: 600;">${typeLabel}</td>
+          </tr>
+          ${locationBlock}
+        </table>
+
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #DCFCE7;">
+          <div style="font-size: 11px; font-weight: 700; color: #047857; margin-bottom: 8px;">Añadir a tu Calendario:</div>
+          <a href="${googleCalendarUrl}" target="_blank" class="cal-pill">📅 Google Calendar</a>
+          <a href="${outlookCalendarUrl}" target="_blank" class="cal-pill">📅 Outlook</a>
+        </div>
+      </div>
+
+      ${meetingBtn}
+
+      <div class="notice-box">
+        <strong>💡 Recordatorio Importante:</strong> Si necesitas reprogramar o realizar algún cambio en tu cita, por favor comunícate directamente con tu psicólogo/a con anticipación.
+      </div>
+
+      <div class="footer">
+        <strong>Saudade</strong> · Gestión Clínica e Inteligencia Terapéutica<br>
+        Alineado con los estándares de la NOM-024-SSA3-2012
+      </div>
+    </div>
+  </div>
 </body>
 </html>`
 }
@@ -212,6 +308,8 @@ serve(async (req) => {
       meetingPlatform,
       notes,
       patientTimezone,
+      modality,
+      location,
     } = payload
 
     let psychEmail = '';
@@ -322,7 +420,7 @@ serve(async (req) => {
       }
     }
 
-    const sharedVarsBase = { psychologistName: psychName, psychologistTitle, patientName: patName, typeLabel, meetingLink, meetingPlatform, notes, fee }
+    const sharedVarsBase = { psychologistName: psychName, psychologistTitle, patientName: patName, typeLabel, meetingLink, meetingPlatform, notes, fee, modality, location }
 
     const results: any = {
       psychEmailSuccess: false,
