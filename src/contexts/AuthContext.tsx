@@ -302,13 +302,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const signInWithMagicLink = async (email: string) => {
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-                emailRedirectTo: `${window.location.origin}/`,
-            }
+        const { data, error } = await supabase.functions.invoke('send-magic-link', {
+            body: { email, redirectTo: `${window.location.origin}/` }
         });
-        return { error };
+        if (error) return { error };
+        if (data?.error) return { error: new Error(data.error) };
+        return { error: null };
     };
 
     const resendConfirmationEmail = async (email: string) => {
