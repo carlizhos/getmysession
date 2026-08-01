@@ -126,10 +126,10 @@ const OnboardingModal = () => {
     };
 
     return createPortal(
-        /* Backdrop */
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-            {/* Modal card */}
-            <div className="w-full max-w-md max-h-[90vh] flex flex-col rounded-3xl border border-border bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        /* Backdrop con scroll vertical nativo alineado arriba */
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-md p-4 sm:p-6 flex justify-center items-start animate-fade-in">
+            {/* Modal card que se desplaza con el scroll */}
+            <div className="w-full max-w-md my-6 sm:my-12 rounded-3xl border border-border bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header */}
                 <div className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/5 px-6 pt-6 pb-5 border-b border-border">
