@@ -12,11 +12,15 @@ function getCleanPhone(phoneStr: string): string {
   return cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
 }
 
-// Helper to remove the extra '1' added by Mexican carriers for Meta API outbound
-function normalizeMexicanPhone(phoneStr: string): string {
-  let cleaned = phoneStr.replace(/\D/g, "");
-  if (cleaned.startsWith("521") && cleaned.length === 13) {
-    cleaned = "52" + cleaned.slice(3);
+// Helper to format phone for Meta API outbound (ensuring country code 52 for 10-digit MX numbers)
+function formatPhoneForMeta(phoneStr: string): string {
+  let cleaned = (phoneStr || '').replace(/\D/g, "");
+  if (!cleaned) return "";
+  if (cleaned.length === 10) {
+    return "52" + cleaned;
+  }
+  if (cleaned.length === 13 && cleaned.startsWith("521")) {
+    return "52" + cleaned.slice(3);
   }
   return cleaned;
 }
@@ -388,7 +392,7 @@ serve(async (req) => {
         }
 
         let metaMsgId = `MOCK_SID_${Math.random().toString(36).substr(2, 9)}`;
-        const cleanPhoneTo = normalizeMexicanPhone(phone); // Guardamos a 10 digitos (52...) en DB
+        const cleanPhoneTo = formatPhoneForMeta(phone);
 
         if (!isMockMode) {
           try {
@@ -496,9 +500,9 @@ serve(async (req) => {
 
           const notifSettings = psychologist?.notification_settings || {};
           
-          if (notifSettings.recordatorio_24h_whatsapp !== true) continue;
+          if (notifSettings.recordatorio_24h_whatsapp === false) continue;
 
-          const recordatorioHoras = notifSettings.recordatorio_horas ?? 24;
+          const recordatorioHoras = notifSettings.recordatorio_horas ?? 48;
           const start = new Date(apt.start_time);
           const diffHours = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
 
@@ -545,7 +549,7 @@ serve(async (req) => {
           }
 
           let metaMsgId = `MOCK_SID_REM_${Math.random().toString(36).substr(2, 9)}`;
-          const cleanPhoneTo = phone.replace(/[^0-9]/g, "");
+          const cleanPhoneTo = formatPhoneForMeta(phone);
 
           if (!isMockMode) {
             try {
@@ -574,6 +578,9 @@ serve(async (req) => {
                   metaMsgId = resData.messages[0].id;
                 }
                 sentCount++;
+              } else {
+                const errData = await response.json();
+                console.error(`Error sending Meta reminder for apt ${apt.id}:`, JSON.stringify(errData));
               }
             } catch (e) {
               console.error(`Error sending Meta reminder for apt ${apt.id}:`, e);
