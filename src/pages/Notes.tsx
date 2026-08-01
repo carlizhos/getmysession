@@ -29,15 +29,10 @@ import {
   Activity,
   Download,
   Sparkles,
-  Settings,
-  CheckSquare,
-  Target,
-  Stethoscope,
-  CheckCircle2,
-  ListChecks
+  Settings
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { format, parseISO, subDays, isAfter } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import StructuredNoteForm from '@/components/notes/StructuredNoteForm';
 import PatientAutocomplete from '@/components/patients/PatientAutocomplete';
@@ -72,15 +67,6 @@ const Notes = () => {
   const [isExportingNote, setIsExportingNote] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isDictating, setIsDictating] = useState(false);
-  const [dateRangeFilter, setDateRangeFilter] = useState<'all' | '30' | '90' | '180'>('all');
-
-  const filteredNotes = notes.filter((note: any) => {
-    if (dateRangeFilter === 'all') return true;
-    if (!note.date) return true;
-    const noteDate = parseISO(note.date);
-    const days = parseInt(dateRangeFilter);
-    return isAfter(noteDate, subDays(new Date(), days));
-  });
 
   useEffect(() => {
     const pId = searchParams.get('patientId');
@@ -483,42 +469,8 @@ const Notes = () => {
           </Card>
         ) : (
           <>
-            {/* Quick Date Range Filter Pills */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 px-4 rounded-xl border border-border/60 shadow-xs">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-primary" />
-                <span className="text-xs font-bold text-foreground">Período:</span>
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {[
-                  { id: 'all', label: 'Todas' },
-                  { id: '30', label: 'Últimos 30 días' },
-                  { id: '90', label: 'Últimos 3 meses' },
-                  { id: '180', label: 'Últimos 6 meses' },
-                ].map((pill) => (
-                  <button
-                    key={pill.id}
-                    onClick={() => setDateRangeFilter(pill.id as any)}
-                    className={cn(
-                      "px-3 py-1 text-xs font-semibold rounded-lg transition-all",
-                      dateRangeFilter === pill.id
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    {pill.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {filteredNotes.length === 0 ? (
-              <Card className="border-dashed border-2 p-12 text-center">
-                <p className="text-sm text-muted-foreground">No se encontraron notas en el período seleccionado.</p>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
-                {filteredNotes.map((note: any) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+              {notes.map((note: any) => (
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note.id)}
@@ -704,106 +656,6 @@ const Notes = () => {
                             />
                           )}
                         </div>
-
-                        {/* Additional Structured Clinical Sections (View Mode Only) */}
-                        {!isEditing && (
-                          <div className="mt-10 space-y-8 pt-8 border-t border-border/40">
-                            {/* Diagnóstico Principal */}
-                            {selectedNoteData.diagnostico_principal && (
-                              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
-                                  <Stethoscope className="h-4 w-4" /> Diagnóstico Principal
-                                </h5>
-                                <p className="text-sm font-semibold text-foreground">{selectedNoteData.diagnostico_principal}</p>
-                              </div>
-                            )}
-
-                            {/* Plan de Acción / Tareas */}
-                            {Array.isArray(selectedNoteData.action_plan) && selectedNoteData.action_plan.length > 0 && (
-                              <div className="space-y-3">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2">
-                                  <CheckSquare className="h-4 w-4 text-emerald-600" /> Plan de Acción / Tareas entre Sesiones
-                                </h5>
-                                <div className="grid gap-2">
-                                  {selectedNoteData.action_plan.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/10 text-xs">
-                                      <span className="font-medium text-foreground">{item.task}</span>
-                                      <Badge variant={item.completed ? 'outline' : 'default'} className={item.completed ? 'border-emerald-500/40 text-emerald-700 bg-emerald-50' : 'bg-emerald-600 text-white'}>
-                                        {item.completed ? 'Completada' : 'Pendiente'}
-                                      </Badge>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Creencias / Reestructuración Cognitiva */}
-                            {selectedNoteData.beliefs && (selectedNoteData.beliefs.belief || selectedNoteData.beliefs.alternative) && (
-                              <div className="space-y-3">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-violet-700 flex items-center gap-2">
-                                  <Target className="h-4 w-4 text-violet-600" /> Reestructuración Cognitiva
-                                </h5>
-                                <div className="p-4 rounded-xl border border-violet-200 bg-violet-50/40 text-xs space-y-2">
-                                  {selectedNoteData.beliefs.belief && (
-                                    <div>
-                                      <span className="font-bold text-violet-900">Pensamiento Automático: </span>
-                                      <span className="text-violet-800">{selectedNoteData.beliefs.belief}</span>
-                                    </div>
-                                  )}
-                                  {selectedNoteData.beliefs.evidence_for && (
-                                    <div>
-                                      <span className="font-bold text-violet-900">Evidencia a Favor: </span>
-                                      <span className="text-violet-800">{selectedNoteData.beliefs.evidence_for}</span>
-                                    </div>
-                                  )}
-                                  {selectedNoteData.beliefs.evidence_against && (
-                                    <div>
-                                      <span className="font-bold text-violet-900">Evidencia en Contra: </span>
-                                      <span className="text-violet-800">{selectedNoteData.beliefs.evidence_against}</span>
-                                    </div>
-                                  )}
-                                  {selectedNoteData.beliefs.alternative && (
-                                    <div className="pt-2 border-t border-violet-200/60 font-medium text-violet-950">
-                                      <span className="font-bold text-emerald-800">Pensamiento Alternativo / Adaptativo: </span>
-                                      <span>{selectedNoteData.beliefs.alternative}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Examen del Estado Mental */}
-                            {selectedNoteData.mental_status && Object.keys(selectedNoteData.mental_status).length > 0 && (
-                              <div className="space-y-3">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                                  <ListChecks className="h-4 w-4 text-slate-600" /> Examen del Estado Mental
-                                </h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {Object.entries(selectedNoteData.mental_status).map(([cat, vals]: [string, any]) => (
-                                    Array.isArray(vals) && vals.length > 0 && (
-                                      <div key={cat} className="px-3 py-1.5 rounded-lg border border-border bg-slate-50 text-[11px]">
-                                        <span className="font-bold capitalize text-foreground">{cat}: </span>
-                                        <span className="text-muted-foreground">{vals.join(', ')}</span>
-                                      </div>
-                                    )
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Puente Terapéutico */}
-                            {selectedNoteData.bridge && (selectedNoteData.bridge.homework_review || selectedNoteData.bridge.notes) && (
-                              <div className="space-y-2">
-                                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                                  Puente Terapéutico (Revisión de Sesión Anterior)
-                                </h5>
-                                <p className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50">
-                                  {selectedNoteData.bridge.homework_review || selectedNoteData.bridge.notes}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
 
                         {/* Visual Signature Block (only shown in view mode) */}
                         {!isEditing && professionalProfile && (
