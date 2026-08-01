@@ -82,7 +82,7 @@ const AgendaPage = () => {
   const { data: horario } = useSchedule();
   const nonWorkingDays = horario?.dias_no_laborables || [];
   const horarioFin = horario?.fin || '17:00';
-  const { data: appointments = [] } = useAppointments(organization?.id);
+  const { data: appointments = [], refetch: refetchAppointments } = useAppointments(organization?.id);
   const { cancelAppointment } = useMutateAppointments();
 
   const getDayConfig = (date: Date) => {
@@ -738,7 +738,7 @@ const AgendaPage = () => {
           }}
           selectedDate={selectedDate}
           onAppointmentAdded={() => {
-            fetchAppointments();
+            refetchAppointments();
             setEditingAppointment(null);
           }}
           editingAppointment={editingAppointment ? {
