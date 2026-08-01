@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle, RefreshCw, Clock, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
@@ -70,7 +71,17 @@ const Auth = () => {
     const [showResendEmail, setShowResendEmail] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
     const [isMagicLink, setIsMagicLink] = useState(false);
+    const [sentMagicLinkEmail, setSentMagicLinkEmail] = useState<string | null>(null);
+    const [resendTimer, setResendTimer] = useState<number>(0);
     const { signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogleIdToken } = useAuth();
+
+    useEffect(() => {
+        if (resendTimer <= 0) return;
+        const interval = setInterval(() => {
+            setResendTimer(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [resendTimer]);
 
     const getPasswordStrength = (pwd: string) => {
         if (!pwd) return { score: 0, label: '', color: 'bg-muted', checks: { length: false, number: false, upper: false, special: false } };
@@ -213,7 +224,9 @@ const Auth = () => {
                 if (error) {
                     toast.error('Error al enviar enlace mágico: ' + error.message);
                 } else {
-                    toast.success('✨ ¡Enlace mágico enviado! Revisa tu correo electrónico.');
+                    toast.success('✨ ¡Enlace mágico enviado! Revisa tu bandeja de entrada.');
+                    setSentMagicLinkEmail(data.email);
+                    setResendTimer(60);
                 }
             } catch (err: unknown) {
                 toast.error('Error: ' + (err as Error).message);
@@ -315,8 +328,94 @@ const Auth = () => {
                         </div>
                     </div>
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
+                    {/* Form or Magic Link Confirmation */}
+                    {sentMagicLinkEmail ? (
+                        <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500 bg-card p-6 rounded-3xl border border-border/80 shadow-lg">
+                            <div className="relative mx-auto w-20 h-20">
+                                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-75" />
+                                <div className="relative w-20 h-20 bg-gradient-to-tr from-primary to-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-primary/30">
+                                    <Mail className="h-9 w-9 text-white animate-pulse" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-bold text-xs uppercase tracking-widest">
+                                    ✨ Enlace Mágico Enviado
+                                </Badge>
+                                <h2 className="text-2xl font-black text-foreground tracking-tight">Revisa tu correo</h2>
+                                <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                                    Hemos enviado un enlace de acceso directo y seguro a tu bandeja de entrada:
+                                </p>
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted font-mono text-xs font-bold text-primary border border-border mt-1">
+                                    {sentMagicLinkEmail}
+                                </div>
+                            </div>
+
+                            {/* Quick Provider Launch Buttons */}
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <a
+                                    href="https://mail.google.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 p-3 rounded-xl border border-border/80 bg-background hover:bg-muted/60 transition-all font-semibold text-xs text-foreground shadow-xs group"
+                                >
+                                    <GoogleSVG />
+                                    <span>Abrir Gmail</span>
+                                </a>
+                                <a
+                                    href="https://outlook.live.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 p-3 rounded-xl border border-border/80 bg-background hover:bg-muted/60 transition-all font-semibold text-xs text-foreground shadow-xs group"
+                                >
+                                    <Mail className="h-4 w-4 text-sky-600 group-hover:scale-110 transition-transform" />
+                                    <span>Abrir Outlook</span>
+                                </a>
+                            </div>
+
+                            {/* Resend & Back controls */}
+                            <div className="pt-4 border-t border-border/50 space-y-3">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={resendTimer > 0 || loading}
+                                    onClick={async () => {
+                                        setLoading(true);
+                                        const { error } = await signInWithMagicLink(sentMagicLinkEmail);
+                                        setLoading(false);
+                                        if (error) {
+                                            toast.error('Error: ' + error.message);
+                                        } else {
+                                            toast.success('¡Enlace reenviado con éxito!');
+                                            setResendTimer(60);
+                                        }
+                                    }}
+                                    className="w-full h-10 text-xs font-bold gap-2 rounded-xl"
+                                >
+                                    {resendTimer > 0 ? (
+                                        <>
+                                            <Clock className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+                                            Reenviar en {resendTimer}s
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                                            Reenviar enlace mágico
+                                        </>
+                                    )}
+                                </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setSentMagicLinkEmail(null)}
+                                    className="text-xs font-medium text-muted-foreground hover:text-foreground underline transition-colors"
+                                >
+                                    ← Cambiar correo o usar contraseña
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
                         {/* Nombre completo */}
                         <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
@@ -563,10 +662,10 @@ const Auth = () => {
                                     ? <Loader2 className="h-4 w-4 animate-spin" />
                                     : <GoogleSVG />
                                 }
-                                {googleLoading ? 'Conectando...' : 'Continuar con Google'}
                             </Button>
                         )}
                     </form>
+                    )}
 
                     {/* Legal Acceptance */}
                     <div className="text-center text-[11px] text-muted-foreground px-4 mt-2">
