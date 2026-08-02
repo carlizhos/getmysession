@@ -597,34 +597,56 @@ serve(async (req) => {
 
           if (!isMockMode) {
             try {
-              // RECORDATORIO: En producción Meta requiere que uses una PLANTILLA (template) para iniciar la conversación.
-              // Asumiremos que has creado una plantilla llamada "recordatorio_cita".
-              // Si falla el envío de texto libre, deberás cambiar payload.type = "template".
-              const payload = {
-                messaging_product: "whatsapp",
-                to: cleanPhoneTo,
-                type: "text",
-                text: { body: body }
-              };
+              let responseData: any = null;
 
-              const response = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${metaAccessToken}`,
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-              });
+              // 1. Intentar enviar con formato de Plantilla (Meta Template)
+              try {
+                const templatePayload = {
+                  messaging_product: "whatsapp",
+                  to: cleanPhoneTo,
+                  type: "template",
+                  template: {
+                    name: "reminder",
+                    language: { code: "es_MX" }
+                  }
+                };
 
-              if (response.ok) {
-                const resData = await response.json();
-                if (resData.messages && resData.messages[0]) {
-                  metaMsgId = resData.messages[0].id;
-                }
+                const tplResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${metaAccessToken}`,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(templatePayload)
+                });
+                responseData = await tplResponse.json();
+              } catch (_) {}
+
+              // 2. Si no hay respuesta de plantilla o retornó error, respaldo a texto libre
+              if (!responseData || responseData.error) {
+                const textPayload = {
+                  messaging_product: "whatsapp",
+                  to: cleanPhoneTo,
+                  type: "text",
+                  text: { body: body }
+                };
+
+                const textResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${metaAccessToken}`,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(textPayload)
+                });
+                responseData = await textResponse.json();
+              }
+
+              if (responseData?.messages?.[0]?.id) {
+                metaMsgId = responseData.messages[0].id;
                 sentCount++;
               } else {
-                const errData = await response.json();
-                console.error(`Error sending Meta reminder for apt ${apt.id}:`, JSON.stringify(errData));
+                console.error(`Error sending Meta reminder for apt ${apt.id}:`, JSON.stringify(responseData));
               }
             } catch (e) {
               console.error(`Error sending Meta reminder for apt ${apt.id}:`, e);
