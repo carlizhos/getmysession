@@ -22,7 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
+import { CalendarIcon, Clock, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -1160,139 +1160,130 @@ const NewAppointmentDialog = ({
                             </Select>
                         </div>
 
-                        {/* ── Card Unificada de Fecha y Horario (Estilo Apple / Saudade) ── */}
-                        <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-                            <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
-                                <CalendarIcon className="h-4 w-4 text-primary" />
-                                <h3 className="text-sm font-bold tracking-tight">Fecha y Horario de la Cita</h3>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Selector de Fecha */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-foreground">Fecha de la Cita *</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                disabled={isSubmitting || isReadOnly}
-                                                className={cn(
-                                                    'w-full justify-start text-left font-semibold h-11 rounded-xl border-border bg-background shadow-xs hover:border-primary/50 transition-colors',
-                                                    !date && 'text-muted-foreground'
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2.5 h-4 w-4 text-primary shrink-0" />
-                                                {date ? format(date, 'EEEE d "de" MMMM', { locale: es }) : 'Selecciona una fecha'}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        {!isReadOnly && (
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={date}
-                                                    onSelect={setDate}
-                                                    locale={es}
-                                                    initialFocus
-                                                    disabled={(d) => {
-                                                        const now = new Date();
-                                                        if (isBefore(startOfDay(d), startOfDay(now))) return true;
-                                                        const isoDate = format(d, 'yyyy-MM-dd');
-                                                        if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
-                                                        const weekday = d.getDay();
-                                                        const config = horarioConfig.dias?.[weekday];
-                                                        if (!config?.activo) return true;
-                                                        if (isoDate === format(now, 'yyyy-MM-dd')) {
-                                                            const [finH, finM] = (config?.fin || '17:00').split(':').map(Number);
-                                                            if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
-                                                        }
-                                                        return false;
-                                                    }}
-                                                />
-                                            </PopoverContent>
-                                        )}
-                                    </Popover>
-                                </div>
-
-                                {/* Selector de Hora */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-foreground">Hora de Inicio *</Label>
-                                    <Select
-                                        value={formData.startTime}
-                                        onValueChange={(val) => !isReadOnly && setFormData(prev => ({ ...prev, startTime: val }))}
+                        {/* ── Fecha ── */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fecha de la Cita</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
                                         disabled={isSubmitting || isReadOnly}
+                                        className={cn(
+                                            'w-full justify-start text-left h-12 rounded-xl border-border/60 bg-muted/30 font-medium text-[14px] hover:bg-muted/50 transition-all duration-200',
+                                            !date && 'text-muted-foreground'
+                                        )}
                                     >
-                                        <SelectTrigger className="w-full h-11 rounded-xl font-semibold border-border bg-background shadow-xs hover:border-primary/50 transition-colors">
-                                            <div className="flex items-center gap-2.5 text-left w-full overflow-hidden">
-                                                <Clock className="h-4 w-4 text-primary shrink-0" />
-                                                <SelectValue placeholder="Selecciona una hora" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="max-h-60 rounded-xl border-border shadow-xl">
-                                            {(() => {
-                                                const weekday = (date || new Date()).getDay();
-                                                const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
-                                                const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
-                                                const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
-
-                                                const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                        <CalendarIcon className="mr-3 h-[18px] w-[18px] text-primary/70 shrink-0" />
+                                        {date ? format(date, "EEEE, d 'de' MMMM", { locale: es }) : 'Selecciona una fecha'}
+                                    </Button>
+                                </PopoverTrigger>
+                                {!isReadOnly && (
+                                    <PopoverContent className="w-auto p-0 rounded-2xl border-border/50 shadow-lg" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={date}
+                                            onSelect={setDate}
+                                            locale={es}
+                                            initialFocus
+                                            disabled={(d) => {
                                                 const now = new Date();
-                                                const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-                                                const slots: { timeStr: string; label12h: string }[] = [];
-                                                for (let h = startH; h <= endH; h++) {
-                                                    for (const m of ['00', '30']) {
-                                                        if (h === endH && m === '30') continue;
-                                                        const hh = String(h).padStart(2, '0');
-                                                        const timeStr = `${hh}:${m}`;
-                                                        const period = h >= 12 ? 'PM' : 'AM';
-                                                        const h12 = h % 12 === 0 ? 12 : h % 12;
-                                                        const label12h = `${String(h12).padStart(2, '0')}:${m} ${period}`;
-                                                        slots.push({ timeStr, label12h });
-                                                    }
+                                                if (isBefore(startOfDay(d), startOfDay(now))) return true;
+                                                const isoDate = format(d, 'yyyy-MM-dd');
+                                                if (horarioConfig.dias_no_laborables.includes(isoDate)) return true;
+                                                const weekday = d.getDay();
+                                                const config = horarioConfig.dias?.[weekday];
+                                                if (!config?.activo) return true;
+                                                if (isoDate === format(now, 'yyyy-MM-dd')) {
+                                                    const [finH, finM] = (config?.fin || '17:00').split(':').map(Number);
+                                                    if (now.getHours() > finH || (now.getHours() === finH && now.getMinutes() >= finM)) return true;
                                                 }
+                                                return false;
+                                            }}
+                                        />
+                                    </PopoverContent>
+                                )}
+                            </Popover>
+                        </div>
 
-                                                return slots.map(slot => {
-                                                    const isOccupied = !!getOverlappingAppointment(slot.timeStr);
-                                                    let isPast = false;
-                                                    if (isTodayDate) {
-                                                        const [sh, sm] = slot.timeStr.split(':').map(Number);
-                                                        if (sh * 60 + sm <= nowMinutes) isPast = true;
-                                                    }
+                        {/* ── Hora ── */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hora de Inicio</Label>
+                            <Select
+                                value={formData.startTime}
+                                onValueChange={(val) => !isReadOnly && setFormData(prev => ({ ...prev, startTime: val }))}
+                                disabled={isSubmitting || isReadOnly}
+                            >
+                                <SelectTrigger className="w-full h-12 rounded-xl border-border/60 bg-muted/30 font-medium text-[14px] hover:bg-muted/50 transition-all duration-200 [&>svg]:text-muted-foreground">
+                                    <div className="flex items-center">
+                                        <Clock className="mr-3 h-[18px] w-[18px] text-primary/70 shrink-0" />
+                                        <SelectValue placeholder="Selecciona una hora" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64 rounded-2xl border-border/50 shadow-lg p-1">
+                                    {(() => {
+                                        const weekday = (date || new Date()).getDay();
+                                        const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
+                                        const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+                                        const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
 
-                                                    const isDisabled = isOccupied || isPast;
+                                        const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                        const now = new Date();
+                                        const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-                                                    return (
-                                                        <SelectItem
-                                                            key={slot.timeStr}
-                                                            value={slot.timeStr}
-                                                            disabled={isDisabled}
-                                                            className={cn(
-                                                                'py-2 px-3 rounded-lg text-xs font-semibold transition-colors',
-                                                                isDisabled && 'opacity-40 line-through text-muted-foreground bg-muted/20 cursor-not-allowed'
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center justify-between w-full gap-4">
-                                                                <span>{slot.label12h}</span>
-                                                                {isOccupied && (
-                                                                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md uppercase tracking-wider ml-auto">
-                                                                        Ocupado
-                                                                    </span>
-                                                                )}
-                                                                {isPast && !isOccupied && (
-                                                                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md ml-auto">
-                                                                        Pasado
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </SelectItem>
-                                                    );
-                                                });
-                                            })()}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                                        const slots: { timeStr: string; label12h: string }[] = [];
+                                        for (let h = startH; h <= endH; h++) {
+                                            for (const m of ['00', '30']) {
+                                                if (h === endH && m === '30') continue;
+                                                const hh = String(h).padStart(2, '0');
+                                                const timeStr = `${hh}:${m}`;
+                                                const period = h >= 12 ? 'PM' : 'AM';
+                                                const h12 = h % 12 === 0 ? 12 : h % 12;
+                                                const label12h = `${h12}:${m} ${period}`;
+                                                slots.push({ timeStr, label12h });
+                                            }
+                                        }
+
+                                        return slots.map(slot => {
+                                            const isOccupied = !!getOverlappingAppointment(slot.timeStr);
+                                            let isPast = false;
+                                            if (isTodayDate) {
+                                                const [sh, sm] = slot.timeStr.split(':').map(Number);
+                                                if (sh * 60 + sm <= nowMinutes) isPast = true;
+                                            }
+
+                                            const isDisabled = isOccupied || isPast;
+
+                                            return (
+                                                <SelectItem
+                                                    key={slot.timeStr}
+                                                    value={slot.timeStr}
+                                                    disabled={isDisabled}
+                                                    className={cn(
+                                                        'rounded-lg text-[13px] font-medium py-2.5 px-3 my-0.5 cursor-pointer transition-colors',
+                                                        !isDisabled && 'hover:bg-primary/8 focus:bg-primary/10',
+                                                        isDisabled && 'opacity-35 cursor-not-allowed'
+                                                    )}
+                                                >
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <span>{slot.label12h}</span>
+                                                        {isOccupied && (
+                                                            <span className="text-[10px] font-semibold text-destructive/80 bg-destructive/8 px-2 py-0.5 rounded-full ml-3">
+                                                                Ocupado
+                                                            </span>
+                                                        )}
+                                                        {isPast && !isOccupied && (
+                                                            <span className="text-[10px] font-medium text-muted-foreground/60 ml-3">
+                                                                Pasado
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </SelectItem>
+                                            );
+                                        });
+                                    })()}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* Modalidad */}
