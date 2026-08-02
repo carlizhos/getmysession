@@ -47,7 +47,29 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 
 
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 const queryClient = new QueryClient();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = String(event?.reason?.message || event?.reason || '');
+    if (
+      reason.includes('Failed to fetch dynamically imported module') ||
+      reason.includes('Failed to load module script') ||
+      reason.includes('MIME type') ||
+      reason.includes('Expected a JavaScript-or-Wasm module script')
+    ) {
+      const lastReload = parseInt(sessionStorage.getItem('chunk_last_reload') || '0', 10);
+      const now = Date.now();
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem('chunk_last_reload', now.toString());
+        window.location.reload();
+      }
+    }
+  });
+}
 
 class ChunkLoadErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -55,21 +77,25 @@ class ChunkLoadErrorBoundary extends React.Component<{ children: React.ReactNode
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: any) {
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const isChunkLoadFailed = /Loading chunk/i.test(error.message) || 
-                              /Failed to fetch dynamically imported module/i.test(error.message) ||
-                              /Importing a module script failed/i.test(error.message) ||
-                              /Failed to load module script/i.test(error.message) ||
-                              /Unexpected token/i.test(error.message);
+  componentDidCatch(error: any, errorInfo: React.ErrorInfo) {
+    const errStr = `${error?.name || ''} ${error?.message || ''} ${error?.stack || ''} ${String(error?.cause || '')} ${String(error || '')}`;
+    const isChunkLoadFailed =
+      /Loading chunk/i.test(errStr) || 
+      /Failed to fetch dynamically imported module/i.test(errStr) ||
+      /Importing a module script failed/i.test(errStr) ||
+      /Failed to load module script/i.test(errStr) ||
+      /MIME type/i.test(errStr) ||
+      /Unexpected token/i.test(errStr);
                               
     if (isChunkLoadFailed) {
-      const reloadCount = parseInt(sessionStorage.getItem('chunk_reload_count') || '0', 10);
-      if (reloadCount < 3) {
-        sessionStorage.setItem('chunk_reload_count', (reloadCount + 1).toString());
+      const lastReload = parseInt(sessionStorage.getItem('chunk_last_reload') || '0', 10);
+      const now = Date.now();
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem('chunk_last_reload', now.toString());
         window.location.reload();
       }
     }
@@ -78,10 +104,25 @@ class ChunkLoadErrorBoundary extends React.Component<{ children: React.ReactNode
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-muted-foreground animate-pulse">Actualizando la aplicación a la nueva versión...</p>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+            <div className="p-3 rounded-full bg-primary/10 text-primary">
+              <RefreshCw className="h-6 w-6 animate-spin" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-semibold text-base">Nueva versión detectada</h3>
+              <p className="text-xs text-muted-foreground">Estamos cargando la versión más reciente de la aplicación.</p>
+            </div>
+            <Button
+              onClick={() => {
+                sessionStorage.removeItem('chunk_last_reload');
+                window.location.reload();
+              }}
+              variant="default"
+              size="sm"
+            >
+              Cargar actualización
+            </Button>
           </div>
         </div>
       );
