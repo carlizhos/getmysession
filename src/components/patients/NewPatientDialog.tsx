@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { X, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, User, ShieldAlert, Receipt, FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -21,6 +22,7 @@ import { encryptText } from '@/lib/encryption';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 interface Patient {
     id: string;
@@ -50,14 +52,12 @@ interface NewPatientDialogProps {
     editingPatient?: Patient | null;
 }
 
-import { PhoneInput } from '@/components/ui/PhoneInput';
-
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/;
 
 const patientSchema = z.object({
     name: z.string().min(1, 'El nombre completo es requerido'),
     email: z.string().min(1, 'El correo es requerido').email('Correo electrónico inválido'),
-    phone: z.string().refine(val => val.replace(/\D/g, '').length >= 10, 'El número local debe ser de 10 dígitos'),
+    phone: z.string().refine(val => val.replace(/\D/g, '').length >= 7, 'Número telefónico inválido'),
     dateOfBirth: z.string().min(1, 'Fecha de nacimiento requerida'),
     curp: z.string().optional().refine(val => !val || CURP_REGEX.test(val.toUpperCase()), 'Formato inválido (18 caracteres)'),
     gender: z.string().optional(),
@@ -146,51 +146,50 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
             };
 
             const clinicalPayload = {
-                notes: data.notes,
-                organization_id: organization?.id,
+                notes: encryptText(data.notes || null),
             };
 
             const fiscalPayload = {
-                rfc: encryptText(data.rfc?.toUpperCase() || null),
+                rfc: data.rfc?.toUpperCase() || null,
                 tax_name: data.taxName?.toUpperCase() || null,
                 tax_zip_code: data.taxZipCode || null,
                 tax_regime: data.taxRegime || null,
                 cfdi_use: data.cfdiUse || null,
-                organization_id: organization?.id,
             };
 
             if (isEditing && editingPatient) {
-                const { error: err1 } = await supabase
+                const { error: updateErr } = await supabase
                     .from('patients')
                     .update(basePayload)
-                    .eq('id', editingPatient.id)
-                    .eq('organization_id', organization?.id);
-                if (err1) throw err1;
+                    .eq('id', editingPatient.id);
 
-                const { error: err2 } = await supabase
-                    .from('patient_clinical_data')
-                    .upsert({ patient_id: editingPatient.id, ...clinicalPayload });
-                if (err2) throw err2;
+                if (updateErr) throw updateErr;
 
-                const { error: err3 } = await supabase
-                    .from('patient_fiscal_data')
-                    .upsert({ patient_id: editingPatient.id, ...fiscalPayload });
-                if (err3) throw err3;
+                await supabase.from('patient_clinical_data').upsert({
+                    patient_id: editingPatient.id,
+                    ...clinicalPayload
+                }, { onConflict: 'patient_id' });
 
-                toast.success('Paciente actualizado');
+                await supabase.from('patient_fiscal_data').upsert({
+                    patient_id: editingPatient.id,
+                    ...fiscalPayload
+                }, { onConflict: 'patient_id' });
+
+                toast.success('Paciente actualizado exitosamente');
             } else {
-                const { data: insertedPatient, error: err1 } = await supabase
+                const { data: insertedPatient, error: insertErr } = await supabase
                     .from('patients')
-                    .insert([basePayload])
+                    .insert(basePayload)
                     .select()
                     .single();
-                if (err1 || !insertedPatient) throw err1;
 
-                if (clinicalPayload.notes) {
+                if (insertErr) throw insertErr;
+
+                if (insertedPatient && clinicalPayload.notes) {
                     await supabase.from('patient_clinical_data').insert({ patient_id: insertedPatient.id, ...clinicalPayload });
                 }
 
-                if (fiscalPayload.tax_name || fiscalPayload.rfc || fiscalPayload.tax_zip_code) {
+                if (insertedPatient && (fiscalPayload.tax_name || fiscalPayload.rfc || fiscalPayload.tax_zip_code)) {
                     await supabase.from('patient_fiscal_data').insert({ patient_id: insertedPatient.id, ...fiscalPayload });
                 }
 
@@ -236,22 +235,42 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
-                <div className="px-6 py-4 border-b">
+            <DialogContent className="max-w-3xl sm:max-w-3xl h-[85vh] p-0 flex flex-col gap-0 overflow-hidden rounded-2xl">
+                <div className="px-6 py-4 border-b bg-card">
                     <DialogHeader>
-                        <DialogTitle>{isEditing ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
+                        <DialogTitle className="text-xl font-bold">{isEditing ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
                         <DialogDescription>
-                            {isEditing ? 'Modifica los datos del paciente' : 'Agrega un nuevo paciente a tu expediente clínico'}
+                            {isEditing ? 'Modifica los datos del expediente clínico' : 'Agrega un nuevo expediente clínico cumpliendo con la NOM-024'}
                         </DialogDescription>
                     </DialogHeader>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmitForm)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-                        {/* ── Datos generales ──────────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Datos generales</p>
-                            <div className="space-y-4">
+                    <Tabs defaultValue="generales" className="flex-1 flex flex-col min-h-0">
+                        <div className="px-6 pt-3 pb-2 border-b bg-muted/20">
+                            <TabsList className="grid grid-cols-4 w-full h-10 p-1 bg-muted/50 rounded-xl">
+                                <TabsTrigger value="generales" className="gap-1.5 text-xs font-bold rounded-lg">
+                                    <User className="h-3.5 w-3.5" />
+                                    <span>Generales</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="emergencia" className="gap-1.5 text-xs font-bold rounded-lg">
+                                    <ShieldAlert className="h-3.5 w-3.5" />
+                                    <span>Emergencia</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="fiscales" className="gap-1.5 text-xs font-bold rounded-lg">
+                                    <Receipt className="h-3.5 w-3.5" />
+                                    <span>Facturación</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="notas" className="gap-1.5 text-xs font-bold rounded-lg">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    <span>Notas</span>
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-6 py-5">
+                            {/* TAB 1: DATOS GENERALES */}
+                            <TabsContent value="generales" className="mt-0 space-y-4 focus-visible:outline-none">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Nombre completo *</Label>
                                     <Input
@@ -265,47 +284,47 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                     <div className="space-y-2">
-                                         <Label htmlFor="email">Correo electrónico *</Label>
-                                         <Input
-                                             id="email"
-                                             type="email"
-                                             {...register('email')}
-                                             placeholder="ejemplo@correo.com"
-                                             disabled={isSubmitting}
-                                             className={errors.email ? 'border-red-500' : ''}
-                                         />
-                                         {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
-                                     </div>
-                                     <div className="space-y-2">
-                                         <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
-                                         <Input
-                                             id="dateOfBirth"
-                                             type="date"
-                                             {...register('dateOfBirth')}
-                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                                             max={new Date().toISOString().split('T')[0]}
-                                             min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
-                                             disabled={isSubmitting}
-                                             className={errors.dateOfBirth ? 'border-red-500' : ''}
-                                         />
-                                         {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
-                                     </div>
-                                 </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Correo electrónico *</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            {...register('email')}
+                                            placeholder="ejemplo@correo.com"
+                                            disabled={isSubmitting}
+                                            className={errors.email ? 'border-red-500' : ''}
+                                        />
+                                        {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
+                                        <Input
+                                            id="dateOfBirth"
+                                            type="date"
+                                            {...register('dateOfBirth')}
+                                            onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                            max={new Date().toISOString().split('T')[0]}
+                                            min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
+                                            disabled={isSubmitting}
+                                            className={errors.dateOfBirth ? 'border-red-500' : ''}
+                                        />
+                                        {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
+                                    </div>
+                                </div>
 
-                                 <div className="space-y-2">
-                                     <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
-                                     <PhoneInput
-                                         id="phone"
-                                         value={watch('phone')}
-                                         onChange={(fullFormatted) => setValue('phone', fullFormatted, { shouldValidate: true })}
-                                         disabled={isSubmitting}
-                                         error={!!errors.phone}
-                                     />
-                                     {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
-                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
+                                    <PhoneInput
+                                        id="phone"
+                                        value={watch('phone')}
+                                        onChange={(fullFormatted) => setValue('phone', fullFormatted, { shouldValidate: true })}
+                                        disabled={isSubmitting}
+                                        error={!!errors.phone}
+                                    />
+                                    {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
+                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="gender">Género</Label>
                                         <Select
@@ -322,214 +341,231 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="occupation">Ocupación</Label>
-                                    <Input
-                                        id="occupation"
-                                        {...register('occupation')}
-                                        placeholder="Ej: Docente, estudiante, comerciante..."
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ── CURP (NOM-024) ────────────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Identificación oficial (NOM-024)
-                            </p>
-                            <div className="space-y-2">
-                                <Label htmlFor="curp">
-                                    CURP
-                                    <span className="ml-2 text-xs text-muted-foreground font-normal">— 18 caracteres</span>
-                                </Label>
-                                <Input
-                                    id="curp"
-                                    {...register('curp', {
-                                        onChange: (e) => setValue('curp', e.target.value.toUpperCase())
-                                    })}
-                                    placeholder="LOMP800101MDFGZR02"
-                                    maxLength={18}
-                                    className={errors.curp ? 'border-destructive focus-visible:ring-destructive' : ''}
-                                    disabled={isSubmitting}
-                                />
-                                {errors.curp && (
-                                    <p className="text-xs text-destructive">{errors.curp.message}</p>
-                                )}
-                                {curpVal && isCurpValid && (
-                                    <p className="text-xs text-green-600 flex items-center gap-1">
-                                        <ShieldCheck className="h-3 w-3" /> CURP válido
-                                    </p>
-                                )}
-                                <p className="text-xs text-muted-foreground">
-                                    Requerido por NOM-024-SSA3-2012 para identificación en el expediente clínico.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* ── Contacto de emergencia ────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contacto de emergencia</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="emergencyContactName">Nombre</Label>
-                                    <Input
-                                        id="emergencyContactName"
-                                        {...register('emergencyContactName')}
-                                        placeholder="Nombre del contacto"
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="emergencyContactPhone">Teléfono de Emergencia</Label>
-                                    <PhoneInput
-                                        id="emergencyContactPhone"
-                                        value={watch('emergencyContactPhone')}
-                                        onChange={(fullFormatted) => setValue('emergencyContactPhone', fullFormatted)}
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ── CFDI 4.0 (Facturación) ────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Información Fiscal (CFDI 4.0)</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="rfc">RFC</Label>
-                                    <Input
-                                        id="rfc"
-                                        {...register('rfc', {
-                                            onChange: (e) => setValue('rfc', e.target.value.toUpperCase())
-                                        })}
-                                        placeholder="XAXX010101000"
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="taxName">Razón Social</Label>
-                                    <Input
-                                        id="taxName"
-                                        {...register('taxName', {
-                                            onChange: (e) => setValue('taxName', e.target.value.toUpperCase())
-                                        })}
-                                        placeholder="Ej: Juan Pérez López"
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="taxZipCode">Código Postal Fiscal</Label>
-                                    <Input
-                                        id="taxZipCode"
-                                        {...register('taxZipCode')}
-                                        placeholder="Ej: 06000"
-                                        maxLength={5}
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="cfdiUse">Uso de CFDI</Label>
-                                    <Select
-                                        value={watch('cfdiUse')}
-                                        onValueChange={(v) => setValue('cfdiUse', v)}
-                                    >
-                                        <SelectTrigger id="cfdiUse">
-                                            <SelectValue placeholder="Selecciona" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="D01">D01 - Honorarios médicos, dentales y gastos hospitalarios</SelectItem>
-                                            <SelectItem value="G03">G03 - Gastos en general</SelectItem>
-                                            <SelectItem value="P01">P01 - Por definir</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2 col-span-2">
-                                    <Label htmlFor="taxRegime">Régimen Fiscal</Label>
-                                    <Select
-                                        value={watch('taxRegime')}
-                                        onValueChange={(v) => setValue('taxRegime', v)}
-                                    >
-                                        <SelectTrigger id="taxRegime">
-                                            <SelectValue placeholder="Selecciona" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="605">605 - Sueldos y Salarios e Ingresos Asimilados a Salarios</SelectItem>
-                                            <SelectItem value="612">612 - Personas Físicas con Actividades Empresariales y Profesionales</SelectItem>
-                                            <SelectItem value="601">601 - General de Ley Personas Morales</SelectItem>
-                                            <SelectItem value="616">616 - Sin obligaciones fiscales</SelectItem>
-                                            <SelectItem value="626">626 - Régimen Simplificado de Confianza</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ── Etiquetas ─────────────────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Etiquetas</p>
-                            <div className="space-y-2">
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="tags"
-                                        value={tagInput}
-                                        onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Agregar etiqueta (presiona Enter)"
-                                        disabled={isSubmitting}
-                                    />
-                                    <Button type="button" variant="outline" onClick={addTag} disabled={isSubmitting}>
-                                        Agregar
-                                    </Button>
-                                </div>
-                                {tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {tags.map(tag => (
-                                            <Badge key={tag} variant="secondary" className="gap-1">
-                                                {tag}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeTag(tag)}
-                                                    className="ml-1 hover:text-destructive"
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </button>
-                                            </Badge>
-                                        ))}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="occupation">Ocupación</Label>
+                                        <Input
+                                            id="occupation"
+                                            {...register('occupation')}
+                                            placeholder="Ej: Docente, estudiante..."
+                                            disabled={isSubmitting}
+                                        />
                                     </div>
-                                )}
-                            </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="curp" className="flex items-center gap-1.5">
+                                        <ShieldCheck className="h-4 w-4 text-primary" /> CURP (NOM-024)
+                                        <span className="ml-auto text-xs text-muted-foreground font-normal">18 caracteres</span>
+                                    </Label>
+                                    <Input
+                                        id="curp"
+                                        {...register('curp', {
+                                            onChange: (e) => setValue('curp', e.target.value.toUpperCase())
+                                        })}
+                                        placeholder="LOMP800101MDFGZR02"
+                                        maxLength={18}
+                                        className={errors.curp ? 'border-destructive' : ''}
+                                        disabled={isSubmitting}
+                                    />
+                                    {errors.curp && <p className="text-xs text-destructive">{errors.curp.message}</p>}
+                                    {curpVal && isCurpValid && (
+                                        <p className="text-xs text-emerald-600 flex items-center gap-1">
+                                            <ShieldCheck className="h-3 w-3" /> CURP válido según norma NOM-024-SSA3-2012
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Etiquetas */}
+                                <div className="space-y-2 pt-1">
+                                    <Label htmlFor="tag-input">Etiquetas / Diagnósticos iniciales</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="tag-input"
+                                            value={tagInput}
+                                            onChange={(e) => setTagInput(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Escribe una etiqueta y presiona Enter..."
+                                            disabled={isSubmitting}
+                                        />
+                                        <Button type="button" variant="outline" onClick={addTag} disabled={isSubmitting || !tagInput.trim()}>
+                                            Agregar
+                                        </Button>
+                                    </div>
+                                    {tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 pt-2">
+                                            {tags.map((tag) => (
+                                                <Badge key={tag} variant="secondary" className="gap-1 px-2.5 py-1 text-xs font-semibold">
+                                                    {tag}
+                                                    <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-muted-foreground hover:text-foreground">
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </TabsContent>
+
+                            {/* TAB 2: CONTACTO DE EMERGENCIA */}
+                            <TabsContent value="emergencia" className="mt-0 space-y-4 focus-visible:outline-none">
+                                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                        <ShieldAlert className="h-4 w-4" /> Contacto en Caso de Urgencia
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Información de contacto familiar o tutor responsable requerida para el expediente clínico NOM-024.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4 pt-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="emergencyContactName">Nombre del contacto de emergencia</Label>
+                                        <Input
+                                            id="emergencyContactName"
+                                            {...register('emergencyContactName')}
+                                            placeholder="Ej: Roberto López (Padre / Tutor)"
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="emergencyContactPhone">Teléfono de Emergencia (WhatsApp)</Label>
+                                        <PhoneInput
+                                            id="emergencyContactPhone"
+                                            value={watch('emergencyContactPhone')}
+                                            onChange={(fullFormatted) => setValue('emergencyContactPhone', fullFormatted)}
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            {/* TAB 3: DATOS FISCALES (CFDI 4.0) */}
+                            <TabsContent value="fiscales" className="mt-0 space-y-4 focus-visible:outline-none">
+                                <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-1">
+                                    <p className="text-xs font-bold flex items-center gap-1.5">
+                                        <Receipt className="h-4 w-4 text-primary" /> Información de Facturación CFDI 4.0
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Datos necesarios si el paciente requiere factura electrónica de sus honorarios médicos/psicológicos.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="rfc">RFC</Label>
+                                        <Input
+                                            id="rfc"
+                                            {...register('rfc', {
+                                                onChange: (e) => setValue('rfc', e.target.value.toUpperCase())
+                                            })}
+                                            placeholder="XAXX010101000"
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="taxName">Razón Social / Nombre Fiscal</Label>
+                                        <Input
+                                            id="taxName"
+                                            {...register('taxName', {
+                                                onChange: (e) => setValue('taxName', e.target.value.toUpperCase())
+                                            })}
+                                            placeholder="Ej: JUAN PÉREZ LÓPEZ"
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="taxZipCode">Código Postal Fiscal</Label>
+                                        <Input
+                                            id="taxZipCode"
+                                            {...register('taxZipCode')}
+                                            placeholder="06000"
+                                            maxLength={5}
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cfdiUse">Uso de CFDI</Label>
+                                        <Select
+                                            value={watch('cfdiUse')}
+                                            onValueChange={(v) => setValue('cfdiUse', v)}
+                                        >
+                                            <SelectTrigger id="cfdiUse">
+                                                <SelectValue placeholder="Selecciona" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="D01">D01 - Honorarios médicos, dentales y gastos hospitalarios</SelectItem>
+                                                <SelectItem value="G03">G03 - Gastos en general</SelectItem>
+                                                <SelectItem value="P01">P01 - Por definir</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2 col-span-1 sm:col-span-2">
+                                        <Label htmlFor="taxRegime">Régimen Fiscal</Label>
+                                        <Select
+                                            value={watch('taxRegime')}
+                                            onValueChange={(v) => setValue('taxRegime', v)}
+                                        >
+                                            <SelectTrigger id="taxRegime">
+                                                <SelectValue placeholder="Selecciona el régimen fiscal" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="605">605 - Sueldos y Salarios e Ingresos Asimilados a Salarios</SelectItem>
+                                                <SelectItem value="606">606 - Arrendamiento</SelectItem>
+                                                <SelectItem value="612">612 - Personas Físicas con Actividades Empresariales y Profesionales</SelectItem>
+                                                <SelectItem value="616">616 - Sin obligaciones fiscales</SelectItem>
+                                                <SelectItem value="626">626 - Régimen Simplificado de Confianza (RESICO)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            {/* TAB 4: NOTAS E HISTORIA CLINICA INICIAL */}
+                            <TabsContent value="notas" className="mt-0 space-y-4 focus-visible:outline-none">
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">Observaciones / Antecedentes Iniciales</Label>
+                                    <Textarea
+                                        id="notes"
+                                        {...register('notes')}
+                                        placeholder="Notas confidenciales sobre el motivo de consulta, historial o canalización inicial..."
+                                        rows={7}
+                                        disabled={isSubmitting}
+                                        className="resize-none"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Estas notas se guardan de forma encriptada en el expediente clínico del paciente.
+                                    </p>
+                                </div>
+                            </TabsContent>
                         </div>
 
-                        {/* ── Notas ────────────────────────────────────────── */}
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Notas internas</p>
-                            <Textarea
-                                id="notes"
-                                {...register('notes')}
-                                placeholder="Información adicional sobre el paciente..."
-                                rows={3}
+                        <DialogFooter className="px-6 py-4 border-t bg-card gap-2 sm:gap-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
                                 disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="px-6 py-4 border-t bg-background">
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="submit" variant="zen" disabled={isSubmitting}>
-                                {isSubmitting
-                                    ? (isEditing ? 'Guardando...' : 'Agregando...')
-                                    : (isEditing ? 'Guardar cambios' : 'Guardar Paciente')}
+                            <Button
+                                type="submit"
+                                variant="zen"
+                                disabled={isSubmitting}
+                                className="gap-2 font-bold px-6"
+                            >
+                                {isSubmitting ? (
+                                    <>Guardando...</>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-4 w-4" />
+                                        {isEditing ? 'Guardar Cambios' : 'Crear Expediente'}
+                                    </>
+                                )}
                             </Button>
                         </DialogFooter>
-                    </div>
+                    </Tabs>
                 </form>
             </DialogContent>
         </Dialog>
