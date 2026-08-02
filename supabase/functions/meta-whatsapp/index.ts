@@ -125,10 +125,22 @@ serve(async (req) => {
           const metaMsgId = statusObj.id;
           const statusString = statusObj.status; // 'sent', 'delivered', 'read', 'failed'
 
+          let errorMsg: string | null = null;
+          if (statusObj.errors && statusObj.errors.length > 0) {
+            const err = statusObj.errors[0];
+            errorMsg = `[Error ${err.code}] ${err.title || ''}: ${err.message || err.details || ''}`;
+            console.error(`❌ Meta WhatsApp delivery failed for SID ${metaMsgId}:`, errorMsg);
+          }
+
+          const updatePayload: Record<string, any> = { status: statusString };
+          if (errorMsg) {
+            updatePayload.error_message = errorMsg;
+          }
+
           // Actualizamos la base de datos
           await supabaseClient
             .from("whatsapp_messages")
-            .update({ status: statusString })
+            .update(updatePayload)
             .eq("twilio_sid", metaMsgId);
             
           return new Response("Status processed", { status: 200 });
