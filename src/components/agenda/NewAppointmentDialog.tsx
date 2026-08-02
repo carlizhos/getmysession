@@ -112,6 +112,7 @@ const NewAppointmentDialog = ({
     const navigate = useNavigate();
     const isEditing = !!editingAppointment;
     const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [confirmCancel, setConfirmCancel] = useState(false);
@@ -1163,7 +1164,7 @@ const NewAppointmentDialog = ({
                         {/* ── Fecha ── */}
                         <div className="space-y-2">
                             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fecha de la Cita</Label>
-                            <Popover>
+                            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         type="button"
@@ -1179,11 +1180,13 @@ const NewAppointmentDialog = ({
                                     </Button>
                                 </PopoverTrigger>
                                 {!isReadOnly && (
-                                    <PopoverContent className="w-auto p-0 rounded-2xl border-border/50 shadow-lg" align="start">
+                                    <PopoverContent className="w-auto p-3 rounded-2xl border-border/50 shadow-lg space-y-3" align="start">
                                         <Calendar
                                             mode="single"
                                             selected={date}
-                                            onSelect={setDate}
+                                            onSelect={(d) => {
+                                                if (d) setDate(d);
+                                            }}
                                             locale={es}
                                             initialFocus
                                             disabled={(d) => {
@@ -1201,6 +1204,20 @@ const NewAppointmentDialog = ({
                                                 return false;
                                             }}
                                         />
+                                        <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                                            <span className="text-xs text-muted-foreground font-medium pl-1">
+                                                {date ? format(date, "d 'de' MMMM", { locale: es }) : 'Ninguna fecha'}
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-9 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
+                                                onClick={() => setIsCalendarOpen(false)}
+                                            >
+                                                <Check className="mr-1.5 h-3.5 w-3.5" />
+                                                Listo / Seleccionar
+                                            </Button>
+                                        </div>
                                     </PopoverContent>
                                 )}
                             </Popover>
@@ -1260,7 +1277,7 @@ const NewAppointmentDialog = ({
                                                     value={slot.timeStr}
                                                     disabled={isDisabled}
                                                     className={cn(
-                                                        'rounded-lg text-[13px] font-medium py-2.5 px-3 my-0.5 cursor-pointer transition-colors',
+                                                        'rounded-lg text-[13px] font-medium py-2.5 px-3.5 my-0.5 cursor-pointer transition-colors [&>span:first-child]:hidden',
                                                         !isDisabled && 'hover:bg-primary/8 focus:bg-primary/10',
                                                         isDisabled && 'opacity-35 cursor-not-allowed'
                                                     )}
