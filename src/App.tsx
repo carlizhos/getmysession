@@ -94,6 +94,7 @@ if (typeof window !== 'undefined') {
       reason.includes('404')
     ) {
       triggerReloadForChunkError();
+    }
   });
 }
 
