@@ -116,7 +116,9 @@ class ChunkLoadErrorBoundary extends React.Component<{ children: React.ReactNode
       /Importing a module script failed/i.test(errStr) ||
       /Failed to load module script/i.test(errStr) ||
       /MIME type/i.test(errStr) ||
-      /Unexpected token/i.test(errStr);
+      /Unexpected token/i.test(errStr) ||
+      /ReferenceError/i.test(errStr) ||
+      /is not defined/i.test(errStr);
                               
     if (isChunkLoadFailed) {
       const lastReload = parseInt(sessionStorage.getItem('chunk_last_reload') || '0', 10);
