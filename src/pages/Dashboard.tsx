@@ -271,7 +271,7 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-1 sm:gap-2">
+        <div id="tour-dashboard-header" className="flex flex-col gap-1 sm:gap-2">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {getGreeting()},{' '}
             <span className="text-gradient-zen">
@@ -287,7 +287,7 @@ const Dashboard = () => {
         <OnboardingModal />
 
         {/* Quick Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div id="tour-dashboard-kpis" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Ingresos del Mes"
             value={`$${(stats?.monthlyRevenue ?? 0).toLocaleString()}`}
@@ -331,7 +331,9 @@ const Dashboard = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Columna izquierda */}
           <div className="lg:col-span-2 space-y-6">
-            <TodayAgenda appointments={todayAppts} />
+            <div id="tour-dashboard-agenda">
+              <TodayAgenda appointments={todayAppts} />
+            </div>
             <RevenueChart data={chartData} loading={loading} />
             <ActivityHeatmap appointments={allAppointments} loading={loading} />
           </div>
@@ -339,34 +341,37 @@ const Dashboard = () => {
           {/* Columna derecha */}
           <div className="space-y-6">
             {/* Pagos pendientes */}
-            <Card variant="glass" className="animate-fade-in border-warning/15 dark:border-warning/5 bg-warning/5 backdrop-blur-xl">
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/8">
-                  <AlertCircle className="h-6 w-6 text-warning" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-600 dark:text-slate-300">Pagos Pendientes</p>
-                  <p className="text-2xl font-bold flex items-center h-8">
-                    {loading ? <Skeleton className="h-6 w-24" /> : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-white/50 backdrop-blur-sm hover:bg-white font-semibold"
-                  onClick={() => navigate('/finance')}
-                >
-                  Ver detalles
-                </Button>
-              </CardContent>
-            </Card>
+            <div id="tour-dashboard-pending-payments">
+              <Card variant="glass" className="animate-fade-in border-warning/15 dark:border-warning/5 bg-warning/5 backdrop-blur-xl">
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/8">
+                    <AlertCircle className="h-6 w-6 text-warning" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-600 dark:text-slate-300">Pagos Pendientes</p>
+                    <p className="text-2xl font-bold flex items-center h-8">
+                      {loading ? <Skeleton className="h-6 w-24" /> : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-white/50 backdrop-blur-sm hover:bg-white font-semibold"
+                    onClick={() => navigate('/finance')}
+                  >
+                    Ver detalles
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Progreso de sesiones con meta editable */}
-            <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-slate-700 dark:text-slate-200">Sesiones del Mes</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div id="tour-dashboard-session-goal">
+              <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-slate-700 dark:text-slate-200">Sesiones del Mes</CardTitle>
+                </CardHeader>
+                <CardContent>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-2xl font-bold flex items-center h-8 gap-1.5">
                     {loading ? <Skeleton className="h-6 w-12" /> : (
@@ -398,6 +403,7 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
+          </div>
 
             {/* Notas recientes */}
             <Card variant="glass" className="animate-fade-in border-white/20 dark:border-white/5">

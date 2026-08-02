@@ -27,7 +27,8 @@ import {
   Activity,
   TrendingUp,
   Paperclip,
-  User
+  User,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageBell from '@/components/notifications/MessageBell';
+import { useProductTour } from '@/contexts/ProductTourContext';
 import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
@@ -103,6 +105,16 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const { startTour, hasTourForModule } = useProductTour();
+
+  const getModuleKey = (pathname: string) => {
+    if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
+    if (pathname.startsWith('/patients')) return 'patients';
+    if (pathname.startsWith('/agenda')) return 'agenda';
+    if (pathname.startsWith('/finance')) return 'finance';
+    return '';
+  };
+  const moduleKey = getModuleKey(location.pathname);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [badgesSettled, setBadgesSettled] = useState(false);
@@ -496,7 +508,19 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-0.5 sm:gap-1 w-1/4 justify-end">
+        <div className="flex items-center gap-0.5 sm:gap-1 w-auto justify-end">
+          {hasTourForModule(moduleKey) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => startTour(moduleKey)}
+              title="Iniciar Recorrido Guiado de este módulo"
+              className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200"
+            >
+              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              <span className="hidden md:inline">Recorrido Guiado</span>
+            </Button>
+          )}
           <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
           <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
           

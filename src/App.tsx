@@ -188,6 +188,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import { ProductTourProvider } from '@/contexts/ProductTourContext';
+
 // Inject user context into Sentry for better error reporting
 const SentryUserContext = () => {
   const { user, profile } = useAuth();
@@ -224,7 +226,8 @@ const AppContent = () => {
       <Sonner position="top-right" />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <SentryUserContext />
+          <ProductTourProvider>
+            <SentryUserContext />
           <Analytics />
           <SpeedInsights />
           <ChunkLoadErrorBoundary>
@@ -406,6 +409,7 @@ const AppContent = () => {
           </Suspense>
           </Sentry.ErrorBoundary>
           </ChunkLoadErrorBoundary>
+          </ProductTourProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
