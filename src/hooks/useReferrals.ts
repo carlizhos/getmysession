@@ -33,8 +33,8 @@ export interface ReferralProgramConfig {
 const DEFAULT_CONFIG: ReferralProgramConfig = {
   enabled: true,
   reward_type: 'credit',
-  reward_amount_referrer: 500,
-  reward_amount_referred: 500,
+  reward_amount_referrer: 99,
+  reward_amount_referred: 99,
   required_plan: ['pro', 'clinic'],
   max_referrals: null,
   expiration_days: 90,

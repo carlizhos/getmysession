@@ -114,7 +114,7 @@ export default function ReferralsSettings() {
             <div>
               <h2 className="text-xl font-bold tracking-tight">Recomendar Saudade</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Invita a colegas y ambos ganan <span className="font-bold text-success">${config.reward_amount_referrer} MXN</span> de crédito al suscribirse
+                Invita a colegas y ambos ganan <span className="font-bold text-success">$99 MXN</span> de crédito al suscribirse
               </p>
             </div>
           </div>
@@ -189,138 +189,6 @@ export default function ReferralsSettings() {
           </div>
         </CardContent>
       </Card>
-
-      {/* ── Section B: Admin Config (owner/admin only) ──────────────────── */}
-      {isAdmin && (
-        <Card variant="flat" className="border border-border">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center">
-                <Settings2 className="h-4.5 w-4.5 text-muted-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Configuración del Programa</CardTitle>
-                <CardDescription>Define las reglas y recompensas del programa de referidos</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Enable/Disable Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
-              <div className="space-y-0.5">
-                <Label className="font-medium">Programa Activo</Label>
-                <p className="text-xs text-muted-foreground">Permitir que los usuarios compartan su código de referido</p>
-              </div>
-              <Switch
-                checked={localConfig.enabled}
-                onCheckedChange={(checked) => setLocalConfig(prev => ({ ...prev, enabled: checked }))}
-              />
-            </div>
-
-            {/* Reward Amounts */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-3.5 w-3.5 text-success" />
-                  Recompensa para quien refiere (MXN)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={50}
-                  value={localConfig.reward_amount_referrer}
-                  onChange={(e) => setLocalConfig(prev => ({
-                    ...prev,
-                    reward_amount_referrer: Number(e.target.value) || 0,
-                  }))}
-                />
-                <p className="text-[11px] text-muted-foreground">Crédito que recibe el especialista que invita</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-3.5 w-3.5 text-primary" />
-                  Recompensa para el referido (MXN)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={50}
-                  value={localConfig.reward_amount_referred}
-                  onChange={(e) => setLocalConfig(prev => ({
-                    ...prev,
-                    reward_amount_referred: Number(e.target.value) || 0,
-                  }))}
-                />
-                <p className="text-[11px] text-muted-foreground">Crédito que recibe el colega invitado al suscribirse</p>
-              </div>
-            </div>
-
-            {/* Limits and Expiration */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                  Límite de referidos por usuario
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="0 = ilimitado"
-                  value={localConfig.max_referrals ?? ''}
-                  onChange={(e) => setLocalConfig(prev => ({
-                    ...prev,
-                    max_referrals: e.target.value ? Number(e.target.value) : null,
-                  }))}
-                />
-                <p className="text-[11px] text-muted-foreground">Dejar vacío o 0 para sin límite</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  Días de expiración
-                </Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={localConfig.expiration_days}
-                  onChange={(e) => setLocalConfig(prev => ({
-                    ...prev,
-                    expiration_days: Number(e.target.value) || 90,
-                  }))}
-                />
-                <p className="text-[11px] text-muted-foreground">Plazo para que el invitado se suscriba</p>
-              </div>
-            </div>
-
-            {/* Anti-fraud notice */}
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
-              <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                <span className="font-semibold text-foreground/80">Protecciones activas:</span> Un usuario no puede usar su propio código.
-                Cada cuenta solo puede ser referida una vez. Los referidos expirados no generan recompensa.
-              </p>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end pt-2">
-              <Button
-                variant="zen"
-                className="gap-2"
-                onClick={handleSaveConfig}
-                disabled={isSavingConfig}
-              >
-                {isSavingConfig ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                Guardar Configuración
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── Section C: Referral History ──────────────────────────────────── */}
       <Card variant="flat" className="border border-border">
