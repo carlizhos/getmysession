@@ -42,12 +42,14 @@
   - ✅ Stats de conversión
   - ✅ Scroll horizontal en móvil
 
-- ✅ **Calendario y Citas**:
-  - ✅ Vistas mensual, semanal y diaria
-  - ✅ Crear citas → guardadas en `appointments`
-  - ✅ Editar citas (click sobre la cita → diálogo pre-llenado)
-  - ✅ Cancelar citas (estado `cancelled`, confirmación)
-  - ✅ Hora fin automática (+1h)
+- ✅ **Calendario y Citas Inteligente**:
+  - ✅ Vistas mensual, semanal, diaria y lista
+  - ✅ **Prevención de Solapamiento Cero-Latencia**: Detección de colisiones en tiempo real antes de enviar formulario
+  - ✅ **Deshabilitación en Vivo de Horarios Ocupados**: Visualización de chips con estado (🟢 Libre | 🔴 Ocupado tachado) e inhabilitación en reloj `ClockPicker`
+  - ✅ **Sugerencia por Historial del Paciente**: Recomendación con 1-clic basada en el hábito de agendamiento del paciente
+  - ✅ **Motor de Zonas Horarias (Browser-Agnostic)**: `buildUTCFromClinicTime` reescrito con `Intl.DateTimeFormat.formatToParts` + `Date.UTC` para eliminar desfasamiento de 1 hora
+  - ✅ Crear, editar y cancelar citas con actualización reactiva
+  - ✅ Hora fin automática configurada por servicio
   - ✅ Vista semanal con scroll horizontal en móvil
 
 - ✅ **Notas Clínicas**:
@@ -150,7 +152,11 @@
   - ✅ Iconografía coherente con degradados Sage Green y tipografía editorial.
 - ✅ **Configuración y Límites**:
   - ✅ Reparación de la sección de Ajustes y lógica de límites de reserva.
-- ✅ **Seguridad y Cumplimiento (NOM-024)**:
+- ✅ **Seguridad, Autenticación y UX**:
+  - ✅ **Restablecimiento de Contraseña Pro (`ResetPassword.tsx`)**: Rediseño integral sin condiciones de carrera (Race Condition) con detección directa de tokens de recuperación de Supabase (`access_token`, `type=recovery`, `code`)
+  - ✅ **Indicador de Fortaleza & Requisitos en Vivo**: Checklist dinámico (8+ caracteres, mayúscula, número, especial) y barra de 4 niveles
+  - ✅ **Rate Limiting & Cooldowns**: Temporizador de enfriamiento de 60s en `ForgotPassword.tsx` y reenviar `Magic Link`
+  - ✅ **Portales de React para Modales de Pantalla Completa**: Implementación de `createPortal(..., document.body)` en `OnboardingModal.tsx` y `PricingModal.tsx` para garantizar alineación superior y scroll fluido sin atrapamiento por `backdrop-blur` CSS
   - ✅ **Audit Logs**: Registro inmutable de exportaciones de datos en Supabase.
   - ✅ **Cifrado ALE (Application-Level Encryption)**: Protección Zero-Knowledge para CURP y RFC utilizando `crypto-js`.
   - ✅ **Segregación de Tablas**: Separación física de notas clínicas e información fiscal para reducir el radio de impacto.

@@ -4,12 +4,18 @@ Mindful Flow es una plataforma integral de gestión diseñada para profesionales
 
 ## 🚀 Características Principales
 
-*   **Panel de Control (Dashboard)**: Una vista general intuitiva con métricas clave y accesos directos.
-*   **Gestión de Pacientes**: Administración eficiente de perfiles y registros de pacientes.
-*   **Calendario Inteligente**: Programación y seguimiento de citas y sesiones.
-*   **Asistente IA**: Herramienta de soporte inteligente para ayudar en la gestión diaria.
-*   **Finanzas**: Seguimiento detallado de ingresos y reportes financieros.
-*   **Notas**: Sistema de notas para sesiones y recordatorios personales.
+*   **Panel de Control (Dashboard)**: Una vista general intuitiva con métricas clave, checklist de consultorio y accesos directos.
+*   **Gestión de Pacientes**: Administración eficiente de perfiles, expediente clínico 360 y registros de pacientes.
+*   **Calendario & Agendamiento Inteligente**:
+    *   **Prevención de Solapamiento Cero-Latencia**: Validación previa en vivo que deshabilita automáticamente horarios ocupados (🔴 Ocupado) e inhabilita el envío antes de hacer clic en "Crear Cita".
+    *   **Sugerencia por Historial del Paciente**: Análisis automático del patrón de consumo del paciente para recomendar su horario habitual con 1-clic.
+    *   **Motor de Zonas Horarias Independiente del Navegador**: Conversión UTC limpia basada en `Intl.DateTimeFormat.formatToParts` para evitar desfases de horario entre clientes.
+    *   **Vistas Flexibles**: Vistas por día, semana, mes y lista detallada.
+*   **Seguridad y Recuperación de Accesos**:
+    *   **Restablecimiento de Contraseña Pro**: Flujo de recuperación sin condiciones de carrera con validación interactiva de fortaleza (8+ caracteres, mayúscula, número, carácter especial).
+    *   **Protección Anti-Spam (Rate Limiting)**: Cooldowns de 60 segundos en emails de recuperación y enlaces mágicos.
+*   **Asistente IA & Notas Clínicas**: Soporte inteligente con transcripción de voz a texto y generación automática de notas SOAP/CIE-10.
+*   **Finanzas y Facturación (CFDI 4.0)**: Seguimiento de ingresos, integraciones con Stripe y emisión automática de facturas con Facturapi.
 
 ## 🛠️ Tecnologías Utilizadas
 
