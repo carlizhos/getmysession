@@ -320,6 +320,49 @@ const NewAppointmentDialog = ({
         }) || null;
     }, [date, existingAppointmentsForDate, services, formData.serviceId, isEditing, editingAppointment, organization]);
 
+    // Encontrar el horario más temprano disponible para la fecha seleccionada
+    const getEarliestAvailableSlot = useCallback((targetDate: Date | undefined) => {
+        if (!targetDate) return '09:00';
+        const weekday = targetDate.getDay();
+        const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
+        const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+        const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
+
+        const isTodayDate = format(targetDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+        const now = new Date();
+        let minHour = startH;
+
+        if (isTodayDate) {
+            const currentH = now.getHours();
+            if (currentH >= minHour) minHour = currentH;
+        }
+
+        // Buscar desde minHour hasta endH en incrementos de 30 min
+        for (let h = minHour; h <= endH; h++) {
+            for (const m of ['00', '30']) {
+                const hh = String(h).padStart(2, '0');
+                const slotStr = `${hh}:${m}`;
+                if (isTodayDate) {
+                    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                    const slotMinutes = h * 60 + parseInt(m);
+                    if (slotMinutes <= nowMinutes) continue;
+                }
+                if (!getOverlappingAppointment(slotStr)) {
+                    return slotStr;
+                }
+            }
+        }
+
+        return config.inicio || '09:00';
+    }, [horarioConfig, getOverlappingAppointment]);
+
+    // Seleccionar automáticamente el horario más temprano disponible al abrir o cambiar de fecha
+    useEffect(() => {
+        if (!open || isEditing) return;
+        const earliest = getEarliestAvailableSlot(date);
+        setFormData(prev => ({ ...prev, startTime: earliest }));
+    }, [open, date, isEditing, getEarliestAvailableSlot]);
+
     // Sincronizar fecha cuando cambia selectedDate
     useEffect(() => {
         if (selectedDate && !isEditing) setDate(selectedDate);
@@ -1185,100 +1228,6 @@ const NewAppointmentDialog = ({
                                         disabled={isSubmitting || isReadOnly}
                                         isSlotOccupied={(t) => !!getOverlappingAppointment(t)}
                                     />
-                                </div>
-                            </div>
-
-                            {/* Sugerencia de IA basada en historial del paciente */}
-                            {patientSuggestedTime && (
-                                <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs animate-in fade-in">
-                                    <div className="flex items-center gap-2 font-medium">
-                                        <Sparkles className="h-4 w-4 text-purple-500 flex-shrink-0 animate-pulse" />
-                                        <span>✨ <strong>Sugerencia por Historial:</strong> {patientSuggestedTime.reason}</span>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 text-xs px-2.5 border-purple-500/30 hover:bg-purple-500/20 font-bold flex-shrink-0"
-                                        onClick={() => setFormData(prev => ({ ...prev, startTime: patientSuggestedTime.time }))}
-                                    >
-                                        Usar {patientSuggestedTime.time}
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* Banner de Solapamiento en Tiempo Real */}
-                            {(() => {
-                                const overlappingApt = getOverlappingAppointment(formData.startTime);
-                                if (!overlappingApt) return null;
-
-                                const clinicTz = organization?.settings?.timezone || getVisitorTimezone();
-                                const aptStartFmt = formatClinicTime(parseISO(overlappingApt.start_time), clinicTz);
-                                const aptEndFmt = formatClinicTime(parseISO(overlappingApt.end_time), clinicTz);
-
-                                return (
-                                    <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium animate-in fade-in">
-                                        <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                                        <div className="space-y-0.5">
-                                            <p className="font-bold text-sm">⛔ Horario Ocupado (No disponible)</p>
-                                            <p className="opacity-90">
-                                                Ya existe una cita agendada con <strong>{overlappingApt.patient_name}</strong> de {aptStartFmt} a {aptEndFmt}. Elige otra fecha u hora para continuar.
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            {/* Franjas Horarias Disponibles (Quick Chips) */}
-                            <div className="space-y-1.5 pt-1">
-                                <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                    <span>Horarios del Día ({format(date || new Date(), 'EEEE d', { locale: es })}):</span>
-                                    <span className="text-[10px] text-muted-foreground/70 lowercase font-normal">🟢 disponible | 🔴 ocupado</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-xl border border-border bg-muted/20 scrollbar-thin">
-                                    {(() => {
-                                        const weekday = (date || new Date()).getDay();
-                                        const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
-                                        const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
-                                        const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
-
-                                        const slots: string[] = [];
-                                        for (let h = startH; h <= endH; h++) {
-                                            const hh = String(h).padStart(2, '0');
-                                            slots.push(`${hh}:00`);
-                                            if (h < endH) slots.push(`${hh}:30`);
-                                        }
-
-                                        return slots.map(slot => {
-                                            const occupied = getOverlappingAppointment(slot);
-                                            const isSelected = formData.startTime === slot;
-                                            const isSuggested = patientSuggestedTime?.time === slot;
-
-                                            return (
-                                                <button
-                                                    key={slot}
-                                                    type="button"
-                                                    disabled={!!occupied || isReadOnly}
-                                                    onClick={() => setFormData(prev => ({ ...prev, startTime: slot }))}
-                                                    className={cn(
-                                                        'px-2.5 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 border',
-                                                        occupied
-                                                            ? 'bg-red-500/10 text-red-400 border-red-500/20 cursor-not-allowed opacity-60 line-through'
-                                                            : isSelected
-                                                                ? 'bg-primary text-primary-foreground border-primary shadow-sm scale-105'
-                                                                : isSuggested
-                                                                    ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40 hover:bg-purple-500/25'
-                                                                    : 'bg-background hover:bg-muted text-foreground border-border'
-                                                    )}
-                                                    title={occupied ? `Ocupado por ${occupied.patient_name}` : `Seleccionar ${slot}`}
-                                                >
-                                                    {slot}
-                                                    {occupied && <span className="text-[9px] text-red-500 font-bold ml-0.5">Ocupado</span>}
-                                                    {isSuggested && !occupied && <Sparkles className="h-3 w-3 text-purple-500 ml-0.5 inline" />}
-                                                </button>
-                                            );
-                                        });
-                                    })()}
                                 </div>
                             </div>
                         </div>
