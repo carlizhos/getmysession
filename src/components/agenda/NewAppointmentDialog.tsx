@@ -1215,7 +1215,7 @@ const NewAppointmentDialog = ({
                                                 onClick={() => setIsCalendarOpen(false)}
                                             >
                                                 <Check className="mr-1.5 h-3.5 w-3.5" />
-                                                Listo / Seleccionar
+                                                Seleccionar
                                             </Button>
                                         </div>
                                     </PopoverContent>
