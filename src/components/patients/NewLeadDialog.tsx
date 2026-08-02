@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization';
 import { SOURCE_CONFIG, LeadSource } from './LeadSourceBadge';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 interface NewLeadDialogProps {
     open: boolean;
@@ -74,9 +75,9 @@ const NewLeadDialog = ({ open, onOpenChange, onLeadAdded }: NewLeadDialogProps) 
                                 onChange={e => setFormData({ ...formData, email: e.target.value })} disabled={isSubmitting} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lead-phone">Teléfono</Label>
-                            <Input id="lead-phone" type="tel" placeholder="+1 555 000 0000" value={formData.phone}
-                                onChange={e => setFormData({ ...formData, phone: e.target.value })} disabled={isSubmitting} />
+                            <Label htmlFor="lead-phone">Teléfono (WhatsApp)</Label>
+                            <PhoneInput id="lead-phone" value={formData.phone}
+                                onChange={(fullFormatted) => setFormData({ ...formData, phone: fullFormatted })} disabled={isSubmitting} />
                         </div>
                     </div>
                     <div className="space-y-2">

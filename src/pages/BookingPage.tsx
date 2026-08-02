@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { logActivity } from '@/lib/activityLogger';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 interface SpecialistProfile {
   id: string;
@@ -727,13 +728,10 @@ const BookingPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Teléfono / WhatsApp *</Label>
-                      <Input 
+                      <PhoneInput 
                         id="phone" 
-                        type="tel" 
-                        required 
                         value={patientInfo.phone} 
-                        onChange={e => setPatientInfo({...patientInfo, phone: e.target.value})}
-                        placeholder="+52 55 1234 5678"
+                        onChange={(fullFormatted) => setPatientInfo({ ...patientInfo, phone: fullFormatted })}
                       />
                     </div>
                     <div className="space-y-2">

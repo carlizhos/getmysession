@@ -50,12 +50,14 @@ interface NewPatientDialogProps {
     editingPatient?: Patient | null;
 }
 
+import { PhoneInput } from '@/components/ui/PhoneInput';
+
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/;
 
 const patientSchema = z.object({
     name: z.string().min(1, 'El nombre completo es requerido'),
     email: z.string().min(1, 'El correo es requerido').email('Correo electrónico inválido'),
-    phone: z.string().min(10, 'Mínimo 10 dígitos'),
+    phone: z.string().refine(val => val.replace(/\D/g, '').length >= 10, 'El número local debe ser de 10 dígitos'),
     dateOfBirth: z.string().min(1, 'Fecha de nacimiento requerida'),
     curp: z.string().optional().refine(val => !val || CURP_REGEX.test(val.toUpperCase()), 'Formato inválido (18 caracteres)'),
     gender: z.string().optional(),
@@ -276,14 +278,13 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="phone">Teléfono *</Label>
-                                        <Input
+                                        <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
+                                        <PhoneInput
                                             id="phone"
-                                            type="tel"
-                                            {...register('phone')}
-                                            placeholder="+52 55 1234 5678"
+                                            value={watch('phone')}
+                                            onChange={(fullFormatted) => setValue('phone', fullFormatted, { shouldValidate: true })}
                                             disabled={isSubmitting}
-                                            className={errors.phone ? 'border-red-500' : ''}
+                                            error={!!errors.phone}
                                         />
                                         {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
                                     </div>
@@ -382,12 +383,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="emergencyContactPhone">Teléfono</Label>
-                                    <Input
+                                    <Label htmlFor="emergencyContactPhone">Teléfono de Emergencia</Label>
+                                    <PhoneInput
                                         id="emergencyContactPhone"
-                                        type="tel"
-                                        {...register('emergencyContactPhone')}
-                                        placeholder="+52 55 1234 5678"
+                                        value={watch('emergencyContactPhone')}
+                                        onChange={(fullFormatted) => setValue('emergencyContactPhone', fullFormatted)}
                                         disabled={isSubmitting}
                                     />
                                 </div>

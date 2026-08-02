@@ -15,6 +15,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { PhoneInput } from '@/components/ui/PhoneInput';
 import { 
   User, 
   Briefcase, 
@@ -352,12 +353,10 @@ export default function ProfileSettings() {
                 <Label htmlFor="telefono_profesional" className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-primary" /> Teléfono profesional
                 </Label>
-                <Input
+                <PhoneInput
                   id="telefono_profesional"
-                  type="tel"
                   value={profile.telefono_profesional}
-                  onChange={(e) => setProfile({ ...profile, telefono_profesional: e.target.value })}
-                  placeholder="+52 55 1234 5678"
+                  onChange={(fullFormatted) => setProfile({ ...profile, telefono_profesional: fullFormatted })}
                   disabled={updateProfileMutation.isLoading}
                 />
                 <p className="text-[11px] text-muted-foreground">
