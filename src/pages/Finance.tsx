@@ -615,99 +615,50 @@ const Finance = () => {
         </div>
 
         {/* KPI row */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Total cobrado */}
           <Card variant="flat" className="border-border/50 shadow-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Total Cobrado</p>
-                  <p className="text-3xl font-black mt-1 tracking-tight">${totalBruto.toLocaleString('es-MX', { minimumFractionDigits: 0 })}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{paid.length} sesiones · MXN bruto</p>
-                    <DeltaBadge current={totalBruto} previous={lastTotalBruto} />
-                  </div>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-                  <TrendingUp className="h-6 w-6 text-primary" />
-                </div>
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Total Cobrado</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight">${totalBruto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{paid.length} sesiones · MXN bruto</p>
+                <DeltaBadge current={totalBruto} previous={lastTotalBruto} />
               </div>
             </CardContent>
           </Card>
 
           {/* Por cobrar */}
-          <Card variant="flat" className="border-border/50 shadow-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Por Cobrar</p>
-                  <p className="text-3xl font-black mt-1 tracking-tight text-warning">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 })}</p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1">{pending.length} sesiones pendientes</p>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-warning/10">
-                  <Clock className="h-6 w-6 text-warning" />
-                </div>
-              </div>
+          <Card variant="flat" className="border-warning/30 shadow-soft bg-warning/[0.03]">
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Por Cobrar</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight text-warning">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1.5">{pending.length} sesión{pending.length !== 1 ? 'es' : ''} pendiente{pending.length !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
 
           {/* Sesiones cobradas */}
           <Card variant="flat" className="border-border/50 shadow-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Sesiones Cobradas</p>
-                  <p className="text-3xl font-black mt-1 tracking-tight">{paid.length}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">de {appointments.length} con tarifa</p>
-                    <DeltaBadge current={paid.length} previous={lastPending} />
-                  </div>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-                  <CheckCircle2 className="h-6 w-6 text-primary" />
-                </div>
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Sesiones Cobradas</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight">{paid.length}<span className="text-lg font-semibold text-muted-foreground ml-1">/ {appointments.filter(a => a.fee > 0).length}</span></p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">con tarifa asignada</p>
+                <DeltaBadge current={paid.length} previous={lastPending} />
               </div>
             </CardContent>
           </Card>
 
           {/* Honorarios */}
-          <Card variant="flat" className="border-border/50 shadow-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Tus Honorarios</p>
-                  <p className="text-3xl font-black mt-1 tracking-tight text-success">
-                    ${psicologoNeto.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">neto, después de fees</p>
-                    <DeltaBadge current={psicologoNeto} previous={lastPsicologoNeto} />
-                  </div>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success/10">
-                  <DollarSign className="h-6 w-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Citas Canceladas / Período */}
-          <Card variant="flat" className="border-border/50 shadow-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Ingreso Perdido</p>
-                  <p className="text-3xl font-black mt-1 tracking-tight text-destructive">
-                    ${lostRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{cancelledCount} citas canceladas</p>
-                    <DeltaBadge current={lostRevenue} previous={lastLostRevenue} />
-                  </div>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10">
-                  <ArrowDown className="h-6 w-6 text-destructive" />
-                </div>
+          <Card variant="flat" className="border-success/30 shadow-soft bg-success/[0.03]">
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Tus Honorarios</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight text-success">
+                ${psicologoNeto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">neto, después de fees</p>
+                <DeltaBadge current={psicologoNeto} previous={lastPsicologoNeto} />
               </div>
             </CardContent>
           </Card>
