@@ -127,7 +127,7 @@ const Dashboard = () => {
       const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
       const prevMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
 
-      // Fetch en paralelo con manejo seguro por consulta
+      // Fetch en paralelo
       const [
         patientsRes,
         newPatientsRes,
@@ -137,13 +137,13 @@ const Dashboard = () => {
         notesRes,
         chartRawRes
       ] = await Promise.all([
-        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null).catch(() => ({ count: 0 })),
-        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null).catch(() => ({ count: 0 })),
-        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', monthStart).lte('start_time', monthEnd).catch(() => ({ data: [] })),
-        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd).catch(() => ({ data: [] })),
-        supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd).catch(() => ({ data: [] })),
-        supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3).catch(() => ({ data: [] })),
-        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 11, 1)).toISOString()).lte('start_time', monthEnd).catch(() => ({ data: [] })),
+        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null),
+        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', monthStart).lte('start_time', monthEnd),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd),
+        supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd),
+        supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 11, 1)).toISOString()).lte('start_time', monthEnd),
       ]);
 
       const patientsCount = patientsRes && 'count' in patientsRes ? patientsRes.count : 0;
