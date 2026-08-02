@@ -42,12 +42,11 @@
   - ✅ Stats de conversión
   - ✅ Scroll horizontal en móvil
 
-- ✅ **Calendario y Citas Inteligente**:
+- ✅ **Calendario y Citas Inteligente (UX Estándar Apple)**:
   - ✅ Vistas mensual, semanal, diaria y lista
-  - ✅ **Prevención de Solapamiento Cero-Latencia**: Detección de colisiones en tiempo real antes de enviar formulario
-  - ✅ **Deshabilitación en Vivo de Horarios Ocupados**: Visualización de chips con estado (🟢 Libre | 🔴 Ocupado tachado) e inhabilitación en reloj `ClockPicker`
-  - ✅ **Sugerencia por Historial del Paciente**: Recomendación con 1-clic basada en el hábito de agendamiento del paciente
-  - ✅ **Motor de Zonas Horarias (Browser-Agnostic)**: `buildUTCFromClinicTime` reescrito con `Intl.DateTimeFormat.formatToParts` + `Date.UTC` para eliminar desfasamiento de 1 hora
+  - ✅ **Selección Automática del Horario Más Temprano Disponible**: Al abrir o cambiar de fecha, el selector auto-selecciona el primer horario libre del día
+  - ✅ **Deshabilitación Silenciosa de Horarios Ocupados**: Los horarios ocupados en `ClockPicker` quedan inhabilitados/deshabilitados de forma limpia sin saturar la interfaz
+  - ✅ **Motor de Zonas Horarias (Browser-Agnostic)**: `buildUTCFromClinicTime` con `Intl.DateTimeFormat.formatToParts` + `Date.UTC` para cero desfasamiento
   - ✅ Crear, editar y cancelar citas con actualización reactiva
   - ✅ Hora fin automática configurada por servicio
   - ✅ Vista semanal con scroll horizontal en móvil
