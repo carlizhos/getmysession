@@ -52,6 +52,7 @@ const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem('saudade_remember_email') === 'true');
     
     const { register, handleSubmit, watch, formState: { errors }, reset, setValue, clearErrors } = useForm<AuthFormValues>({
         resolver: zodResolver(authSchema),
@@ -74,6 +75,13 @@ const Auth = () => {
     const [sentMagicLinkEmail, setSentMagicLinkEmail] = useState<string | null>(null);
     const [resendTimer, setResendTimer] = useState<number>(0);
     const { signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogleIdToken } = useAuth();
+
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('saudade_saved_email');
+        if (savedEmail && localStorage.getItem('saudade_remember_email') === 'true') {
+            setValue('email', savedEmail);
+        }
+    }, [setValue]);
 
     useEffect(() => {
         if (resendTimer <= 0) return;
@@ -259,6 +267,13 @@ const Auth = () => {
 
         try {
             if (isLogin) {
+                if (rememberEmail) {
+                    localStorage.setItem('saudade_remember_email', 'true');
+                    localStorage.setItem('saudade_saved_email', data.email);
+                } else {
+                    localStorage.removeItem('saudade_remember_email');
+                    localStorage.removeItem('saudade_saved_email');
+                }
                 const { error } = await signIn(data.email, data.password!);
                 if (error) {
                     if (error.message.includes('Email not confirmed')) {
@@ -575,17 +590,26 @@ const Auth = () => {
                             </div>
                         </div>
 
-                        {/* Olvidaste tu contraseña */}
-                        <div className={`grid transition-all duration-300 ease-in-out ${!isLogin || isMagicLink ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
+                        {/* Recordar mi correo / Olvidaste tu contraseña */}
+                        <div className={`grid transition-all duration-300 ease-in-out ${!isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
-                                <div className="flex justify-end pt-1">
-                                    <Link
-                                        to="/forgot-password"
-                                        className="text-sm text-primary hover:underline"
-                                        tabIndex={isLogin ? 0 : -1}
-                                    >
-                                        ¿Olvidaste tu contraseña?
-                                    </Link>
+                                <div className="flex items-center justify-between pt-1.5 pb-1">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                                        <Checkbox
+                                            checked={rememberEmail}
+                                            onCheckedChange={(checked) => setRememberEmail(!!checked)}
+                                        />
+                                        <span>Recordar mi correo</span>
+                                    </label>
+                                    {!isMagicLink && (
+                                        <Link
+                                            to="/forgot-password"
+                                            className="text-xs text-primary font-medium hover:underline transition-all"
+                                            tabIndex={isLogin ? 0 : -1}
+                                        >
+                                            ¿Olvidaste tu contraseña?
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         </div>
