@@ -18,25 +18,16 @@ import NotFound from "./pages/NotFound";
 import Error401 from "./pages/Error401";
 import Error402 from "./pages/Error402";
 import Error403 from "./pages/Error403";
-
 // Helper to automatically retry lazy loading if a chunk fails (e.g. after a new deployment)
 const lazyWithRetry = (componentImport: () => Promise<any>) =>
   lazy(async () => {
-    const pageHasAlreadyBeenReloaded = sessionStorage.getItem('page_reloaded_for_chunk');
     try {
-      const component = await componentImport();
-      sessionStorage.removeItem('page_reloaded_for_chunk');
-      return component;
+      return await componentImport();
     } catch (error: any) {
-      const errStr = String(error?.message || error || '');
-      const isChunkError =
-        errStr.includes('Failed to fetch dynamically imported module') ||
-        errStr.includes('Failed to load module script') ||
-        errStr.includes('MIME type') ||
-        errStr.includes('Importing a module script failed') ||
-        errStr.includes('404');
-      if (!pageHasAlreadyBeenReloaded && isChunkError) {
-        sessionStorage.setItem('page_reloaded_for_chunk', 'true');
+      const lastReload = parseInt(sessionStorage.getItem('last_chunk_reload_ts') || '0', 10);
+      const now = Date.now();
+      if (now - lastReload > 3000) {
+        sessionStorage.setItem('last_chunk_reload_ts', now.toString());
         window.location.reload();
         return new Promise(() => {}); // Keep in pending state while page reloads
       }
@@ -78,21 +69,31 @@ import { Button } from "@/components/ui/button";
 const queryClient = new QueryClient();
 
 if (typeof window !== 'undefined') {
+  const triggerReloadForChunkError = () => {
+    const lastReload = parseInt(sessionStorage.getItem('last_chunk_reload_ts') || '0', 10);
+    const now = Date.now();
+    if (now - lastReload > 3000) {
+      sessionStorage.setItem('last_chunk_reload_ts', now.toString());
+      window.location.reload();
+    }
+  };
+
+  // Vite native event when a dynamic chunk import fails
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    triggerReloadForChunkError();
+  });
+
   window.addEventListener('unhandledrejection', (event) => {
     const reason = String(event?.reason?.message || event?.reason || '');
     if (
       reason.includes('Failed to fetch dynamically imported module') ||
       reason.includes('Failed to load module script') ||
       reason.includes('MIME type') ||
-      reason.includes('Expected a JavaScript-or-Wasm module script')
+      reason.includes('Expected a JavaScript-or-Wasm module script') ||
+      reason.includes('404')
     ) {
-      const lastReload = parseInt(sessionStorage.getItem('chunk_last_reload') || '0', 10);
-      const now = Date.now();
-      if (now - lastReload > 10000) {
-        sessionStorage.setItem('chunk_last_reload', now.toString());
-        window.location.reload();
-      }
-    }
+      triggerReloadForChunkError();
   });
 }
 
