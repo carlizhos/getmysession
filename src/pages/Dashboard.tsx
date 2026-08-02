@@ -157,8 +157,17 @@ const Dashboard = () => {
       .filter(a => a.payment_status === 'pending')
       .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
 
+    // Helper para determinar si una cita cuenta como sesión completada
+    const isApptCompleted = (a: any) => {
+      if (!a || a.status === 'cancelled') return false;
+      if (a.status === 'completed' || a.status === 'attended') return true;
+      // Citas no canceladas cuyo horario de inicio ya transcurrió
+      const apptTime = new Date(a.start_time).getTime();
+      return apptTime <= Date.now();
+    };
+
     const completedSessions = (monthAppts ?? [])
-      .filter(a => a.status === 'completed').length;
+      .filter(isApptCompleted).length;
 
     const confirmedToday = (todayData ?? []).filter(a => a.status === 'confirmed').length;
     const pendingToday = (todayData ?? []).filter(a => a.status === 'pending').length;
@@ -212,7 +221,7 @@ const Dashboard = () => {
       const month = MONTH_NAMES[new Date(appt.start_time).getMonth()];
       if (!monthMap[month]) return;
       if (appt.payment_status === 'paid') monthMap[month].ingresos += Number(appt.fee) || 0;
-      if (appt.status === 'completed') monthMap[month].sesiones += 1;
+      if (isApptCompleted(appt)) monthMap[month].sesiones += 1;
     });
     setChartData(Object.entries(monthMap).map(([name, v]) => ({ name, ...v })));
     setAllAppointments((chartRaw ?? []) as Appointment[]);
