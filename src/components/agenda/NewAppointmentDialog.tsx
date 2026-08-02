@@ -1160,17 +1160,17 @@ const NewAppointmentDialog = ({
                             </Select>
                         </div>
 
-                        {/* ── Card Unificada de Fecha y Horario (Estilo Calendly / Google Calendar) ── */}
-                        <div className="p-4 rounded-2xl border border-border bg-card shadow-sm space-y-4">
+                        {/* ── Card Unificada de Fecha y Horario (Estilo Apple / Saudade) ── */}
+                        <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
                             <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
                                 <CalendarIcon className="h-4 w-4 text-primary" />
                                 <h3 className="text-sm font-bold tracking-tight">Fecha y Horario de la Cita</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Botón Selector de Fecha */}
+                                {/* Selector de Fecha */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">Fecha de la Cita *</Label>
+                                    <Label className="text-xs font-semibold text-foreground">Fecha de la Cita *</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button
@@ -1178,11 +1178,11 @@ const NewAppointmentDialog = ({
                                                 variant="outline"
                                                 disabled={isSubmitting || isReadOnly}
                                                 className={cn(
-                                                    'w-full justify-start text-left font-semibold h-11 rounded-xl border-border bg-background shadow-xs',
+                                                    'w-full justify-start text-left font-semibold h-11 rounded-xl border-border bg-background shadow-xs hover:border-primary/50 transition-colors',
                                                     !date && 'text-muted-foreground'
                                                 )}
                                             >
-                                                <CalendarIcon className="mr-2.5 h-4 w-4 text-primary" />
+                                                <CalendarIcon className="mr-2.5 h-4 w-4 text-primary shrink-0" />
                                                 {date ? format(date, 'EEEE d "de" MMMM', { locale: es }) : 'Selecciona una fecha'}
                                             </Button>
                                         </PopoverTrigger>
@@ -1216,21 +1216,19 @@ const NewAppointmentDialog = ({
 
                                 {/* Selector de Hora */}
                                 <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-xs font-semibold">Hora de Inicio *</Label>
-                                        <span className="text-[11px] text-muted-foreground font-medium">
-                                            Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min
-                                        </span>
-                                    </div>
+                                    <Label className="text-xs font-semibold text-foreground">Hora de Inicio *</Label>
                                     <Select
                                         value={formData.startTime}
                                         onValueChange={(val) => !isReadOnly && setFormData(prev => ({ ...prev, startTime: val }))}
                                         disabled={isSubmitting || isReadOnly}
                                     >
-                                        <SelectTrigger className="w-full h-11 rounded-xl font-semibold border-border bg-background shadow-xs">
-                                            <SelectValue placeholder="Selecciona una hora" />
+                                        <SelectTrigger className="w-full h-11 rounded-xl font-semibold border-border bg-background shadow-xs hover:border-primary/50 transition-colors">
+                                            <div className="flex items-center gap-2.5 text-left w-full overflow-hidden">
+                                                <Clock className="h-4 w-4 text-primary shrink-0" />
+                                                <SelectValue placeholder="Selecciona una hora" />
+                                            </div>
                                         </SelectTrigger>
-                                        <SelectContent className="max-h-60 rounded-xl">
+                                        <SelectContent className="max-h-60 rounded-xl border-border shadow-xl">
                                             {(() => {
                                                 const weekday = (date || new Date()).getDay();
                                                 const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
@@ -1270,19 +1268,19 @@ const NewAppointmentDialog = ({
                                                             value={slot.timeStr}
                                                             disabled={isDisabled}
                                                             className={cn(
-                                                                'py-2 px-3 rounded-lg text-xs font-semibold',
+                                                                'py-2 px-3 rounded-lg text-xs font-semibold transition-colors',
                                                                 isDisabled && 'opacity-40 line-through text-muted-foreground bg-muted/20 cursor-not-allowed'
                                                             )}
                                                         >
                                                             <div className="flex items-center justify-between w-full gap-4">
                                                                 <span>{slot.label12h}</span>
                                                                 {isOccupied && (
-                                                                    <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider ml-auto">
+                                                                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md uppercase tracking-wider ml-auto">
                                                                         Ocupado
                                                                     </span>
                                                                 )}
                                                                 {isPast && !isOccupied && (
-                                                                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto">
+                                                                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md ml-auto">
                                                                         Pasado
                                                                     </span>
                                                                 )}
