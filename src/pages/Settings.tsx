@@ -34,7 +34,6 @@ type TabId = 'perfil' | 'horarios' | 'servicios' | 'preguntas' | 'plantillas' | 
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'perfil', label: 'Perfil Profesional', icon: User },
-  { id: 'apariencia', label: 'Apariencia', icon: Palette },
   { id: 'horarios', label: 'Horarios y Comisiones', icon: Clock },
   { id: 'servicios', label: 'Servicios de Agenda', icon: LayoutGrid },
   { id: 'preguntas', label: 'Preguntas de Reserva', icon: HelpCircle },
@@ -49,7 +48,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 const TAB_GROUPS = [
   {
     title: "Especialista",
-    tabs: ['perfil', 'apariencia', 'horarios', 'seguridad']
+    tabs: ['perfil', 'horarios', 'seguridad']
   },
   {
     title: "Herramientas Clínicas",
@@ -163,7 +162,6 @@ export default function Settings() {
           <div className="w-full min-w-0">
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               {activeTab === 'perfil' && <ProfileSettings />}
-              {activeTab === 'apariencia' && <AppearanceSettings />}
               {activeTab === 'horarios' && <ScheduleSettings />}
               {activeTab === 'servicios' && <ServiceSettings />}
               {activeTab === 'preguntas' && <BookingQuestionsSettings />}
