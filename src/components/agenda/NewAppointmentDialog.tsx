@@ -1214,20 +1214,85 @@ const NewAppointmentDialog = ({
                                     </Popover>
                                 </div>
 
-                                {/* Botón Selector de Hora */}
+                                {/* Selector de Hora */}
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <Label className="text-xs font-semibold">Hora de Inicio *</Label>
-                                        <span className="text-[11px] text-muted-foreground">
+                                        <span className="text-[11px] text-muted-foreground font-medium">
                                             Duración: {services.find(s => s.id === formData.serviceId)?.duration || 60} min
                                         </span>
                                     </div>
-                                    <ClockPicker
+                                    <Select
                                         value={formData.startTime}
-                                        onChange={(v) => !isReadOnly && setFormData({ ...formData, startTime: v })}
+                                        onValueChange={(val) => !isReadOnly && setFormData(prev => ({ ...prev, startTime: val }))}
                                         disabled={isSubmitting || isReadOnly}
-                                        isSlotOccupied={(t) => !!getOverlappingAppointment(t)}
-                                    />
+                                    >
+                                        <SelectTrigger className="w-full h-11 rounded-xl font-semibold border-border bg-background shadow-xs">
+                                            <SelectValue placeholder="Selecciona una hora" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-60 rounded-xl">
+                                            {(() => {
+                                                const weekday = (date || new Date()).getDay();
+                                                const config = horarioConfig.dias?.[weekday] || { inicio: '08:00', fin: '17:00' };
+                                                const startH = parseInt((config.inicio || '08:00').split(':')[0]) || 8;
+                                                const endH = parseInt((config.fin || '17:00').split(':')[0]) || 17;
+
+                                                const isTodayDate = date && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                                const now = new Date();
+                                                const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+                                                const slots: { timeStr: string; label12h: string }[] = [];
+                                                for (let h = startH; h <= endH; h++) {
+                                                    for (const m of ['00', '30']) {
+                                                        if (h === endH && m === '30') continue;
+                                                        const hh = String(h).padStart(2, '0');
+                                                        const timeStr = `${hh}:${m}`;
+                                                        const period = h >= 12 ? 'PM' : 'AM';
+                                                        const h12 = h % 12 === 0 ? 12 : h % 12;
+                                                        const label12h = `${String(h12).padStart(2, '0')}:${m} ${period}`;
+                                                        slots.push({ timeStr, label12h });
+                                                    }
+                                                }
+
+                                                return slots.map(slot => {
+                                                    const isOccupied = !!getOverlappingAppointment(slot.timeStr);
+                                                    let isPast = false;
+                                                    if (isTodayDate) {
+                                                        const [sh, sm] = slot.timeStr.split(':').map(Number);
+                                                        if (sh * 60 + sm <= nowMinutes) isPast = true;
+                                                    }
+
+                                                    const isDisabled = isOccupied || isPast;
+
+                                                    return (
+                                                        <SelectItem
+                                                            key={slot.timeStr}
+                                                            value={slot.timeStr}
+                                                            disabled={isDisabled}
+                                                            className={cn(
+                                                                'py-2 px-3 rounded-lg text-xs font-semibold',
+                                                                isDisabled && 'opacity-40 line-through text-muted-foreground bg-muted/20 cursor-not-allowed'
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center justify-between w-full gap-4">
+                                                                <span>{slot.label12h}</span>
+                                                                {isOccupied && (
+                                                                    <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider ml-auto">
+                                                                        Ocupado
+                                                                    </span>
+                                                                )}
+                                                                {isPast && !isOccupied && (
+                                                                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto">
+                                                                        Pasado
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </SelectItem>
+                                                    );
+                                                });
+                                            })()}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                         </div>
