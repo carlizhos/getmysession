@@ -16,7 +16,8 @@ import {
   Trash2, 
   DollarSign, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -211,17 +212,54 @@ export default function ScheduleSettings() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Top Header Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border shadow-2xs">
+        <div>
+          <h2 className="text-base font-bold tracking-tight">Horarios y Disponibilidad</h2>
+          <p className="text-xs text-muted-foreground">Configura tus días de atención, horarios por día, días no laborables y comisiones.</p>
+        </div>
+        <Button 
+          type="button" 
+          variant="zen" 
+          disabled={updateProfileMutation.isLoading} 
+          className="gap-2 shadow-xs font-bold px-6 shrink-0" 
+          onClick={handleSaveHorarios}
+        >
+          {updateProfileMutation.isLoading ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
+          ) : (
+            <><Check className="h-4 w-4 stroke-[3]" /> Guardar Horarios</>
+          )}
+        </Button>
+      </div>
+
       {/* Horarios */}
       <Card variant="flat" className="border border-border">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <Clock className="h-4 w-4 text-primary" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Horario de Atención</CardTitle>
+                <CardDescription>Define tus días y horas de trabajo</CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base">Horario de Atención</CardTitle>
-              <CardDescription>Define tus días y horas de trabajo</CardDescription>
-            </div>
+            <Button 
+              type="button" 
+              variant="zen" 
+              size="sm"
+              disabled={updateProfileMutation.isLoading} 
+              className="gap-1.5 font-bold px-4 hidden sm:flex" 
+              onClick={handleSaveHorarios}
+            >
+              {updateProfileMutation.isLoading ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando...</>
+              ) : (
+                <><Check className="h-3.5 w-3.5 stroke-[3]" /> Guardar</>
+              )}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -388,6 +426,22 @@ export default function ScheduleSettings() {
             {horario.dias_no_laborables.length === 0 && (
               <p className="text-xs text-muted-foreground italic">Sin días no laborables registrados.</p>
             )}
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-border/50">
+            <Button 
+              type="button" 
+              variant="zen" 
+              disabled={updateProfileMutation.isLoading} 
+              className="gap-2 font-bold px-6" 
+              onClick={handleSaveHorarios}
+            >
+              {updateProfileMutation.isLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
+              ) : (
+                <><Check className="h-4 w-4 stroke-[3]" /> Guardar Horarios</>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
