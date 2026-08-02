@@ -408,49 +408,69 @@ serve(async (req) => {
 
         if (!isMockMode) {
           try {
-            const payload: any = {
-              messaging_product: "whatsapp",
-              to: cleanPhoneTo
-            };
+            let responseData: any = null;
 
-            // En Meta, las plantillas se envían distinto al texto libre
+            // Try template payload first if template_id is specified
             if (template_id) {
-              payload.type = "template";
-              payload.template = {
-                name: template_id,
-                language: { code: "es_MX" } // O el idioma correspondiente
+              const metaTemplateName = template_id.includes('reminder') ? 'reminder' : template_id;
+              const templatePayload = {
+                messaging_product: "whatsapp",
+                to: cleanPhoneTo,
+                type: "template",
+                template: {
+                  name: metaTemplateName,
+                  language: { code: "es_MX" }
+                }
               };
-            } else {
-              payload.type = "text";
-              payload.text = { body: body };
+
+              const tplResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${metaAccessToken}`,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify(templatePayload)
+              });
+
+              responseData = await tplResponse.json();
             }
 
-            const response = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${metaAccessToken}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload)
-            });
+            // Fallback to text payload if template wasn't used or failed
+            if (!responseData || responseData.error) {
+              const textPayload = {
+                messaging_product: "whatsapp",
+                to: cleanPhoneTo,
+                type: "text",
+                text: { body: body }
+              };
 
-            const data = await response.json();
-            if (data.error) {
-              const errCode = data.error.code;
-              const errMsg = data.error.message || 'Unknown Meta API error';
-              // Detect expired or invalid token
-              if (errCode === 190 || errMsg.includes('access token') || errMsg.includes('OAuthException') || response.status === 401) {
-                console.error("🔴 META_ACCESS_TOKEN expired or revoked. Please regenerate from Meta for Developers > WhatsApp > API Setup and update Supabase Secrets.");
+              const textResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${metaAccessToken}`,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify(textPayload)
+              });
+
+              responseData = await textResponse.json();
+            }
+
+            if (responseData.error) {
+              const errCode = responseData.error.code;
+              const errMsg = responseData.error.message || 'Unknown Meta API error';
+              if (errCode === 190 || errMsg.includes('access token') || errMsg.includes('OAuthException')) {
+                console.error("🔴 META_ACCESS_TOKEN expired or revoked.");
                 return new Response(JSON.stringify({ 
-                  error: 'META_ACCESS_TOKEN expired. Regenerate from Meta for Developers and update Supabase Secrets.',
+                  error: 'META_ACCESS_TOKEN expired. Por favor regenera el token en Meta Developers.',
                   meta_error: errMsg 
                 }), { status: 401, headers: corsHeaders });
               }
               throw new Error(errMsg);
             }
 
-            if (data.messages && data.messages[0]) {
-              metaMsgId = data.messages[0].id;
+            if (responseData.messages && responseData.messages[0]) {
+              metaMsgId = responseData.messages[0].id;
             }
           } catch (e: any) {
             console.error("Meta send failed:", e.message);

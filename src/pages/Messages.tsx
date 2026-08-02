@@ -232,10 +232,14 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
   // ── Send message ───────────────────────────────────────────────────────
   const handleSend = async (text?: string, templateId?: string) => {
     const body = text || newMessage.trim();
     if (!body || !selectedPhone || !organization?.id) return;
+
+    const activeTplId = templateId || selectedTemplateId || undefined;
 
     setSending(true);
     try {
@@ -246,7 +250,7 @@ const Messages = () => {
           body,
           organization_id: organization.id,
           patient_id: selectedConvo?.patient_id || null,
-          template_id: templateId || null,
+          template_id: activeTplId || null,
         },
       });
 
@@ -257,6 +261,7 @@ const Messages = () => {
       }
 
       setNewMessage('');
+      setSelectedTemplateId(null);
       setShowTemplates(false);
       inputRef.current?.focus();
 
@@ -497,6 +502,7 @@ const Messages = () => {
                             const name = selectedConvo?.patient_name?.split(' ')[0] || 'paciente';
                             const msg = getTemplateMessage(tpl.id, name);
                             setNewMessage(msg);
+                            setSelectedTemplateId(tpl.id);
                             setShowTemplates(false);
                             inputRef.current?.focus();
                           }}
