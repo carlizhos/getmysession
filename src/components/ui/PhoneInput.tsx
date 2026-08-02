@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
@@ -117,22 +116,27 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const isComplete = localDigits.length === 10;
 
   return (
-    <div className={cn('flex items-center gap-2 w-full', className)}>
-      {/* Country Code Selector */}
-      <Select
-        value={selectedDialCode}
-        onValueChange={handleCountryChange}
-        disabled={disabled}
-      >
-        <SelectTrigger className="w-[110px] shrink-0 font-medium bg-muted/30 border-border focus:ring-1 focus:ring-primary">
+    <div
+      className={cn(
+        "relative flex items-center w-full h-10 rounded-xl border border-input bg-background px-2.5 gap-2 transition-all shadow-2xs",
+        "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary",
+        error && "border-red-500 focus-within:ring-red-500/20 focus-within:border-red-500",
+        isComplete && "border-emerald-500/60 bg-emerald-500/5",
+        disabled && "opacity-60 cursor-not-allowed bg-muted/30",
+        className
+      )}
+    >
+      {/* Left: Country Selector Pill */}
+      <Select value={selectedDialCode} onValueChange={handleCountryChange} disabled={disabled}>
+        <SelectTrigger className="h-auto p-0 border-none bg-transparent shadow-none focus:ring-0 focus:ring-offset-0 gap-1 text-xs font-bold text-foreground hover:opacity-80 shrink-0 cursor-pointer">
           <SelectValue>
-            <span className="flex items-center gap-1.5 text-xs font-semibold">
-              <span className="text-base">{selectedCountry.flag}</span>
-              <span>{selectedCountry.dialCode}</span>
+            <span className="flex items-center gap-1">
+              <span className="text-base leading-none">{selectedCountry.flag}</span>
+              <span className="font-mono text-xs font-bold text-foreground/80">{selectedCountry.dialCode}</span>
             </span>
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-h-60">
+        <SelectContent className="max-h-60 z-[100]">
           {COUNTRY_CODES.map(country => (
             <SelectItem key={`${country.code}-${country.dialCode}`} value={country.dialCode}>
               <div className="flex items-center gap-2 text-xs">
@@ -145,35 +149,34 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         </SelectContent>
       </Select>
 
-      {/* 10-Digit Input Field */}
-      <div className="relative flex-1">
-        <Input
-          id={id}
-          type="tel"
-          disabled={disabled}
-          value={formatLocalDisplay(localDigits)}
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          className={cn(
-            'font-mono tracking-wide pr-10 text-sm font-semibold',
-            error && 'border-red-500 focus-visible:ring-red-500',
-            isComplete && 'border-emerald-500/50 bg-emerald-500/5'
-          )}
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
-          {isComplete ? (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-            </span>
-          ) : (
-            <span className={cn(
-              'text-[10px] font-mono font-medium',
-              localDigits.length > 0 ? 'text-amber-500 font-bold' : 'text-muted-foreground/40'
-            )}>
-              {localDigits.length}/10
-            </span>
-          )}
-        </div>
+      {/* Vertical Divider Line */}
+      <div className="h-4 w-px bg-border/80 shrink-0" />
+
+      {/* Center: Full-width Native Input */}
+      <input
+        id={id}
+        type="tel"
+        disabled={disabled}
+        value={formatLocalDisplay(localDigits)}
+        onChange={handleInputChange}
+        placeholder={placeholder}
+        className="w-full min-w-0 bg-transparent text-xs sm:text-sm font-mono font-bold tracking-wide outline-none placeholder:text-muted-foreground/30 placeholder:font-sans text-foreground"
+      />
+
+      {/* Right: Counter badge or Check mark */}
+      <div className="shrink-0 flex items-center">
+        {isComplete ? (
+          <span className="flex items-center justify-center h-5 w-5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <Check className="h-3.5 w-3.5 stroke-[3]" />
+          </span>
+        ) : (
+          <span className={cn(
+            'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-muted/60',
+            localDigits.length > 0 ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15' : 'text-muted-foreground/40'
+          )}>
+            {localDigits.length}/10
+          </span>
+        )}
       </div>
     </div>
   );
