@@ -617,7 +617,7 @@ const Finance = () => {
         {/* KPI row */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Total cobrado */}
-          <Card variant="flat" className="border-border/50 shadow-soft">
+          <Card variant="flat" className="border-border/50 shadow-soft bg-card">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Total Cobrado</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight">${totalBruto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
@@ -629,7 +629,7 @@ const Finance = () => {
           </Card>
 
           {/* Por cobrar */}
-          <Card variant="flat" className="border-warning/30 shadow-soft bg-warning/15">
+          <Card variant="flat" className="border-warning/20 shadow-soft bg-warning/[0.04]">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Por Cobrar</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight text-warning">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
@@ -638,7 +638,7 @@ const Finance = () => {
           </Card>
 
           {/* Sesiones cobradas */}
-          <Card variant="flat" className="border-border/50 shadow-soft">
+          <Card variant="flat" className="border-border/50 shadow-soft bg-card">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Sesiones Cobradas</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight">{paid.length}<span className="text-lg font-semibold text-muted-foreground ml-1">/ {appointments.filter(a => a.fee > 0).length}</span></p>
@@ -650,7 +650,7 @@ const Finance = () => {
           </Card>
 
           {/* Honorarios */}
-          <Card variant="flat" className="border-success/30 shadow-soft bg-success/15">
+          <Card variant="flat" className="border-success/20 shadow-soft bg-success/[0.04]">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Tus Honorarios</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight text-success">
