@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle, RefreshCw, Clock, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 import MFAChallenge from '@/components/auth/MFAChallenge';
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
