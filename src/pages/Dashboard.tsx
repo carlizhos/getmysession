@@ -118,127 +118,138 @@ const Dashboard = () => {
   const fetchAll = useCallback(async () => {
     if (!organization?.id) return;
     setLoading(true);
-    const now = new Date();
-    const monthStart = startOfMonth(now).toISOString();
-    const monthEnd = endOfMonth(now).toISOString();
-    const todayStart = startOfDay(now).toISOString();
-    const todayEnd = endOfDay(now).toISOString();
-    const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
-    const prevMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
+    try {
+      const now = new Date();
+      const monthStart = startOfMonth(now).toISOString();
+      const monthEnd = endOfMonth(now).toISOString();
+      const todayStart = startOfDay(now).toISOString();
+      const todayEnd = endOfDay(now).toISOString();
+      const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
+      const prevMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString();
 
-    // Fetch en paralelo
-    const [
-      { count: patientsCount },
-      { count: newPatientsCount },
-      { data: monthAppts },
-      { data: prevMonthAppts },
-      { data: todayData },
-      { data: notes },
-      { data: chartRaw }
-    ] = await Promise.all([
-      supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null),
-      supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null),
-      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', monthStart).lte('start_time', monthEnd),
-      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd),
-      supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type, patients(phone)').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd),
-      supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
-      supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 11, 1)).toISOString()).lte('start_time', monthEnd),
-    ]);
+      // Fetch en paralelo con manejo seguro por consulta
+      const [
+        patientsRes,
+        newPatientsRes,
+        monthApptsRes,
+        prevMonthApptsRes,
+        todayDataRes,
+        notesRes,
+        chartRawRes
+      ] = await Promise.all([
+        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).is('deleted_at', null).catch(() => ({ count: 0 })),
+        supabase.from('patients').select('*', { count: 'exact', head: true }).eq('organization_id', organization.id).gte('created_at', monthStart).lte('created_at', monthEnd).is('deleted_at', null).catch(() => ({ count: 0 })),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', monthStart).lte('start_time', monthEnd).catch(() => ({ data: [] })),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', prevMonthStart).lte('start_time', prevMonthEnd).catch(() => ({ data: [] })),
+        supabase.from('appointments').select('id, patient_id, patient_name, start_time, end_time, status, type').eq('organization_id', organization.id).gte('start_time', todayStart).lte('start_time', todayEnd).catch(() => ({ data: [] })),
+        supabase.from('session_notes').select('id, patient_name, session_number, agenda, created_at').eq('organization_id', organization.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(3).catch(() => ({ data: [] })),
+        supabase.from('appointments').select('*').eq('organization_id', organization.id).gte('start_time', startOfMonth(new Date(now.getFullYear(), now.getMonth() - 11, 1)).toISOString()).lte('start_time', monthEnd).catch(() => ({ data: [] })),
+      ]);
 
-    // ── Stats ────────────────────────────────────────────────────────────────
-    const monthlyRevenue = (monthAppts ?? [])
-      .filter(a => a.payment_status === 'paid')
-      .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+      const patientsCount = patientsRes && 'count' in patientsRes ? patientsRes.count : 0;
+      const newPatientsCount = newPatientsRes && 'count' in newPatientsRes ? newPatientsRes.count : 0;
+      const monthAppts = monthApptsRes && 'data' in monthApptsRes ? monthApptsRes.data : [];
+      const prevMonthAppts = prevMonthApptsRes && 'data' in prevMonthApptsRes ? prevMonthApptsRes.data : [];
+      const todayData = todayDataRes && 'data' in todayDataRes ? todayDataRes.data : [];
+      const notes = notesRes && 'data' in notesRes ? notesRes.data : [];
+      const chartRaw = chartRawRes && 'data' in chartRawRes ? chartRawRes.data : [];
 
-    const previousMonthRevenue = (prevMonthAppts ?? [])
-      .filter(a => a.payment_status === 'paid')
-      .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+      // ── Stats ────────────────────────────────────────────────────────────────
+      const monthlyRevenue = (monthAppts ?? [])
+        .filter(a => a && a.payment_status === 'paid')
+        .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
 
-    const pendingPayments = (monthAppts ?? [])
-      .filter(a => a.payment_status === 'pending')
-      .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+      const previousMonthRevenue = (prevMonthAppts ?? [])
+        .filter(a => a && a.payment_status === 'paid')
+        .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
 
-    // Helper para determinar si una cita cuenta como sesión completada
-    const isApptCompleted = (a: any) => {
-      if (!a || a.status === 'cancelled') return false;
-      if (a.status === 'completed' || a.status === 'attended') return true;
-      // Citas no canceladas cuyo horario de inicio ya transcurrió
-      const apptTime = new Date(a.start_time).getTime();
-      return apptTime <= Date.now();
-    };
+      const pendingPayments = (monthAppts ?? [])
+        .filter(a => a && a.payment_status === 'pending')
+        .reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
 
-    const completedSessions = (monthAppts ?? [])
-      .filter(isApptCompleted).length;
+      // Helper para determinar si una cita cuenta como sesión completada
+      const isApptCompleted = (a: any) => {
+        if (!a || !a.start_time || a.status === 'cancelled') return false;
+        if (a.status === 'completed' || a.status === 'attended') return true;
+        // Citas no canceladas cuyo horario de inicio ya transcurrió
+        const apptTime = new Date(a.start_time).getTime();
+        return !isNaN(apptTime) && apptTime <= Date.now();
+      };
 
-    const totalMonthAppointmentsCount = (monthAppts ?? [])
-      .filter(a => a.status !== 'cancelled').length;
+      const completedSessions = (monthAppts ?? [])
+        .filter(isApptCompleted).length;
 
-    const confirmedToday = (todayData ?? []).filter(a => a.status === 'confirmed').length;
-    const pendingToday = (todayData ?? []).filter(a => a.status === 'pending').length;
+      const totalMonthAppointmentsCount = (monthAppts ?? [])
+        .filter(a => a && a.status !== 'cancelled').length;
 
-    setStats({
-      monthlyRevenue,
-      previousMonthRevenue,
-      activePatients: patientsCount ?? 0,
-      newPatientsThisMonth: newPatientsCount ?? 0,
-      todayAppointmentsCount: todayData?.length ?? 0,
-      completedSessions,
-      totalMonthAppointmentsCount,
-      confirmedToday,
-      pendingToday,
-      pendingPayments,
-    });
+      const confirmedToday = (todayData ?? []).filter(a => a && a.status === 'confirmed').length;
+      const pendingToday = (todayData ?? []).filter(a => a && a.status === 'pending').length;
 
-    // ── Agenda del día ────────────────────────────────────────────────────────
-    setTodayAppts((todayData ?? []).map(a => {
-        const patientData = a.patients as unknown as { phone: string } | null;
-        return {
-            id: a.id,
-            patientName: a.patient_name ?? 'Paciente',
-            startTime: a.start_time,
-            endTime: a.end_time,
-            status: a.status as DashboardAppointment['status'],
-            type: a.type ?? 'Consulta',
-            phone: patientData?.phone || null
-        };
-    }));
+      setStats({
+        monthlyRevenue,
+        previousMonthRevenue,
+        activePatients: patientsCount ?? 0,
+        newPatientsThisMonth: newPatientsCount ?? 0,
+        todayAppointmentsCount: todayData?.length ?? 0,
+        completedSessions,
+        totalMonthAppointmentsCount,
+        confirmedToday,
+        pendingToday,
+        pendingPayments,
+      });
 
-    // ── Notas recientes ───────────────────────────────────────────────────────
-    setRecentNotes((notes ?? []).map(n => {
+      // ── Agenda del día ────────────────────────────────────────────────────────
+      setTodayAppts((todayData ?? []).map(a => ({
+        id: a.id,
+        patientName: a.patient_name ?? 'Paciente',
+        startTime: a.start_time,
+        endTime: a.end_time,
+        status: (a.status || 'scheduled') as DashboardAppointment['status'],
+        type: a.type ?? 'Consulta',
+      })));
+
+      // ── Notas recientes ───────────────────────────────────────────────────────
+      setRecentNotes((notes ?? []).map(n => {
         const agenda = n.agenda as unknown as { topic: string }[] | null;
         return {
-            id: n.id,
-            patientName: n.patient_name ?? 'Paciente',
-            format: `Sesión #${n.session_number ?? 1}`,
-            content: agenda?.map(a => a.topic).filter(Boolean).join(' · ') || '',
-            createdAt: n.created_at,
+          id: n.id,
+          patientName: n.patient_name ?? 'Paciente',
+          format: `Sesión #${n.session_number ?? 1}`,
+          content: Array.isArray(agenda) ? agenda.map(a => a.topic).filter(Boolean).join(' · ') : '',
+          createdAt: n.created_at,
         };
-    }));
+      }));
 
-    // ── Gráfico: últimos 6 meses ──────────────────────────────────────────────
-    const monthMap: Record<string, { ingresos: number; sesiones: number }> = {};
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = MONTH_NAMES[d.getMonth()];
-      monthMap[key] = { ingresos: 0, sesiones: 0 };
+      // ── Gráfico: últimos 6 meses ──────────────────────────────────────────────
+      const monthMap: Record<string, { ingresos: number; sesiones: number }> = {};
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = MONTH_NAMES[d.getMonth()];
+        monthMap[key] = { ingresos: 0, sesiones: 0 };
+      }
+      (chartRaw ?? []).forEach(appt => {
+        if (!appt || !appt.start_time) return;
+        const d = new Date(appt.start_time);
+        if (isNaN(d.getTime())) return;
+        const month = MONTH_NAMES[d.getMonth()];
+        if (!monthMap[month]) return;
+        if (appt.payment_status === 'paid') monthMap[month].ingresos += Number(appt.fee) || 0;
+        if (isApptCompleted(appt)) monthMap[month].sesiones += 1;
+      });
+      setChartData(Object.entries(monthMap).map(([name, v]) => ({ name, ...v })));
+      setAllAppointments((chartRaw ?? []) as Appointment[]);
+    } catch (err) {
+      console.error('Error al cargar datos del dashboard:', err);
+    } finally {
+      setLoading(false);
     }
-    (chartRaw ?? []).forEach(appt => {
-      const month = MONTH_NAMES[new Date(appt.start_time).getMonth()];
-      if (!monthMap[month]) return;
-      if (appt.payment_status === 'paid') monthMap[month].ingresos += Number(appt.fee) || 0;
-      if (isApptCompleted(appt)) monthMap[month].sesiones += 1;
-    });
-    setChartData(Object.entries(monthMap).map(([name, v]) => ({ name, ...v })));
-    setAllAppointments((chartRaw ?? []) as Appointment[]);
- 
-    setLoading(false);
   }, [organization?.id]);
 
   useEffect(() => {
     if (organization?.id) {
       fetchAll();
       if (user?.id) {
-        checkReactivations(user.id, organization.id);
+        checkReactivations(user.id, organization.id).catch(e => console.error('Error checkReactivations:', e));
       }
     }
   }, [user?.id, organization?.id, fetchAll]);
