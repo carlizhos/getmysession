@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   MessageCircle, Send, Search, User, Phone, Check, CheckCheck,
   Calendar, Brain, DollarSign, Activity, ClipboardList, Loader2, ArrowLeft,
-  MapPin, Sparkles
+  MapPin, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
