@@ -977,21 +977,6 @@ const Patients = () => {
         activePatientTab={activePatientTab} 
         onPatientTabChange={setActivePatientTab}
       >
-        {!canUse('core_patients') && (
-          <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top fade-in duration-500">
-            <div className="flex items-center gap-3 text-warning-foreground">
-              <Lock className="h-5 w-5 shrink-0" />
-              <div>
-                <p className="font-bold text-sm">Modo de Solo Lectura</p>
-                <p className="text-xs opacity-90">Tu periodo de prueba ha expirado. Estás en modo de solo lectura. Para agregar pacientes o usar funciones avanzadas, necesitas un plan activo.</p>
-              </div>
-            </div>
-            <Button size="sm" onClick={navigateToUpgrade} className="shrink-0 bg-warning text-warning-foreground hover:bg-warning/90 font-bold shadow-sm">
-              <Sparkles className="h-3 w-3 mr-2" />
-              Actualizar Plan
-            </Button>
-          </div>
-        )}
         <div className="space-y-6">
           {/* Unified Header: Title, Search & Actions */}
           {!selectedPatientData && (
