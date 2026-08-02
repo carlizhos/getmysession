@@ -264,6 +264,8 @@ const Auth = () => {
                     if (error.message.includes('Email not confirmed')) {
                         setShowResendEmail(true);
                         toast.error('Tu cuenta aún no está confirmada. Revisa tu correo o solicita uno nuevo abajo.');
+                    } else if (error.message.includes('Invalid login credentials')) {
+                        toast.error('Correo o contraseña incorrectos. Por favor verifica tus datos.');
                     } else {
                         toast.error('Error al iniciar sesión: ' + error.message);
                     }
