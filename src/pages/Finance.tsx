@@ -629,10 +629,10 @@ const Finance = () => {
           </Card>
 
           {/* Por cobrar */}
-          <Card variant="flat" className="border-warning/20 shadow-soft bg-warning/[0.04]">
+          <Card variant="flat" className="border-warning/20 dark:border-warning/15 shadow-soft bg-warning/10">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Por Cobrar</p>
-              <p className="text-3xl font-black mt-1.5 tracking-tight text-warning">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-80">Por Cobrar</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight text-foreground">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1.5">{pending.length} sesión{pending.length !== 1 ? 'es' : ''} pendiente{pending.length !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
@@ -650,10 +650,10 @@ const Finance = () => {
           </Card>
 
           {/* Honorarios */}
-          <Card variant="flat" className="border-success/20 shadow-soft bg-success/[0.04]">
+          <Card variant="flat" className="border-success/20 dark:border-success/15 shadow-soft bg-success/10">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Tus Honorarios</p>
-              <p className="text-3xl font-black mt-1.5 tracking-tight text-success">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-80">Tus Honorarios</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight text-foreground">
                 ${psicologoNeto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </p>
               <div className="flex items-center gap-2 mt-1.5">
