@@ -8,28 +8,29 @@ export interface CountryCode {
   dialCode: string;   // Dial code (e.g., '+52')
   flag: string;       // Flag emoji
   name: string;       // Country name
+  expectedDigits: number; // Local phone digit length
 }
 
 // 1º México (Default), 2º Estados Unidos, luego orden alfabético por nombre
 export const COUNTRY_CODES: CountryCode[] = [
-  { code: 'MX', dialCode: '+52', flag: '🇲🇽', name: 'México' },
-  { code: 'US', dialCode: '+1', flag: '🇺🇸', name: 'Estados Unidos' },
-  { code: 'AR', dialCode: '+54', flag: '🇦🇷', name: 'Argentina' },
-  { code: 'BO', dialCode: '+591', flag: '🇧🇴', name: 'Bolivia' },
-  { code: 'CA', dialCode: '+1', flag: '🇨🇦', name: 'Canadá' },
-  { code: 'CL', dialCode: '+56', flag: '🇨🇱', name: 'Chile' },
-  { code: 'CO', dialCode: '+57', flag: '🇨🇴', name: 'Colombia' },
-  { code: 'CR', dialCode: '+506', flag: '🇨🇷', name: 'Costa Rica' },
-  { code: 'EC', dialCode: '+593', flag: '🇪🇨', name: 'Ecuador' },
-  { code: 'SV', dialCode: '+503', flag: '🇸🇻', name: 'El Salvador' },
-  { code: 'ES', dialCode: '+34', flag: '🇪🇸', name: 'España' },
-  { code: 'GT', dialCode: '+502', flag: '🇬🇹', name: 'Guatemala' },
-  { code: 'HN', dialCode: '+504', flag: '🇭🇳', name: 'Honduras' },
-  { code: 'PA', dialCode: '+507', flag: '🇵🇦', name: 'Panamá' },
-  { code: 'PE', dialCode: '+51', flag: '🇵🇪', name: 'Perú' },
-  { code: 'PR', dialCode: '+1', flag: '🇵🇷', name: 'Puerto Rico' },
-  { code: 'DO', dialCode: '+1', flag: '🇩🇴', name: 'Rep. Dominicana' },
-  { code: 'UY', dialCode: '+598', flag: '🇺🇾', name: 'Uruguay' },
+  { code: 'MX', dialCode: '+52', flag: '🇲🇽', name: 'México', expectedDigits: 10 },
+  { code: 'US', dialCode: '+1', flag: '🇺🇸', name: 'Estados Unidos', expectedDigits: 10 },
+  { code: 'AR', dialCode: '+54', flag: '🇦🇷', name: 'Argentina', expectedDigits: 10 },
+  { code: 'BO', dialCode: '+591', flag: '🇧🇴', name: 'Bolivia', expectedDigits: 8 },
+  { code: 'CA', dialCode: '+1', flag: '🇨🇦', name: 'Canadá', expectedDigits: 10 },
+  { code: 'CL', dialCode: '+56', flag: '🇨🇱', name: 'Chile', expectedDigits: 9 },
+  { code: 'CO', dialCode: '+57', flag: '🇨🇴', name: 'Colombia', expectedDigits: 10 },
+  { code: 'CR', dialCode: '+506', flag: '🇨🇷', name: 'Costa Rica', expectedDigits: 8 },
+  { code: 'EC', dialCode: '+593', flag: '🇪🇨', name: 'Ecuador', expectedDigits: 9 },
+  { code: 'SV', dialCode: '+503', flag: '🇸🇻', name: 'El Salvador', expectedDigits: 8 },
+  { code: 'ES', dialCode: '+34', flag: '🇪🇸', name: 'España', expectedDigits: 9 },
+  { code: 'GT', dialCode: '+502', flag: '🇬🇹', name: 'Guatemala', expectedDigits: 8 },
+  { code: 'HN', dialCode: '+504', flag: '🇭🇳', name: 'Honduras', expectedDigits: 8 },
+  { code: 'PA', dialCode: '+507', flag: '🇵🇦', name: 'Panamá', expectedDigits: 8 },
+  { code: 'PE', dialCode: '+51', flag: '🇵🇪', name: 'Perú', expectedDigits: 9 },
+  { code: 'PR', dialCode: '+1', flag: '🇵🇷', name: 'Puerto Rico', expectedDigits: 10 },
+  { code: 'DO', dialCode: '+1', flag: '🇩🇴', name: 'Rep. Dominicana', expectedDigits: 10 },
+  { code: 'UY', dialCode: '+598', flag: '🇺🇾', name: 'Uruguay', expectedDigits: 8 },
 ];
 
 export interface PhoneInputProps {
@@ -53,13 +54,13 @@ export function parsePhoneNumber(rawPhone?: string): { dialCode: string; localDi
   
   for (const country of sortedCountries) {
     if (cleaned.startsWith(country.dialCode)) {
-      const local = cleaned.slice(country.dialCode.length).slice(0, 10);
+      const local = cleaned.slice(country.dialCode.length).slice(0, country.expectedDigits);
       return { dialCode: country.dialCode, localDigits: local };
     }
     // Also check without plus sign (e.g., 525512345678)
     const dialNoPlus = country.dialCode.replace('+', '');
-    if (cleaned.startsWith(dialNoPlus) && cleaned.length >= dialNoPlus.length + 10) {
-      const local = cleaned.slice(dialNoPlus.length).slice(0, 10);
+    if (cleaned.startsWith(dialNoPlus) && cleaned.length >= dialNoPlus.length + 7) {
+      const local = cleaned.slice(dialNoPlus.length).slice(0, country.expectedDigits);
       return { dialCode: country.dialCode, localDigits: local };
     }
   }
@@ -69,11 +70,12 @@ export function parsePhoneNumber(rawPhone?: string): { dialCode: string; localDi
   return { dialCode: '+52', localDigits: justDigits };
 }
 
-// Format 10 digits nicely on display as "55 1234 5678"
+// Format digits nicely on display (e.g., "55 1234 5678" or "612 345 678")
 export function formatLocalDisplay(digits: string): string {
-  const clean = digits.replace(/\D/g, '').slice(0, 10);
+  const clean = digits.replace(/\D/g, '');
   if (clean.length <= 2) return clean;
   if (clean.length <= 6) return `${clean.slice(0, 2)} ${clean.slice(2)}`;
+  if (clean.length <= 9) return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
   return `${clean.slice(0, 2)} ${clean.slice(2, 6)} ${clean.slice(6, 10)}`;
 }
 
@@ -96,16 +98,21 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     setLocalDigits(parsedLocal);
   }, [value]);
 
+  const selectedCountry = COUNTRY_CODES.find(c => c.dialCode === selectedDialCode) || COUNTRY_CODES[0];
+
   const handleCountryChange = (newDialCode: string) => {
     setSelectedDialCode(newDialCode);
-    const fullNumber = localDigits.length > 0 ? `${newDialCode}${localDigits}` : '';
+    const newCountry = COUNTRY_CODES.find(c => c.dialCode === newDialCode) || COUNTRY_CODES[0];
+    const trimmedLocal = localDigits.slice(0, newCountry.expectedDigits);
+    setLocalDigits(trimmedLocal);
+    const fullNumber = trimmedLocal.length > 0 ? `${newDialCode}${trimmedLocal}` : '';
     if (onChange) {
-      onChange(fullNumber, localDigits, newDialCode);
+      onChange(fullNumber, trimmedLocal, newDialCode);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
+    const raw = e.target.value.replace(/\D/g, '').slice(0, selectedCountry.expectedDigits);
     setLocalDigits(raw);
     const fullNumber = raw.length > 0 ? `${selectedDialCode}${raw}` : '';
     if (onChange) {
@@ -113,8 +120,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     }
   };
 
-  const selectedCountry = COUNTRY_CODES.find(c => c.dialCode === selectedDialCode) || COUNTRY_CODES[0];
-  const isComplete = localDigits.length === 10;
+  const isComplete = localDigits.length === selectedCountry.expectedDigits;
 
   return (
     <div className={cn('flex items-center gap-2.5 w-full', className)}>
@@ -141,7 +147,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         </SelectContent>
       </Select>
 
-      {/* Recuadro 2: Captura de Lada / Área y Número de 10 dígitos (Flexible & Amplio) */}
+      {/* Recuadro 2: Captura de Lada / Área y Número (Flexible & Amplio) */}
       <div
         className={cn(
           "relative flex-1 flex items-center h-11 rounded-xl border border-input bg-card px-3 gap-2 transition-all shadow-2xs",
@@ -172,7 +178,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
               'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-muted/60',
               localDigits.length > 0 ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15' : 'text-muted-foreground/40'
             )}>
-              {localDigits.length}/10
+              {localDigits.length}/{selectedCountry.expectedDigits}
             </span>
           )}
         </div>
