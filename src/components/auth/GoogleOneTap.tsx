@@ -58,13 +58,16 @@ const GoogleOneTap = () => {
 
         const initGSI = () => {
             if (!window.google) return;
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: window.handleGoogleOneTap,
-                auto_select: false,
-                cancel_on_tap_outside: true,
-                use_fedcm_for_prompt: true,
-            });
+            if (!(window as any).__gsiOneTapInitialized) {
+                (window as any).__gsiOneTapInitialized = true;
+                window.google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: window.handleGoogleOneTap,
+                    auto_select: false,
+                    cancel_on_tap_outside: true,
+                    use_fedcm_for_prompt: true,
+                });
+            }
             window.google.accounts.id.prompt();
         };
 

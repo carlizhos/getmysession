@@ -167,12 +167,15 @@ const Auth = () => {
 
         const initGSI = () => {
             if (!window.google) return;
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: handleGoogleCredential,
-                use_fedcm_for_prompt: true,
-                auto_select: false,
-            });
+            if (!(window as any).__gsiAuthInitialized) {
+                (window as any).__gsiAuthInitialized = true;
+                window.google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredential,
+                    use_fedcm_for_prompt: true,
+                    auto_select: false,
+                });
+            }
             setGsiReady(true);
         };
 
