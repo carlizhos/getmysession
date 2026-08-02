@@ -629,9 +629,9 @@ const Finance = () => {
           </Card>
 
           {/* Por cobrar */}
-          <Card variant="flat" className="border-warning/30 shadow-soft bg-warning/[0.03]">
+          <Card variant="flat" className="border-warning/30 shadow-soft bg-warning/15">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Por Cobrar</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Por Cobrar</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight text-warning">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1.5">{pending.length} sesión{pending.length !== 1 ? 'es' : ''} pendiente{pending.length !== 1 ? 's' : ''}</p>
             </CardContent>
@@ -650,9 +650,9 @@ const Finance = () => {
           </Card>
 
           {/* Honorarios */}
-          <Card variant="flat" className="border-success/30 shadow-soft bg-success/[0.03]">
+          <Card variant="flat" className="border-success/30 shadow-soft bg-success/15">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Tus Honorarios</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-70">Tus Honorarios</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight text-success">
                 ${psicologoNeto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </p>
@@ -680,9 +680,6 @@ const Finance = () => {
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 font-bold text-sm px-3 py-1">
-                {fmt(pendingRevenue)}
-              </Badge>
             </div>
 
             {/* Pending items list */}
