@@ -264,47 +264,48 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Correo electrónico *</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            {...register('email')}
-                                            placeholder="ejemplo@correo.com"
-                                            disabled={isSubmitting}
-                                            className={errors.email ? 'border-red-500' : ''}
-                                        />
-                                        {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
-                                        <PhoneInput
-                                            id="phone"
-                                            value={watch('phone')}
-                                            onChange={(fullFormatted) => setValue('phone', fullFormatted, { shouldValidate: true })}
-                                            disabled={isSubmitting}
-                                            error={!!errors.phone}
-                                        />
-                                        {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
-                                    </div>
-                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                         <Label htmlFor="email">Correo electrónico *</Label>
+                                         <Input
+                                             id="email"
+                                             type="email"
+                                             {...register('email')}
+                                             placeholder="ejemplo@correo.com"
+                                             disabled={isSubmitting}
+                                             className={errors.email ? 'border-red-500' : ''}
+                                         />
+                                         {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                                     </div>
+                                     <div className="space-y-2">
+                                         <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
+                                         <Input
+                                             id="dateOfBirth"
+                                             type="date"
+                                             {...register('dateOfBirth')}
+                                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                             max={new Date().toISOString().split('T')[0]}
+                                             min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
+                                             disabled={isSubmitting}
+                                             className={errors.dateOfBirth ? 'border-red-500' : ''}
+                                         />
+                                         {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
+                                     </div>
+                                 </div>
+
+                                 <div className="space-y-2">
+                                     <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
+                                     <PhoneInput
+                                         id="phone"
+                                         value={watch('phone')}
+                                         onChange={(fullFormatted) => setValue('phone', fullFormatted, { shouldValidate: true })}
+                                         disabled={isSubmitting}
+                                         error={!!errors.phone}
+                                     />
+                                     {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
+                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="dateOfBirth">Fecha de nacimiento *</Label>
-                                        <Input
-                                            id="dateOfBirth"
-                                            type="date"
-                                            {...register('dateOfBirth')}
-                                            onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                                            max={new Date().toISOString().split('T')[0]}
-                                            min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 90); return d.toISOString().split('T')[0]; })()}
-                                            disabled={isSubmitting}
-                                            className={errors.dateOfBirth ? 'border-red-500' : ''}
-                                        />
-                                        {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
-                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="gender">Género</Label>
                                         <Select

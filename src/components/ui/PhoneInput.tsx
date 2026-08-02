@@ -124,12 +124,12 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   return (
     <div className={cn('flex items-center gap-2.5 w-full', className)}>
-      {/* Recuadro 1: Selector de País (Ancho fijo perfecto) */}
+      {/* Recuadro 1: Selector de País (Compacto y Elegante) */}
       <Select value={selectedDialCode} onValueChange={handleCountryChange} disabled={disabled}>
-        <SelectTrigger className="w-[125px] sm:w-[135px] h-11 shrink-0 bg-card border-border hover:bg-muted/40 font-semibold rounded-xl text-xs shadow-2xs transition-all focus:ring-2 focus:ring-primary/20">
+        <SelectTrigger className="w-[105px] sm:w-[115px] h-10 shrink-0 bg-card border-border hover:bg-muted/40 font-semibold rounded-xl text-xs shadow-2xs transition-all focus:ring-2 focus:ring-primary/20">
           <SelectValue>
-            <span className="flex items-center gap-1.5 truncate">
-              <span className="text-lg leading-none shrink-0">{selectedCountry.flag}</span>
+            <span className="flex items-center gap-1 truncate">
+              <span className="text-base leading-none shrink-0">{selectedCountry.flag}</span>
               <span className="font-mono text-xs font-bold text-foreground">{selectedCountry.dialCode}</span>
             </span>
           </SelectValue>
@@ -150,7 +150,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       {/* Recuadro 2: Captura de Lada / Área y Número (Flexible & Amplio) */}
       <div
         className={cn(
-          "relative flex-1 flex items-center h-11 rounded-xl border border-input bg-card px-3 gap-2 transition-all shadow-2xs",
+          "relative flex-1 flex items-center h-10 rounded-xl border border-input bg-card px-3 gap-2 transition-all shadow-2xs",
           "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary",
           error && "border-red-500 focus-within:ring-red-500/20 focus-within:border-red-500",
           isComplete && "border-emerald-500/60 bg-emerald-500/5",
