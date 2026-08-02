@@ -451,7 +451,7 @@ const Patients = () => {
 
       // Traer consentimientos firmados para el badge legal
       const { data: consentsData } = await supabase
-        .from('patient_consents')
+        .from('consent_forms')
         .select('patient_id, is_valid')
         .eq('organization_id', organization?.id)
         .eq('is_valid', true);
