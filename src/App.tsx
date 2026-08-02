@@ -19,32 +19,57 @@ import Error401 from "./pages/Error401";
 import Error402 from "./pages/Error402";
 import Error403 from "./pages/Error403";
 
-// Lazy imports — each becomes its own chunk, loaded on demand
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Patients = lazy(() => import("./pages/Patients"));
-const AgendaPage = lazy(() => import("./pages/Agenda"));
-const AIAssistant = lazy(() => import("./pages/AIAssistant"));
-const Notes = lazy(() => import("./pages/Notes"));
-const Finance = lazy(() => import("./pages/Finance"));
-const TestsLibrary = lazy(() => import("./pages/TestsLibrary"));
-const PatientTestView = lazy(() => import("./pages/PatientTestView"));
-const Pipeline = lazy(() => import("./pages/Pipeline"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Consents = lazy(() => import("./pages/Consents"));
-const TelehealthSession = lazy(() => import("./pages/TelehealthSession"));
-const JoinSession = lazy(() => import("./pages/JoinSession"));
-const Messages = lazy(() => import("./pages/Messages"));
-const BookingPage = lazy(() => import("./pages/BookingPage"));
-const PublicProfile = lazy(() => import("./pages/PublicProfile"));
-const PortalLogin = lazy(() => import("./pages/PortalLogin"));
-const Portal = lazy(() => import("./pages/Portal"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const StripeCallback = lazy(() => import("./pages/StripeCallback"));
-const HelpCenter = lazy(() => import("./pages/HelpCenter"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
+// Helper to automatically retry lazy loading if a chunk fails (e.g. after a new deployment)
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  lazy(async () => {
+    const pageHasAlreadyBeenReloaded = sessionStorage.getItem('page_reloaded_for_chunk');
+    try {
+      const component = await componentImport();
+      sessionStorage.removeItem('page_reloaded_for_chunk');
+      return component;
+    } catch (error: any) {
+      const errStr = String(error?.message || error || '');
+      const isChunkError =
+        errStr.includes('Failed to fetch dynamically imported module') ||
+        errStr.includes('Failed to load module script') ||
+        errStr.includes('MIME type') ||
+        errStr.includes('Importing a module script failed') ||
+        errStr.includes('404');
+      if (!pageHasAlreadyBeenReloaded && isChunkError) {
+        sessionStorage.setItem('page_reloaded_for_chunk', 'true');
+        window.location.reload();
+        return new Promise(() => {}); // Keep in pending state while page reloads
+      }
+      throw error;
+    }
+  });
+
+// Lazy imports — each becomes its own chunk, loaded on demand with auto-retry
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Patients = lazyWithRetry(() => import("./pages/Patients"));
+const AgendaPage = lazyWithRetry(() => import("./pages/Agenda"));
+const AIAssistant = lazyWithRetry(() => import("./pages/AIAssistant"));
+const Notes = lazyWithRetry(() => import("./pages/Notes"));
+const Finance = lazyWithRetry(() => import("./pages/Finance"));
+const TestsLibrary = lazyWithRetry(() => import("./pages/TestsLibrary"));
+const PatientTestView = lazyWithRetry(() => import("./pages/PatientTestView"));
+const Pipeline = lazyWithRetry(() => import("./pages/Pipeline"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Consents = lazyWithRetry(() => import("./pages/Consents"));
+const TelehealthSession = lazyWithRetry(() => import("./pages/TelehealthSession"));
+const JoinSession = lazyWithRetry(() => import("./pages/JoinSession"));
+const Messages = lazyWithRetry(() => import("./pages/Messages"));
+const BookingPage = lazyWithRetry(() => import("./pages/BookingPage"));
+const PublicProfile = lazyWithRetry(() => import("./pages/PublicProfile"));
+const PortalLogin = lazyWithRetry(() => import("./pages/PortalLogin"));
+const Portal = lazyWithRetry(() => import("./pages/Portal"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+const AuthCallback = lazyWithRetry(() => import("./pages/AuthCallback"));
+const StripeCallback = lazyWithRetry(() => import("./pages/StripeCallback"));
+const HelpCenter = lazyWithRetry(() => import("./pages/HelpCenter"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const SubscriptionSuccess = lazyWithRetry(() => import("./pages/SubscriptionSuccess"));
 
 
 import { RefreshCw } from "lucide-react";
