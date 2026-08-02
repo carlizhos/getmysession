@@ -25,6 +25,18 @@ function formatPhoneForMeta(phoneStr: string): string {
   return cleaned;
 }
 
+function normalizeMexicanPhone(phoneStr: string): string {
+  let cleaned = (phoneStr || '').replace(/\D/g, "");
+  if (!cleaned) return "";
+  if (cleaned.length === 13 && cleaned.startsWith("521")) {
+    return "52" + cleaned.slice(3);
+  }
+  if (cleaned.length === 10) {
+    return "52" + cleaned;
+  }
+  return cleaned;
+}
+
 function getTimezoneFriendlyLabel(tz: string) {
   try {
     const cleanTz = (tz || '').trim();

@@ -24,6 +24,7 @@ interface WaMessage {
   body: string;
   template_id: string | null;
   status: string;
+  error_message?: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -289,10 +290,16 @@ const Messages = () => {
   );
 
   // ── Status icons ───────────────────────────────────────────────────────
-  const StatusIcon = ({ status }: { status: string }) => {
-    if (status === 'read') return <CheckCheck className="h-3.5 w-3.5 text-blue-500" />;
-    if (status === 'delivered') return <CheckCheck className="h-3.5 w-3.5 text-muted-foreground" />;
-    return <Check className="h-3.5 w-3.5 text-muted-foreground" />;
+  const StatusIcon = ({ status, errorMessage }: { status: string; errorMessage?: string | null }) => {
+    if (status === 'read') return <CheckCheck className="h-3.5 w-3.5 text-blue-300" title="Leído en WhatsApp" />;
+    if (status === 'delivered') return <CheckCheck className="h-3.5 w-3.5 text-white/90" title="Entregado en WhatsApp" />;
+    if (status === 'failed') return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-200 bg-red-950/80 px-2 py-0.5 rounded-md border border-red-500/50 shadow-2xs" title={errorMessage || 'Meta WhatsApp rechazó la entrega (Ventana de 24h expirada o plantilla inactiva)'}>
+        <AlertTriangle className="h-3 w-3 text-red-300 shrink-0" />
+        <span>No entregado</span>
+      </span>
+    );
+    return <Check className="h-3.5 w-3.5 text-white/70" title="Enviado a procesar" />;
   };
 
   return (
@@ -470,7 +477,7 @@ const Messages = () => {
                             msg.direction === 'outbound' ? "text-white/70" : "text-muted-foreground"
                           )}>
                             <span className="text-[10px]">{format(parseISO(msg.created_at), 'HH:mm')}</span>
-                            {msg.direction === 'outbound' && <StatusIcon status={msg.status} />}
+                            {msg.direction === 'outbound' && <StatusIcon status={msg.status} errorMessage={msg.error_message} />}
                           </div>
                         </div>
                       </div>
