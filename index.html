@@ -19,6 +19,32 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Saudade — Gestión Clínica Profesional" />
 
+    <!-- Automatic recovery for stale assets / MIME type errors after deployments -->
+    <script>
+      (function() {
+        function handleAssetError(e) {
+          var msg = (e && e.message) || '';
+          var target = (e && e.target && (e.target.src || e.target.href)) || '';
+          if (
+            msg.indexOf('MIME type') !== -1 ||
+            msg.indexOf('module script') !== -1 ||
+            msg.indexOf('Loading chunk') !== -1 ||
+            msg.indexOf('dynamically imported module') !== -1 ||
+            target.indexOf('/assets/') !== -1
+          ) {
+            var lastReload = parseInt(sessionStorage.getItem('asset_reload_timestamp') || '0', 10);
+            if (Date.now() - lastReload > 8000) {
+              sessionStorage.setItem('asset_reload_timestamp', Date.now().toString());
+              window.location.reload(true);
+            }
+          }
+        }
+        window.addEventListener('error', handleAssetError, true);
+        window.addEventListener('unhandledrejection', function(e) {
+          if (e && e.reason) handleAssetError(e.reason);
+        });
+      })();
+    </script>
     <!-- Google Identity Services (GSI) - enables native sign-in showing "Saudade" brand -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
