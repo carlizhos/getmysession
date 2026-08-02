@@ -74,6 +74,7 @@ interface DashboardStats {
   confirmedToday: number;
   pendingToday: number;
   completedSessions: number;
+  totalMonthAppointmentsCount: number;
   pendingPayments: number;
 }
 
@@ -169,6 +170,9 @@ const Dashboard = () => {
     const completedSessions = (monthAppts ?? [])
       .filter(isApptCompleted).length;
 
+    const totalMonthAppointmentsCount = (monthAppts ?? [])
+      .filter(a => a.status !== 'cancelled').length;
+
     const confirmedToday = (todayData ?? []).filter(a => a.status === 'confirmed').length;
     const pendingToday = (todayData ?? []).filter(a => a.status === 'pending').length;
 
@@ -178,9 +182,10 @@ const Dashboard = () => {
       activePatients: patientsCount ?? 0,
       newPatientsThisMonth: newPatientsCount ?? 0,
       todayAppointmentsCount: todayData?.length ?? 0,
+      completedSessions,
+      totalMonthAppointmentsCount,
       confirmedToday,
       pendingToday,
-      completedSessions,
       pendingPayments,
     });
 
@@ -293,7 +298,7 @@ const Dashboard = () => {
           <MetricCard
             title="Sesiones Completadas"
             value={stats?.completedSessions ?? 0}
-            subtitle={`Meta: ${sessionGoal}`}
+            subtitle={`${stats?.completedSessions ?? 0} de ${stats?.totalMonthAppointmentsCount ?? 0} agendadas`}
             loading={loading}
             icon={TrendingUp}
             trend={{ value: Math.round(((stats?.completedSessions ?? 0) / sessionGoal) * 100), isPositive: true }}
@@ -352,8 +357,13 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl font-bold flex items-center h-8">
-                    {loading ? <Skeleton className="h-6 w-12" /> : stats?.completedSessions ?? 0}
+                  <span className="text-2xl font-bold flex items-center h-8 gap-1.5">
+                    {loading ? <Skeleton className="h-6 w-12" /> : (
+                      <>
+                        {stats?.completedSessions ?? 0}
+                        <span className="text-sm font-normal text-muted-foreground">de {stats?.totalMonthAppointmentsCount ?? 0} agendadas</span>
+                      </>
+                    )}
                   </span>
                   <Badge 
                     variant="zen" 
