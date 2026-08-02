@@ -20,7 +20,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +46,7 @@ import {
   ExternalLink,
   Plus,
   Search,
+  AlertCircle,
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -713,6 +713,78 @@ const Finance = () => {
           </Card>
         </div>
 
+        {/* ── Cobros Pendientes — Sección fija prominente ──────────────── */}
+        {filteredPending.length > 0 && (
+          <div className="animate-in slide-in-from-top duration-500">
+            {/* Header bar */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-warning/15">
+                  <AlertCircle className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight">Cobros Pendientes</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {filteredPending.length} sesión{filteredPending.length !== 1 ? 'es' : ''} por cobrar · {fmt(pendingRevenue)}
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 font-bold text-sm px-3 py-1">
+                {fmt(pendingRevenue)}
+              </Badge>
+            </div>
+
+            {/* Pending items list */}
+            <div className="space-y-2">
+              {filteredPending.map((apt, index) => {
+                const initials = apt.patient_name
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    key={apt.id}
+                    className="group flex items-center gap-4 p-4 rounded-2xl bg-card border border-warning/20 hover:border-warning/40 hover:shadow-md transition-all duration-200 animate-fade-in"
+                    style={{ animationDelay: `${index * 60}ms` }}
+                  >
+                    {/* Patient avatar */}
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-warning/10 text-warning font-bold text-sm flex-shrink-0">
+                      {initials}
+                    </div>
+
+                    {/* Patient info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{apt.patient_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(apt.start_time), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+                      </p>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="text-right flex-shrink-0 hidden sm:block">
+                      <p className="text-lg font-bold tracking-tight">{fmt(apt.fee)}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">MXN</p>
+                    </div>
+
+                    {/* Cobrar button */}
+                    <Button
+                      variant="zen"
+                      size="default"
+                      className="flex-shrink-0 font-semibold shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03]"
+                      onClick={() => setPayingAppointment(apt)}
+                    >
+                      <DollarSign className="h-4 w-4 mr-1.5" />
+                      Cobrar
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Sortable sections ──────────────────────────────────────────── */}
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
@@ -934,237 +1006,185 @@ const Finance = () => {
                 </SortableSection>
               );
 
-              // ── Sesiones (tabs Pendientes / Cobrados) ───────────────────
+              // ── Historial de Cobros (formerly Sesiones tabs) ───────────────
               if (sectionId === 'sesiones') return (
                 <SortableSection key="sesiones" id="sesiones">
                   <Card variant="default">
-                    <Tabs defaultValue={filteredPending.length > 0 ? 'pendientes' : 'cobros'}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0">
-                            <CardTitle>Sesiones</CardTitle>
-                            <CardDescription>
-                              {format(selectedDate, 'MMMM yyyy', { locale: es })}
-                            </CardDescription>
-                          </div>
-                          {!collapsed['sesiones'] && (
-                            <TabsList className="flex-1">
-                              <TabsTrigger value="pendientes" className="flex-1 gap-1.5">
-                                <Clock className="h-3.5 w-3.5" />
-                                Pendientes
-                                {filteredPending.length > 0 && (
-                                  <span className="ml-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning text-warning-foreground text-[10px] font-bold px-1">
-                                    {filteredPending.length}
-                                  </span>
-                                )}
-                              </TabsTrigger>
-                              <TabsTrigger value="cobros" className="flex-1 gap-1.5">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Cobrados
-                                {filteredPaidPayments.length > 0 && (
-                                  <span className="ml-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-success text-success-foreground text-[10px] font-bold px-1">
-                                    {filteredPaidPayments.length}
-                                  </span>
-                                )}
-                              </TabsTrigger>
-                            </TabsList>
-                          )}
-                          <button
-                            onClick={() => toggle('sesiones')}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors flex-shrink-0 ml-auto"
-                          >
-                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${collapsed['sesiones'] ? '-rotate-90' : ''}`} />
-                          </button>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                            Historial de Cobros
+                            {filteredPaidPayments.length > 0 && (
+                              <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-success/15 text-success text-[11px] font-bold px-1.5">
+                                {filteredPaidPayments.length}
+                              </span>
+                            )}
+                          </CardTitle>
+                          <CardDescription>
+                            Pagos registrados · {format(selectedDate, 'MMMM yyyy', { locale: es })}
+                          </CardDescription>
                         </div>
-                      </CardHeader>
+                        <button
+                          onClick={() => toggle('sesiones')}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+                        >
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${collapsed['sesiones'] ? '-rotate-90' : ''}`} />
+                        </button>
+                      </div>
+                    </CardHeader>
 
-                      {!collapsed['sesiones'] && (
-                        <>
-                          <TabsContent value="pendientes" className="mt-0">
-                            <CardContent className="pt-4">
-                              {filteredPending.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  <CheckCircle2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                                  <p>No hay pendientes este mes.</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-3">
-                                  {filteredPending.map(apt => (
-                                    <div key={apt.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl bg-warning/5 border border-warning/20">
+                    {!collapsed['sesiones'] && (
+                      <CardContent className="pt-0 space-y-4">
+                        {/* Payment Method Filter Pills */}
+                        <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border/40">
+                          <Button
+                            size="sm"
+                            variant={methodFilter === 'all' ? 'default' : 'outline'}
+                            onClick={() => setMethodFilter('all')}
+                            className="text-xs h-7 rounded-full px-3"
+                          >
+                            Todos ({paidPayments.length})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={methodFilter === 'efectivo' ? 'default' : 'outline'}
+                            onClick={() => setMethodFilter('efectivo')}
+                            className="text-xs h-7 rounded-full px-3 gap-1 border-success/30 text-success bg-success/5 hover:bg-success/10"
+                          >
+                            <Wallet className="h-3 w-3" /> Efectivo ({efectivo.length})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={methodFilter === 'transferencia' ? 'default' : 'outline'}
+                            onClick={() => setMethodFilter('transferencia')}
+                            className="text-xs h-7 rounded-full px-3 gap-1 border-sky-500/30 text-sky-600 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100"
+                          >
+                            <ArrowLeftRight className="h-3 w-3" /> Transferencia ({transferencia.length})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={methodFilter === 'stripe' ? 'default' : 'outline'}
+                            onClick={() => setMethodFilter('stripe')}
+                            className="text-xs h-7 rounded-full px-3 gap-1 border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                          >
+                            <CreditCard className="h-3 w-3" /> Stripe ({stripe.length})
+                          </Button>
+                        </div>
+
+                        {isLoading ? (
+                          <div className="flex justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : filteredPaidPayments.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                            <p>Sin cobros registrados para este filtro</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {filteredPaidPayments.map((p, index) => {
+                              const m = (p.method || 'stripe') as PaymentMethod;
+                              const isStripe = m === 'stripe';
+                              const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
+                              const neto = p.amount - fee;
+                              const pct = getPaymentCommission(p);
+                              const consultorio = neto * (pct / 100);
+                              const psicologo = neto - consultorio;
+                              const dateStr = p.paid_at || p.created_at;
+                              return (
+                                <div
+                                  key={p.id}
+                                  className="rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors animate-fade-in border border-border/50"
+                                  style={{ animationDelay: `${index * 50}ms` }}
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 flex-shrink-0">
+                                        <ArrowUpRight className="h-5 w-5 text-success" />
+                                      </div>
                                       <div>
-                                        <p className="font-medium">{apt.patient_name}</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="font-medium">{p.patient_name}</p>
+                                          {p.category && p.category !== 'sesion' && (
+                                            <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-muted/50 border-none px-1.5 py-0">
+                                              {p.category}
+                                            </Badge>
+                                          )}
+                                          {p.notes && (
+                                            <Badge variant="secondary" className="text-[9px] font-normal bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 px-1.5 py-0">
+                                              {p.notes}
+                                            </Badge>
+                                          )}
+                                        </div>
                                         <p className="text-sm text-muted-foreground">
-                                          {format(parseISO(apt.start_time), "d 'de' MMMM, HH:mm", { locale: es })}
+                                          {dateStr ? format(parseISO(dateStr), "d MMM yyyy, HH:mm", { locale: es }) : '—'}
                                         </p>
                                       </div>
-                                      <div className="flex items-center gap-3 ml-0 sm:ml-auto">
-                                        <span className="text-xl font-bold text-warning">
-                                          ${apt.fee.toLocaleString('es-MX')} MXN
-                                        </span>
-                                        <Button variant="zen" size="sm" onClick={() => setPayingAppointment(apt)}>
-                                          Cobrar
-                                        </Button>
-                                      </div>
                                     </div>
-                                  ))}
+                                    <div className="flex items-center gap-3 ml-14 sm:ml-0 flex-wrap">
+                                      {methodBadge(p.method)}
+                                      <span className="text-lg font-semibold text-success">
+                                        +${p.amount.toLocaleString('es-MX')} MXN
+                                      </span>
+                                      {p.invoice_url ? (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="sm" className="gap-1 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
+                                              <FileText className="h-3.5 w-3.5" />
+                                              Factura
+                                              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end" className="w-48">
+                                            <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                              <Download className="h-4 w-4" />
+                                              Descargar PDF
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleSendEmail(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                              <Mail className="h-4 w-4" />
+                                              Enviar por Correo
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => window.open(p.invoice_url!, '_blank')} className="gap-2 cursor-pointer">
+                                              <ExternalLink className="h-4 w-4" />
+                                              Ver en Facturapi
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      ) : (
+                                        <Button variant="outline" size="sm" onClick={() => handleGenerateInvoice(p.id)} disabled={generatingInvoiceId === p.id} className="gap-1">
+                                          {generatingInvoiceId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
+                                          Facturar
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 pb-3 text-xs text-muted-foreground border-t border-border/40 pt-2">
+                                    {isStripe && (
+                                      <span className="text-destructive">
+                                        Fee Stripe: −${fee.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </span>
+                                    )}
+                                    <span className="text-warning">
+                                      Consultorio ({pct}%): −${consultorio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                    <span className="text-success font-semibold">
+                                      Tu parte: ${psicologo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                    {p.notes && (
+                                      <span className="w-full flex items-center gap-1 mt-0.5 text-muted-foreground italic">
+                                        📝 {p.notes}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                            </CardContent>
-                          </TabsContent>
-
-                          <TabsContent value="cobros" className="mt-0">
-                            <CardContent className="pt-4 space-y-4">
-                              {/* Payment Method Filter Pills */}
-                              <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border/40">
-                                <Button
-                                  size="sm"
-                                  variant={methodFilter === 'all' ? 'default' : 'outline'}
-                                  onClick={() => setMethodFilter('all')}
-                                  className="text-xs h-7 rounded-full px-3"
-                                >
-                                  Todos ({paidPayments.length})
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={methodFilter === 'efectivo' ? 'default' : 'outline'}
-                                  onClick={() => setMethodFilter('efectivo')}
-                                  className="text-xs h-7 rounded-full px-3 gap-1 border-success/30 text-success bg-success/5 hover:bg-success/10"
-                                >
-                                  <Wallet className="h-3 w-3" /> Efectivo ({efectivo.length})
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={methodFilter === 'transferencia' ? 'default' : 'outline'}
-                                  onClick={() => setMethodFilter('transferencia')}
-                                  className="text-xs h-7 rounded-full px-3 gap-1 border-sky-500/30 text-sky-600 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100"
-                                >
-                                  <ArrowLeftRight className="h-3 w-3" /> Transferencia ({transferencia.length})
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={methodFilter === 'stripe' ? 'default' : 'outline'}
-                                  onClick={() => setMethodFilter('stripe')}
-                                  className="text-xs h-7 rounded-full px-3 gap-1 border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
-                                >
-                                  <CreditCard className="h-3 w-3" /> Stripe ({stripe.length})
-                                </Button>
-                              </div>
-
-                              {isLoading ? (
-                                <div className="flex justify-center py-8">
-                                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                </div>
-                              ) : filteredPaidPayments.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                                  <p>Sin cobros registrados para este filtro</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-3">
-                                  {filteredPaidPayments.map((p, index) => {
-                                    const m = (p.method || 'stripe') as PaymentMethod;
-                                    const isStripe = m === 'stripe';
-                                    const fee = isStripe ? p.amount * (feeConfig.stripe_fee_percent / 100) : 0;
-                                    const neto = p.amount - fee;
-                                    const pct = getPaymentCommission(p);
-                                    const consultorio = neto * (pct / 100);
-                                    const psicologo = neto - consultorio;
-                                    const dateStr = p.paid_at || p.created_at;
-                                    return (
-                                      <div
-                                        key={p.id}
-                                        className="rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors animate-fade-in border border-border/50"
-                                        style={{ animationDelay: `${index * 50}ms` }}
-                                      >
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
-                                          <div className="flex items-center gap-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 flex-shrink-0">
-                                              <ArrowUpRight className="h-5 w-5 text-success" />
-                                            </div>
-                                            <div>
-                                              <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-medium">{p.patient_name}</p>
-                                                {p.category && p.category !== 'sesion' && (
-                                                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-muted/50 border-none px-1.5 py-0">
-                                                    {p.category}
-                                                  </Badge>
-                                                )}
-                                                {p.notes && (
-                                                  <Badge variant="secondary" className="text-[9px] font-normal bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 px-1.5 py-0">
-                                                    {p.notes}
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                              <p className="text-sm text-muted-foreground">
-                                                {dateStr ? format(parseISO(dateStr), "d MMM yyyy, HH:mm", { locale: es }) : '—'}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-3 ml-14 sm:ml-0 flex-wrap">
-                                            {methodBadge(p.method)}
-                                            <span className="text-lg font-semibold text-success">
-                                              +${p.amount.toLocaleString('es-MX')} MXN
-                                            </span>
-                                            {p.invoice_url ? (
-                                              <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                  <Button variant="outline" size="sm" className="gap-1 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
-                                                    <FileText className="h-3.5 w-3.5" />
-                                                    Factura
-                                                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                                                  </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-48">
-                                                  <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id!)} className="gap-2 cursor-pointer">
-                                                    <Download className="h-4 w-4" />
-                                                    Descargar PDF
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => handleSendEmail(p.invoice_id!)} className="gap-2 cursor-pointer">
-                                                    <Mail className="h-4 w-4" />
-                                                    Enviar por Correo
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => window.open(p.invoice_url!, '_blank')} className="gap-2 cursor-pointer">
-                                                    <ExternalLink className="h-4 w-4" />
-                                                    Ver en Facturapi
-                                                  </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                              </DropdownMenu>
-                                            ) : (
-                                              <Button variant="outline" size="sm" onClick={() => handleGenerateInvoice(p.id)} disabled={generatingInvoiceId === p.id} className="gap-1">
-                                                {generatingInvoiceId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
-                                                Facturar
-                                              </Button>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 pb-3 text-xs text-muted-foreground border-t border-border/40 pt-2">
-                                          {isStripe && (
-                                            <span className="text-destructive">
-                                              Fee Stripe: −${fee.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </span>
-                                          )}
-                                          <span className="text-warning">
-                                            Consultorio ({pct}%): −${consultorio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </span>
-                                          <span className="text-success font-semibold">
-                                            Tu parte: ${psicologo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </span>
-                                          {p.notes && (
-                                            <span className="w-full flex items-center gap-1 mt-0.5 text-muted-foreground italic">
-                                              📝 {p.notes}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </CardContent>
-                          </TabsContent>
-                        </>
-                      )}
-                    </Tabs>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </CardContent>
+                    )}
                   </Card>
                 </SortableSection>
               );
