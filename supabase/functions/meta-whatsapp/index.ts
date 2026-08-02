@@ -424,14 +424,16 @@ serve(async (req) => {
 
             // Try template payload first if template_id is specified
             if (template_id) {
-              const metaTemplateName = template_id.includes('reminder') ? 'reminder' : template_id;
+              const metaTemplateName = (template_id === 'test' || template_id === 'hello_world') ? 'hello_world' : (template_id.includes('reminder') ? 'reminder' : template_id);
+              const langCode = metaTemplateName === 'hello_world' ? 'en_US' : 'es_MX';
+
               const templatePayload = {
                 messaging_product: "whatsapp",
                 to: cleanPhoneTo,
                 type: "template",
                 template: {
                   name: metaTemplateName,
-                  language: { code: "es_MX" }
+                  language: { code: langCode }
                 }
               };
 
