@@ -123,9 +123,19 @@ function buildPsychologistEmail({
 <body>
   <div class="wrapper">
     <div class="card">
-      <div class="badge">
-        <span class="badge-text">S.</span>
-      </div>
+      <!-- Brand Header -->
+      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 24px;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 12px;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 14px; text-align: center; line-height: 42px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);">
+              <span style="font-size: 20px;">✨</span>
+            </div>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 24px; font-weight: 900; letter-spacing: -0.04em; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">saudade</span>
+          </td>
+        </tr>
+      </table>
 
       <h1>🔔 Nueva Cita Agendada</h1>
       <p>Hola, <strong>${titleDisplay}${psychologistName}</strong>. Se ha agendado una nueva sesión en tu agenda clínica.</p>
@@ -227,9 +237,19 @@ function buildPatientEmail({
 <body>
   <div class="wrapper">
     <div class="card">
-      <div class="badge">
-        <span class="badge-text">✓</span>
-      </div>
+      <!-- Brand Header -->
+      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 24px;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 12px;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #0D9488 0%, #059669 100%); border-radius: 14px; text-align: center; line-height: 42px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);">
+              <span style="font-size: 20px;">🌱</span>
+            </div>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 24px; font-weight: 900; letter-spacing: -0.04em; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">saudade</span>
+          </td>
+        </tr>
+      </table>
 
       <h1>✨ Cita Confirmada</h1>
       <p>Hola, <strong>${patientName}</strong>. Tu sesión terapéutica ha sido agendada con éxito.</p>

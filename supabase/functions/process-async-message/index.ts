@@ -180,7 +180,21 @@ Deno.serve(async (req) => {
 <head><meta charset="UTF-8"></head>
 <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
   <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <div style="background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%); padding: 24px 32px;">
+    <div style="padding: 24px 32px 0 32px;">
+      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 12px;">
+            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 10px; text-align: center; line-height: 36px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);">
+              <span style="font-size: 18px;">✨</span>
+            </div>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.04em; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">saudade</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%); padding: 20px 32px; margin-top: 16px;">
       <h1 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 600;">⚠️ Actualización Clínica Prioritaria</h1>
     </div>
     <div style="padding: 32px;">

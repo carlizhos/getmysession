@@ -181,9 +181,19 @@ serve(async (req) => {
 <body>
   <div class="wrapper">
     <div class="card">
-      <div class="logo-badge">
-        <span class="logo-text">S.</span>
-      </div>
+      <!-- Brand Header -->
+      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 24px;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 12px;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #0284C7 0%, #0D9488 100%); border-radius: 14px; text-align: center; line-height: 42px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);">
+              <span style="font-size: 20px;">🔑</span>
+            </div>
+          </td>
+          <td style="vertical-align: middle;">
+            <span style="font-size: 24px; font-weight: 900; letter-spacing: -0.04em; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">saudade</span>
+          </td>
+        </tr>
+      </table>
 
       <h1>Inicia sesión en Saudade</h1>
       
