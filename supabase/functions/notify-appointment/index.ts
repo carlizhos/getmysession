@@ -162,7 +162,7 @@ function buildPsychologistEmail({
       ${meetingBtn}
 
       <div style="text-align: center; margin-top: 24px;">
-        <a href="https://saudade.app/agenda" target="_blank" class="btn-secondary">Abrir Agenda en Saudade 🚀</a>
+        <a href="https://app.saudade.mx/agenda" target="_blank" class="btn-secondary">Abrir Agenda en Saudade 🚀</a>
       </div>
 
       <div class="footer">

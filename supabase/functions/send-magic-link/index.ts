@@ -30,7 +30,7 @@ serve(async (req) => {
       type: 'magiclink',
       email: email,
       options: {
-        redirectTo: redirectTo || `${Deno.env.get('SITE_URL') || 'https://saudade.app'}/`
+        redirectTo: redirectTo || `${Deno.env.get('SITE_URL') || 'https://app.saudade.mx'}/`
       }
     })
 

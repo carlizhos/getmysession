@@ -167,8 +167,7 @@ Deno.serve(async (req) => {
               ? `${(patientData.first_name || "?")[0]}${(patientData.last_name || "?")[0]}`.toUpperCase()
               : "??";
 
-            const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-            const patientLink = `${supabaseUrl.replace(".supabase.co", ".vercel.app")}/patients/${patient_id}`;
+            const patientLink = `https://app.saudade.mx/patients/${patient_id}`;
 
             // Send email to each org member
             for (const member of members) {
