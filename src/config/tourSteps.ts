@@ -252,4 +252,17 @@ export const MODULE_TOURS: Record<string, TourConfig> = {
       },
     ],
   },
+  notifications: {
+    steps: [
+      {
+        element: '#tour-notifications-header',
+        popover: {
+          title: '🔔 Centro de Notificaciones',
+          description: 'Consulta todo el historial de alertas, citas agendadas, cobros pendientes, avisos de sistema y recomendaciones de IA.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
 };

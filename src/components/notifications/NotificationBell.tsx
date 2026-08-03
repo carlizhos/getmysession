@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash, Zap, Sparkles, AlertTriangle } from 'lucide-react';
+import { Bell, Check, Trash, Zap, Sparkles, AlertTriangle, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale';
 import { ActivityType } from '@/lib/activityLogger';
 import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useSmartAlerts } from '@/hooks/useSmartAlerts';
+import { useNavigate } from 'react-router-dom';
 
 interface ActivityLog {
   id: string;
@@ -20,6 +21,7 @@ interface ActivityLog {
 }
 
 const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, canShow?: boolean }) => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -230,6 +232,20 @@ const NotificationBell = ({ forceSettled, canShow }: { forceSettled?: boolean, c
               ))}
             </div>
           )}
+        </div>
+
+        {/* Footer Link to Notifications Center */}
+        <div className="p-2 border-t border-border/40 bg-muted/20 text-center shrink-0">
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate('/notifications');
+            }}
+            className="text-xs font-bold text-primary hover:underline flex items-center justify-center gap-1.5 w-full py-1.5 transition-all group"
+          >
+            <span>Ver todo el historial</span>
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+          </button>
         </div>
       </div>
     </div>

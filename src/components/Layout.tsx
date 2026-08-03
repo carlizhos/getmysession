@@ -115,6 +115,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     if (pathname.startsWith('/ai-assistant')) return 'aiAssistant';
     if (pathname.startsWith('/notes')) return 'notes';
     if (pathname.startsWith('/tests')) return 'tests';
+    if (pathname.startsWith('/notifications')) return 'notifications';
     if (pathname.startsWith('/consents')) return 'consents';
     if (pathname.startsWith('/messages')) return 'messages';
     if (pathname.startsWith('/settings')) return 'settings';

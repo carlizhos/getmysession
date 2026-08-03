@@ -61,6 +61,7 @@ const StripeCallback = lazyWithRetry(() => import("./pages/StripeCallback"));
 const HelpCenter = lazyWithRetry(() => import("./pages/HelpCenter"));
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 const SubscriptionSuccess = lazyWithRetry(() => import("./pages/SubscriptionSuccess"));
+const Notifications = lazyWithRetry(() => import("./pages/Notifications"));
 
 
 import { RefreshCw } from "lucide-react";
@@ -342,6 +343,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               }
             />
