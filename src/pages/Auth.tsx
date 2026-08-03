@@ -78,6 +78,10 @@ const Auth = () => {
     const { signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogleIdToken } = useAuth();
 
     useEffect(() => {
+        if (typeof document !== 'undefined') {
+            const selector = '.driver-popover, .driver-overlay, .driver-active-element, .driver-stage-nolight, div[id^="driver-"]';
+            document.querySelectorAll(selector).forEach(el => el.remove());
+        }
         const savedEmail = localStorage.getItem('saudade_saved_email');
         if (savedEmail && localStorage.getItem('saudade_remember_email') === 'true') {
             setValue('email', savedEmail);

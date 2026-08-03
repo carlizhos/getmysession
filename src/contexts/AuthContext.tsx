@@ -368,6 +368,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const signOut = async (event: 'logout' | 'timeout' = 'logout') => {
+        if (typeof document !== 'undefined') {
+            const selector = '.driver-popover, .driver-overlay, .driver-active-element, .driver-stage-nolight, div[id^="driver-"]';
+            document.querySelectorAll(selector).forEach(el => el.remove());
+        }
         if (user && sessionStartRef.current) {
             const durationSeconds = Math.round(
                 (Date.now() - sessionStartRef.current.getTime()) / 1000

@@ -1,21 +1,74 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useRef, useEffect } from 'react';
 import { driver, Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { MODULE_TOURS } from '@/config/tourSteps';
+import { supabase } from '@/lib/supabase';
 
 interface ProductTourContextType {
   startTour: (moduleKey: string) => void;
+  stopTour: () => void;
   hasTourForModule: (moduleKey: string) => boolean;
 }
 
 const ProductTourContext = createContext<ProductTourContextType | undefined>(undefined);
 
 export const ProductTourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const driverInstanceRef = useRef<Driver | null>(null);
+
+  const stopTour = useCallback(() => {
+    if (driverInstanceRef.current) {
+      try {
+        driverInstanceRef.current.destroy();
+      } catch (e) {
+        console.error('Error destroying driver tour:', e);
+      }
+      driverInstanceRef.current = null;
+    }
+    // Clean up any remaining driver.js DOM artifacts
+    if (typeof document !== 'undefined') {
+      const selector = '.driver-popover, .driver-overlay, .driver-active-element, .driver-stage-nolight, div[id^="driver-"]';
+      document.querySelectorAll(selector).forEach(el => el.remove());
+    }
+  }, []);
+
+  // Listen to Supabase auth state change: if signed out, terminate any active tour
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        stopTour();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [stopTour]);
+
+  // Listen to URL location changes: if navigating to unauthenticated/auth routes, kill tour
+  useEffect(() => {
+    const checkAuthRoute = () => {
+      const path = window.location.pathname.toLowerCase();
+      const authRoutes = ['/auth', '/login', '/portal/login', '/reset-password', '/update-password', '/forgot-password'];
+      if (authRoutes.some(route => path.startsWith(route))) {
+        stopTour();
+      }
+    };
+
+    checkAuthRoute();
+    window.addEventListener('popstate', checkAuthRoute);
+    return () => {
+      window.removeEventListener('popstate', checkAuthRoute);
+    };
+  }, [stopTour]);
+
   const hasTourForModule = useCallback((moduleKey: string) => {
     return !!MODULE_TOURS[moduleKey];
   }, []);
 
   const startTour = useCallback((moduleKey: string) => {
+    // Stop any previously running tour
+    stopTour();
+
     const config = MODULE_TOURS[moduleKey];
     if (!config || !config.steps || config.steps.length === 0) return;
 
@@ -37,6 +90,7 @@ export const ProductTourProvider: React.FC<{ children: React.ReactNode }> = ({ c
       doneBtnText: '¡Entendido! ✨',
       steps: validSteps,
       onDestroyed: () => {
+        driverInstanceRef.current = null;
         try {
           localStorage.setItem(`saudade_tour_seen_${moduleKey}`, 'true');
         } catch (e) {
@@ -45,11 +99,12 @@ export const ProductTourProvider: React.FC<{ children: React.ReactNode }> = ({ c
       },
     });
 
+    driverInstanceRef.current = driverObj;
     driverObj.drive();
-  }, []);
+  }, [stopTour]);
 
   return (
-    <ProductTourContext.Provider value={{ startTour, hasTourForModule }}>
+    <ProductTourContext.Provider value={{ startTour, stopTour, hasTourForModule }}>
       {children}
     </ProductTourContext.Provider>
   );
