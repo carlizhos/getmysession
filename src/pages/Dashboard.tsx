@@ -349,9 +349,9 @@ const Dashboard = () => {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-slate-600 dark:text-slate-300">Pagos Pendientes</p>
-                    <p className="text-2xl font-bold flex items-center h-8">
+                    <div className="text-2xl font-bold flex items-center h-8">
                       {loading ? <Skeleton className="h-6 w-24" /> : `$${(stats?.pendingPayments ?? 0).toLocaleString()}`}
-                    </p>
+                    </div>
                   </div>
                   <Button 
                     variant="outline" 
@@ -373,14 +373,14 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl font-bold flex items-center h-8 gap-1.5">
+                  <div className="text-2xl font-bold flex items-center h-8 gap-1.5">
                     {loading ? <Skeleton className="h-6 w-12" /> : (
                       <>
                         {stats?.completedSessions ?? 0}
                         <span className="text-sm font-normal text-muted-foreground">de {stats?.totalMonthAppointmentsCount ?? 0} agendadas</span>
                       </>
                     )}
-                  </span>
+                  </div>
                   <Badge 
                     variant="zen" 
                     title="Haz clic para cambiar la meta mensual"
