@@ -32,6 +32,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useEffect } from 'react';
 import useDarkMode from '@/hooks/useDarkMode';
@@ -99,6 +106,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
+  const [showNomModal, setShowNomModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadWa, setUnreadWa] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -549,10 +557,17 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             {children}
 
             {/* Footer Information */}
-            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col gap-6 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
+            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col gap-4 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 uppercase tracking-widest">
                 <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
                 <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
+                  <button
+                    onClick={() => setShowNomModal(true)}
+                    className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-primary/80 normal-case sm:uppercase"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Aviso Regulatorio (NOM-024)</span>
+                  </button>
                   <a 
                     href="/politicas" 
                     target="_blank" 
@@ -571,13 +586,44 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   </a>
                 </div>
               </div>
-              <div className="text-center sm:text-left text-[9px] sm:text-[10px] opacity-70 max-w-5xl leading-relaxed bg-muted/30 p-3 rounded-xl border border-border/30">
-                <strong>Aviso Regulatorio (NOM-024):</strong> Saudade desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la NOM-024-SSA3-2012 (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad. Se hace de conocimiento que Saudade no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
-              </div>
             </footer>
           </div>
         </main>
       </div>
+
+      {/* Modal de Aviso Regulatorio NOM-024 */}
+      <Dialog open={showNomModal} onOpenChange={setShowNomModal}>
+        <DialogContent className="sm:max-w-lg rounded-3xl border border-border/60 p-6 backdrop-blur-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">Aviso Regulatorio (NOM-024)</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Cumplimiento normativo y marco de registro clínico electrónico
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-3 text-xs sm:text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-2xl border border-border/40">
+            <p>
+              <strong>Aviso Regulatorio (NOM-024):</strong> Saudade desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la <strong>NOM-024-SSA3-2012</strong> (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad.
+            </p>
+            <p>
+              Se hace de conocimiento que Saudade no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
+            </p>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Button variant="zen" size="sm" onClick={() => setShowNomModal(false)} className="rounded-xl px-6 font-bold">
+              Entendido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <InactivityModal
         open={showInactivityModal}
