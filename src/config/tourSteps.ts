@@ -230,4 +230,26 @@ export const MODULE_TOURS: Record<string, TourConfig> = {
       },
     ],
   },
+  tests: {
+    steps: [
+      {
+        element: '#tour-tests-header',
+        popover: {
+          title: '🧪 Pruebas Psicométricas Evaluativas',
+          description: 'Aplica instrumentos psicométricos estandarizados (PHQ-9, GAD-7, BDI, Beck) con calificación e interpretación automática.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '#tour-tests-patient-select',
+        popover: {
+          title: '👤 Selección de Paciente',
+          description: 'Selecciona al paciente a quien enviar la prueba para que responda directamente desde su Portal del Paciente.',
+          side: 'left',
+          align: 'center',
+        },
+      },
+    ],
+  },
 };

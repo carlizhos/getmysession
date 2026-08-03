@@ -137,7 +137,7 @@ const TestsLibrary = () => {
       <FeatureGate feature="core_tests">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+        <div id="tour-tests-header" className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
           <div className="flex items-center gap-4 w-full lg:w-auto">
             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
               <BrainCircuit className="h-6 w-6 text-white" />
@@ -150,7 +150,7 @@ const TestsLibrary = () => {
 
           {/* Right: Global Patient Selector & Actions */}
           <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 mt-4 lg:mt-0">
-            <div className="w-full sm:w-72 relative group">
+            <div id="tour-tests-patient-select" className="w-full sm:w-72 relative group">
               <PatientAutocomplete
                 ref={patientSearchRef}
                 value={selectedPatientId}
