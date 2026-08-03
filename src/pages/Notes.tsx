@@ -411,7 +411,7 @@ const Notes = () => {
     <Layout>
       <FeatureGate feature="core_notes">
       <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+        <div id="tour-notes-header" className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-6 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
           <div className="flex items-center gap-4 w-full lg:w-auto">
             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
               <FileText className="h-6 w-6 text-primary" />
@@ -422,7 +422,7 @@ const Notes = () => {
             </div>
           </div>
 
-          <div className="w-full lg:max-w-md">
+          <div id="tour-notes-patient-select" className="w-full lg:max-w-md">
             <PatientAutocomplete
               value={selectedPatient || ''}
               onSelect={(id, name) => {
@@ -434,7 +434,7 @@ const Notes = () => {
             />
           </div>
 
-          <div className="flex gap-3 w-full lg:w-auto justify-end">
+          <div id="tour-notes-new-btn" className="flex gap-3 w-full lg:w-auto justify-end">
             <Button 
               variant="zen" 
               size="sm" 

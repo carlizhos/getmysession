@@ -112,6 +112,11 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     if (pathname.startsWith('/patients')) return 'patients';
     if (pathname.startsWith('/agenda')) return 'agenda';
     if (pathname.startsWith('/finance')) return 'finance';
+    if (pathname.startsWith('/ai-assistant')) return 'aiAssistant';
+    if (pathname.startsWith('/notes')) return 'notes';
+    if (pathname.startsWith('/consents')) return 'consents';
+    if (pathname.startsWith('/messages')) return 'messages';
+    if (pathname.startsWith('/settings')) return 'settings';
     return '';
   };
   const moduleKey = getModuleKey(location.pathname);

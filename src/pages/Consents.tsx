@@ -286,7 +286,7 @@ const Consents = () => {
             <FeatureGate feature="core_consents">
             <div className="space-y-6">
                 {/* Header Section (Island Style) */}
-                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+                <div id="tour-consents-header" className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
                     <div className="flex items-center gap-4 w-full lg:w-auto">
                         <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
                             <FileSignature className="h-6 w-6 text-white" />
@@ -297,7 +297,7 @@ const Consents = () => {
                         </div>
                     </div>
 
-                    <div className="w-full lg:w-auto flex justify-end">
+                    <div id="tour-consents-new-btn" className="w-full lg:w-auto flex justify-end">
                         {activeTab === 'firmados' && (
                             <Button 
                                 variant="zen" 

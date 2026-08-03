@@ -608,7 +608,7 @@ const AIAssistant = () => {
       <FeatureGate feature="ai_assistant">
       <div className="space-y-6">
         {/* Header Section (Island Style) */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
+        <div id="tour-ai-header" className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-card p-5 rounded-2xl border border-border shadow-soft animate-in slide-in-from-top duration-700">
           <div className="flex items-center gap-4 w-full lg:w-auto">
             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
               <Brain className="h-6 w-6 text-white" />
@@ -621,7 +621,7 @@ const AIAssistant = () => {
 
           {/* Right: Global Patient Selector & Actions */}
           <div className="w-full lg:w-auto flex flex-col sm:flex-row items-center gap-4 mt-4 lg:mt-0 relative z-10">
-            <div className="w-full sm:w-80 relative group">
+            <div id="tour-ai-patient-select" className="w-full sm:w-80 relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary/0 rounded-xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
               <PatientAutocomplete
                 ref={patientSearchRef}
