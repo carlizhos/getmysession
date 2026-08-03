@@ -2180,14 +2180,23 @@ const Patients = () => {
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="pacientes" className="m-0 space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div id="tour-patients-header" className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <h2 className="text-xl font-bold tracking-tight">Directorio de Pacientes</h2>
                             <p className="text-sm text-muted-foreground font-medium">Gestiona y visualiza todos tus expedientes activos.</p>
                           </div>
                   
                   <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-64">
+                    <Button 
+                      id="tour-patients-add-btn"
+                      variant="zen" 
+                      className="h-10 px-4 text-xs font-bold gap-1.5 shrink-0 shadow-md shadow-primary/10" 
+                      onClick={() => setIsNewPatientOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" /> Registrar Paciente
+                    </Button>
+
+                    <div id="tour-patients-search" className="relative w-full sm:w-64">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Nombre, correo o teléfono..."

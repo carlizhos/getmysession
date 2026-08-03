@@ -296,7 +296,7 @@ const AgendaPage = () => {
           </div>
           <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
             {/* View Mode Selector */}
-            <div className="flex items-center border rounded-lg p-1 bg-muted/30">
+            <div id="tour-agenda-views" className="flex items-center border rounded-lg p-1 bg-muted/30">
               <Button
                 variant={viewMode === 'day' ? 'default' : 'ghost'}
                 size="sm"
@@ -346,6 +346,7 @@ const AgendaPage = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
+                  id="tour-agenda-new-btn"
                   variant="zen"
                   className="gap-2"
                 >

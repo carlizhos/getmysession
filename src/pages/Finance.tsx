@@ -615,7 +615,7 @@ const Finance = () => {
         </div>
 
         {/* KPI row */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div id="tour-finance-kpis" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Total cobrado */}
           <Card variant="flat" className="border-border/50 shadow-soft bg-card">
             <CardContent className="p-5">
@@ -666,7 +666,7 @@ const Finance = () => {
 
         {/* ── Cobros Pendientes — Sección fija prominente ──────────────── */}
         {filteredPending.length > 0 && (
-          <div className="animate-in slide-in-from-top duration-500">
+          <div id="tour-finance-pending" className="animate-in slide-in-from-top duration-500">
             {/* Header bar */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">

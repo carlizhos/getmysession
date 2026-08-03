@@ -37,15 +37,90 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'config', name: 'Configuración', icon: Settings, description: 'Perfiles, organización e integraciones.' },
-  { id: 'pacientes', name: 'Pacientes', icon: Users, description: 'Gestión de expedientes y privacidad.' },
+  { id: 'config', name: 'Configuración', icon: Settings, description: 'Perfiles, horarios, comisiones y credenciales.' },
+  { id: 'pacientes', name: 'Pacientes', icon: Users, description: 'Expedientes en 4 pestañas y cumplimiento NOM-024.' },
   { id: 'agenda', name: 'Agenda', icon: Calendar, description: 'Servicios, citas y reserva pública.' },
-  { id: 'notas', name: 'Notas Clínicas', icon: FileText, description: 'Plantillas dinámicas y NOM-024.' },
-  { id: 'finanzas', name: 'Finanzas', icon: DollarSign, description: 'Pagos, Stripe y facturación.' },
+  { id: 'whatsapp', name: 'WhatsApp CRM', icon: MessageCircle, description: 'Plantillas Meta, estados de entrega y recordatorios.' },
+  { id: 'notas', name: 'Notas Clínicas', icon: FileText, description: 'Plantillas dinámicas, dictado IA y NOM-024.' },
+  { id: 'finanzas', name: 'Finanzas', icon: DollarSign, description: 'Pagos, Stripe y honorarios netos.' },
   { id: 'seguridad', name: 'Seguridad', icon: Shield, description: 'Protección de datos y accesos.' },
 ];
 
 const ARTICLES: Article[] = [
+  {
+    id: 'whatsapp-meta-templates',
+    category: 'whatsapp',
+    title: 'Plantillas de Meta WhatsApp y Estado de Entrega',
+    content: (
+      <div className="space-y-6">
+        <p>Saudade se conecta directamente con la API Cloud de Meta WhatsApp para enviar confirmaciones y recordatorios automáticos de citas a tus pacientes.</p>
+        
+        <h3 className="text-xl font-bold text-black pt-4">Ventana de 24 Horas de Meta</h3>
+        <p>Meta exige que para enviar mensajes a un usuario después de transcurridas 24 horas desde su último mensaje, se utilice una <strong>Plantilla Oficial (Template)</strong> registrada en Meta Business Manager.</p>
+
+        <h3 className="text-xl font-bold text-black pt-4">Indicadores de Estado en el Chat</h3>
+        <ul className="list-disc pl-5 space-y-2 text-gray-700">
+          <li><strong>Palomita blanca (✓):</strong> Mensaje enviado a procesar por Meta.</li>
+          <li><strong>Doble palomita (✓✓):</strong> Mensaje entregado exitosamente en el celular del paciente.</li>
+          <li><strong>Doble palomita azul (✓✓):</strong> Mensaje leído por el paciente.</li>
+          <li><strong>⚠️ No entregado (Botón rojo):</strong> Meta rechazó la entrega. Al pasar el cursor o hacer clic, verás el motivo exacto (ej. <em>Error 131047: Ventana de 24h expirada o plantilla inactiva</em>).</li>
+        </ul>
+
+        <h3 className="text-xl font-bold text-black pt-4">Cómo registrar la plantilla "reminder" en Meta</h3>
+        <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+          <li>Accede a tu panel de <a href="https://business.facebook.com/wa/manage/templates" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">Meta Business Suite {'>'} Plantillas de WhatsApp</a>.</li>
+          <li>Haz clic en <strong>Crear plantilla</strong>.</li>
+          <li>Selecciona Categoría: <strong>Utilidad (Utility)</strong>, Nombre: <code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">reminder</code>, Idioma: <strong>Español (México) / es_MX</strong>.</li>
+          <li>Ingresa el texto del recordatorio y guarda. Meta aprueba la plantilla automáticamente en menos de 1 minuto.</li>
+        </ol>
+      </div>
+    )
+  },
+  {
+    id: 'config-horarios-save',
+    category: 'config',
+    title: 'Configuración de Horarios de Atención y Guardado',
+    content: (
+      <div className="space-y-6">
+        <p>Establece tus días laborables, horarios por día y excepciones (días festivos o vacaciones) en <strong>Configuración {'>'} Horarios y Comisiones</strong>.</p>
+        
+        <h3 className="text-xl font-bold text-black pt-4">Guardado Inmediato</h3>
+        <p>Para evitar pérdida de información al cambiar días o rangos de horas, la pestaña cuenta con:</p>
+        <ul className="list-disc pl-5 space-y-2 text-gray-700">
+          <li><strong>Barra Superior de Acción:</strong> Botón <code>✓ Guardar Horarios</code> visible inmediatamente en el encabezado sin necesidad de hacer scroll.</li>
+          <li><strong>Pie de Tarjeta de Horario:</strong> Botón secundario al final de la lista de días.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    id: 'config-remember-email',
+    category: 'config',
+    title: 'Recordar Correo Electrónico en el Inicio de Sesión',
+    content: (
+      <div className="space-y-6">
+        <p>En la pantalla de Login (<code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">app.saudade.mx/login</code>) puedes marcar la casilla <strong>"Recordar mi correo electrónico"</strong>.</p>
+        <p>Al activarla, Saudade guardará de forma segura tu correo en tu navegador local para que en tus siguientes visitas no tengas que volver a escribirlo.</p>
+      </div>
+    )
+  },
+  {
+    id: 'pacientes-registro-tabs',
+    category: 'pacientes',
+    title: 'Registro de Pacientes en Modal de 4 Pestañas',
+    content: (
+      <div className="space-y-6">
+        <p>Al hacer clic en <strong>Registrar Paciente</strong>, se abre un cuadro de diálogo amplio dividido en 4 pestañas para mantener una captura ordenada:</p>
+        
+        <ul className="list-disc pl-5 space-y-2 text-gray-700">
+          <li><strong>1. Generales:</strong> Nombre completo, fecha de nacimiento, género y teléfono internacional con selector donde 🇲🇽 México aparece como predeterminado seguido de 🇺🇸 EE.UU.</li>
+          <li><strong>2. Emergencia:</strong> Nombre del contacto de emergencia, parentesco y teléfono directo.</li>
+          <li><strong>3. Facturación:</strong> RFC, Razón Social, Código Postal y Régimen Fiscal para emisión de facturas CFDI 4.0.</li>
+          <li><strong>4. Notas:</strong> Antecedentes iniciales o motivo de consulta de apertura.</li>
+        </ul>
+      </div>
+    )
+  },
   {
     id: 'agenda-config',
     category: 'agenda',
@@ -71,29 +146,23 @@ const ARTICLES: Article[] = [
   {
     id: 'notas-templates',
     category: 'notas',
-    title: 'Uso de Plantillas Dinámicas',
+    title: 'Uso de Plantillas Dinámicas y Dictado IA',
     content: (
       <div className="space-y-6">
-        <p>Nuestro sistema de notas clínicas está diseñado para adaptarse a tu enfoque terapéutico, no al revés.</p>
+        <p>Nuestro sistema de notas clínicas está diseñado para adaptarse a tu enfoque terapéutico, cumpliendo con la norma <strong>NOM-024-SSA3-2012</strong>.</p>
         
-        <h3 className="text-xl font-bold text-black pt-4">Plantillas del Sistema</h3>
-        <p>Saudade incluye 8 plantillas precargadas basadas en los enfoques más utilizados:</p>
-        <div className="grid grid-cols-2 gap-4 my-4">
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm font-medium">TCC (Cognitivo-Conductual)</div>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm font-medium">ACT (Aceptación y Compromiso)</div>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm font-medium">DBT (Dialéctica)</div>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm font-medium">Humanista / Sistémica</div>
-        </div>
+        <h3 className="text-xl font-bold text-black pt-4">Plantillas del Sistema y Dictado por Voz</h3>
+        <p>Saudade incluye plantillas basadas en los enfoques más utilizados (SOAP, TCC, ACT, DBT, Humanista/Sistémica) y permite utilizar dictado por voz inteligente para redactar en segundos.</p>
 
         <h3 className="text-xl font-bold text-black pt-4">Personalización Total</h3>
-        <p>Puedes crear tus propias plantillas en <strong>Configuración {'>'} Plantillas de Notas</strong>. Elige qué secciones quieres ver (Estado de Ánimo, Plan de Acción, etc.) y personaliza sus nombres para que hablen tu lenguaje.</p>
+        <p>Puedes crear tus propias plantillas en <strong>Configuración {'>'} Plantillas de Notas</strong>. Elige qué secciones quieres ver (Estado de Ánimo, Plan de Acción, etc.) y personaliza sus nombres.</p>
       </div>
     )
   },
   {
     id: 'finanzas-stripe',
     category: 'finanzas',
-    title: 'Integración con Stripe Connect',
+    title: 'Integración con Stripe Connect y Honorarios Netos',
     content: (
       <div className="space-y-6">
         <p>Saudade se integra directamente con Stripe para facilitar el cobro de tus sesiones de forma profesional y segura.</p>
@@ -101,12 +170,8 @@ const ARTICLES: Article[] = [
         <h3 className="text-xl font-bold text-black pt-4">Cómo conectar tu cuenta</h3>
         <p>Dirígete a <strong>Configuración {'>'} Integraciones</strong> y haz clic en "Conectar con Stripe". Sigue los pasos para vincular tu cuenta bancaria y empezar a recibir pagos internacionales o locales.</p>
         
-        <h3 className="text-xl font-bold text-black pt-4">Beneficios</h3>
-        <ul className="list-disc pl-5 space-y-2 text-gray-700">
-          <li>Cobro automático al reservar (opcional).</li>
-          <li>Gestión de reembolsos desde Saudade.</li>
-          <li>Seguridad de nivel bancario para tus pacientes.</li>
-        </ul>
+        <h3 className="text-xl font-bold text-black pt-4">Cálculo de Honorarios Netos</h3>
+        <p>El resumen financiero calcula automáticamente el ingreso bruto, descuenta las comisiones pactadas y muestra tu ingreso neto real generado.</p>
       </div>
     )
   },
