@@ -401,8 +401,15 @@ serve(async (req) => {
     
     const defaultSettings = { psychologist: ['email'], patient: ['email'] }
     const notificationSettings: any = profileData?.notification_settings || defaultSettings
-    const psychChannels = Array.isArray(notificationSettings.psychologist) ? notificationSettings.psychologist : defaultSettings.psychologist
-    const patientChannels = Array.isArray(notificationSettings.patient) ? notificationSettings.patient : defaultSettings.patient
+    const psychChannels = Array.isArray(notificationSettings.psychologist) ? notificationSettings.psychologist : [];
+    if (notificationSettings.psicologo_email) psychChannels.push('email');
+    if (notificationSettings.psicologo_whatsapp) psychChannels.push('whatsapp');
+    if (psychChannels.length === 0) psychChannels.push(...defaultSettings.psychologist);
+
+    const patientChannels = Array.isArray(notificationSettings.patient) ? notificationSettings.patient : [];
+    if (notificationSettings.paciente_email) patientChannels.push('email');
+    if (notificationSettings.paciente_whatsapp) patientChannels.push('whatsapp');
+    if (patientChannels.length === 0) patientChannels.push(...defaultSettings.patient);
 
     if (!patientName || !startTime) throw new Error('Faltan datos de la cita')
 
