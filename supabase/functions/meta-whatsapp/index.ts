@@ -615,13 +615,28 @@ serve(async (req) => {
 
               // 1. Intentar enviar con formato de Plantilla (Meta Template)
               try {
+                const typeLabel = (apt.type || 'Consulta') + (apt.modality === 'presencial' ? ' Presencial' : ' Online');
+                const timeWithTz = `${timeStr} ${tzLabel}`;
+                
                 const templatePayload = {
                   messaging_product: "whatsapp",
                   to: cleanPhoneTo,
                   type: "template",
                   template: {
-                    name: "reminder",
-                    language: { code: "es_MX" }
+                    name: "confirmacion_cita",
+                    language: { code: "es_MX" },
+                    components: [
+                      {
+                        type: "body",
+                        parameters: [
+                          { type: "text", text: nameOnly || "Paciente" },
+                          { type: "text", text: profFullName ? (profPrefix + profFullName).trim() : "tu especialista" },
+                          { type: "text", text: typeLabel },
+                          { type: "text", text: dateStr },
+                          { type: "text", text: timeWithTz }
+                        ]
+                      }
+                    ]
                   }
                 };
 
@@ -675,7 +690,7 @@ serve(async (req) => {
             direction: "outbound",
             phone: cleanPhoneTo,
             body: body,
-            template_id: "reminder",
+            template_id: "confirmacion_cita",
             status: isMockMode ? "sent" : "delivered",
             twilio_sid: metaMsgId,
             created_at: new Date().toISOString()
