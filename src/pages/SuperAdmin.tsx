@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Users, Building2, Calendar, CreditCard, ExternalLink, ShieldCheck, Search, Activity } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
-import Header from '@/components/Header';
+import Layout from '@/components/Layout';
 import { Input } from '@/components/ui/input';
 
 interface OrgMetric {
@@ -85,12 +84,8 @@ export default function SuperAdmin() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Sidebar />
-      <div className="flex-1 flex flex-col md:pl-64">
-        <Header />
-        
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+    <Layout>
+      <div className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -271,8 +266,7 @@ export default function SuperAdmin() {
               </Card>
             </>
           )}
-        </main>
       </div>
-    </div>
+    </Layout>
   );
 }
