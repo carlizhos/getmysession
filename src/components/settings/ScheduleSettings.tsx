@@ -275,93 +275,106 @@ export default function ScheduleSettings() {
                 
                 return (
                   <div key={d.value} className={cn(
-                    "flex flex-wrap items-center gap-4 p-3 rounded-lg border transition-all relative",
+                    "flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border transition-all relative",
                     config.activo 
-                      ? (isInvalid ? "bg-red-50 border-red-500" : "bg-primary/5 border-primary/20") 
+                      ? (isInvalid ? "bg-red-50/50 border-red-500/50" : "bg-primary/5 border-primary/20 shadow-sm") 
                       : "bg-muted/10 border-transparent opacity-60"
                   )}>
-                    <div className="w-20 shrink-0">
-                      <p className={cn(
-                        "font-medium text-sm",
-                        isInvalid && "text-red-700"
-                      )}>{d.label}</p>
-                    </div>
-
-                    <div className="flex items-center shrink-0">
+                    {/* Sección 1: Día y Toggle */}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="w-24 shrink-0">
+                        <p className={cn(
+                          "font-semibold text-sm",
+                          isInvalid && "text-red-700"
+                        )}>{d.label}</p>
+                      </div>
                       <Switch
                         checked={config.activo}
                         onCheckedChange={() => toggleDia(d.value)}
+                        className="data-[state=checked]:bg-primary"
                       />
+                      {!config.activo && (
+                        <span className="text-xs text-muted-foreground italic ml-2 md:hidden">
+                          Día no laborable
+                        </span>
+                      )}
                     </div>
 
+                    {/* Sección 2: Controles de Tiempo y Configuración */}
                     {config.activo ? (
-                      <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">Desde</span>
+                      <div className="flex flex-wrap items-center gap-4 flex-1 justify-end min-w-[320px]">
+                        {/* Horario Desde/Hasta */}
+                        <div className="flex items-center gap-2 bg-background/50 p-1.5 rounded-lg border shadow-sm shrink-0">
+                          <span className="text-xs font-medium text-muted-foreground px-1">Desde</span>
                           <Input
                             type="time"
                             value={config.inicio}
                             onChange={(e) => updateDiaHorario(d.value, 'inicio', e.target.value)}
-                            className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
+                            className="h-8 py-1 px-2 border-none bg-transparent shadow-none focus-visible:ring-1 w-auto min-w-[105px]"
                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                           />
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">Hasta</span>
+                          <span className="text-xs font-medium text-muted-foreground border-l border-border/60 pl-3">Hasta</span>
                           <Input
                             type="time"
                             value={config.fin}
                             onChange={(e) => updateDiaHorario(d.value, 'fin', e.target.value)}
-                            className="h-9 py-1 px-2 border-none bg-background shadow-none focus-visible:ring-1"
+                            className="h-8 py-1 px-2 border-none bg-transparent shadow-none focus-visible:ring-1 w-auto min-w-[105px]"
                             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
                           />
                         </div>
-                        <div className="flex items-center gap-2 shrink-0 border-l border-border/40 pl-3 ml-1" title="Máximo de sesiones por día">
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">Máx. sesiones</span>
-                          <div className="flex items-center gap-1 bg-muted/20 rounded-lg p-0.5 border border-border/40">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-primary rounded-md"
-                              onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) - 1))}
-                              disabled={(config.max_sesiones || 0) <= 0}
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </Button>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={30}
-                              value={config.max_sesiones ?? ''}
-                              onChange={(e) => updateMaxSesiones(d.value, e.target.value)}
-                              placeholder="∞"
-                              className="h-7 w-10 p-0 text-center border-none bg-transparent shadow-none focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm font-medium"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-primary rounded-md"
-                              onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) + 1))}
-                              disabled={(config.max_sesiones || 0) >= 30}
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </Button>
+
+                        {/* Máx Sesiones & Copiar */}
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="flex items-center gap-3 bg-background/50 p-1.5 px-3 rounded-lg border shadow-sm" title="Máximo de sesiones por día">
+                            <span className="text-xs font-medium text-muted-foreground">Máx. sesiones</span>
+                            <div className="flex items-center gap-1 bg-muted/30 rounded-md border p-0.5">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-background rounded-sm"
+                                onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) - 1))}
+                                disabled={(config.max_sesiones || 0) <= 0}
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={30}
+                                value={config.max_sesiones ?? ''}
+                                onChange={(e) => updateMaxSesiones(d.value, e.target.value)}
+                                placeholder="∞"
+                                className="h-6 w-8 p-0 text-center border-none bg-transparent shadow-none focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm font-semibold"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-background rounded-sm"
+                                onClick={() => updateMaxSesiones(d.value, String((config.max_sesiones || 0) + 1))}
+                                disabled={(config.max_sesiones || 0) >= 30}
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary hover:border-primary/50 shadow-sm transition-colors"
+                            title="Copiar este horario a todos los días activos"
+                            onClick={() => copiarHorarioATodos(d.value)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          title="Copiar este horario a todos los días activos"
-                          onClick={() => copiarHorarioATodos(d.value)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
                       </div>
                     ) : (
-                      <div className="flex-1 text-xs text-muted-foreground italic">
-                        Cerrado
+                      <div className="hidden md:flex flex-1 justify-end text-sm text-muted-foreground/60 italic pr-4">
+                        Día no laborable
                       </div>
                     )}
                   </div>
