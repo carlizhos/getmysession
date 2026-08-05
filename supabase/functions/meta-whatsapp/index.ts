@@ -425,7 +425,8 @@ serve(async (req) => {
             // Try template payload first if template_id is specified
             if (template_id) {
               const metaTemplateName = (template_id === 'test' || template_id === 'hello_world') ? 'hello_world' : (template_id.includes('reminder') ? 'reminder' : template_id);
-              const langCode = metaTemplateName === 'hello_world' ? 'en_US' : 'es_MX';
+              // user created the templates in Meta using English (US)
+              const langCode = 'en_US';
 
               const templatePayload: any = {
                 messaging_product: "whatsapp",
@@ -460,6 +461,8 @@ serve(async (req) => {
 
               responseData = await tplResponse.json();
             }
+
+            let templateError = responseData?.error ? `Template Error: ${responseData.error.message}` : null;
 
             // Fallback to text payload if template wasn't used or failed
             if (!responseData || responseData.error) {
@@ -511,8 +514,9 @@ serve(async (req) => {
           direction: "outbound",
           phone: cleanPhoneTo,
           body: body || `[Template: ${template_id}]`,
-          status: "sent",
+          status: isMockMode ? "sent" : (metaMsgId.startsWith("MOCK") ? "failed" : "sent"),
           twilio_sid: metaMsgId,
+          error_message: templateError,
           created_at: new Date().toISOString()
         });
 
@@ -624,7 +628,7 @@ serve(async (req) => {
                   type: "template",
                   template: {
                     name: "confirmacion_cita",
-                    language: { code: "es_MX" },
+                    language: { code: "en_US" },
                     components: [
                       {
                         type: "body",
@@ -649,9 +653,16 @@ serve(async (req) => {
                   body: JSON.stringify(templatePayload)
                 });
                 responseData = await tplResponse.json();
-              } catch (_) {}
+                if (responseData?.error) {
+                  console.error("TEMPLATE ERROR (action: send):", JSON.stringify(responseData.error));
+                }
+              } catch (err: any) {
+                console.error("TEMPLATE FETCH ERROR:", err.message);
+              }
 
               // 2. Si no hay respuesta de plantilla o retornó error, respaldo a texto libre
+              let templateError = responseData?.error ? `Template Error: ${responseData.error.message}` : null;
+
               if (!responseData || responseData.error) {
                 const textPayload = {
                   messaging_product: "whatsapp",
