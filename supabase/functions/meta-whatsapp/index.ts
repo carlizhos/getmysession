@@ -525,6 +525,10 @@ serve(async (req) => {
 
       // --- ACCIÓN 3.2: Enviar Recordatorios en Lote ---
       if (action === 'send-batch-reminders') {
+        // const authHeader = req.headers.get('Authorization')
+        // if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {
+        //  return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+        // }  
         const now = new Date();
         const futureLimit = new Date(now.getTime() + 72 * 60 * 60 * 1000); // Hasta 72 horas adelante
 

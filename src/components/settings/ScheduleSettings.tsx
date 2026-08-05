@@ -275,19 +275,19 @@ export default function ScheduleSettings() {
                 
                 return (
                   <div key={d.value} className={cn(
-                    "flex flex-col sm:flex-row sm:items-center gap-4 p-3 rounded-lg border transition-all relative",
+                    "flex flex-wrap items-center gap-4 p-3 rounded-lg border transition-all relative",
                     config.activo 
                       ? (isInvalid ? "bg-red-50 border-red-500" : "bg-primary/5 border-primary/20") 
                       : "bg-muted/10 border-transparent opacity-60"
                   )}>
-                    <div className="w-24 shrink-0">
+                    <div className="w-20 shrink-0">
                       <p className={cn(
                         "font-medium text-sm",
                         isInvalid && "text-red-700"
-                      )}>{d.label.length > 3 ? d.label : d.label + " (V)"}</p>
+                      )}>{d.label}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center shrink-0">
                       <Switch
                         checked={config.activo}
                         onCheckedChange={() => toggleDia(d.value)}
@@ -295,8 +295,8 @@ export default function ScheduleSettings() {
                     </div>
 
                     {config.activo ? (
-                      <>
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground whitespace-nowrap">Desde</span>
                           <Input
                             type="time"
@@ -358,7 +358,7 @@ export default function ScheduleSettings() {
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                      </>
+                      </div>
                     ) : (
                       <div className="flex-1 text-xs text-muted-foreground italic">
                         Cerrado
