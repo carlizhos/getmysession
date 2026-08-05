@@ -46,6 +46,7 @@ const TestsLibrary = lazyWithRetry(() => import("./pages/TestsLibrary"));
 const PatientTestView = lazyWithRetry(() => import("./pages/PatientTestView"));
 const Pipeline = lazyWithRetry(() => import("./pages/Pipeline"));
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Reviews = lazyWithRetry(() => import("./pages/Reviews"));
 const Consents = lazyWithRetry(() => import("./pages/Consents"));
 const TelehealthSession = lazyWithRetry(() => import("./pages/TelehealthSession"));
 const JoinSession = lazyWithRetry(() => import("./pages/JoinSession"));
@@ -62,6 +63,7 @@ const HelpCenter = lazyWithRetry(() => import("./pages/HelpCenter"));
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 const SubscriptionSuccess = lazyWithRetry(() => import("./pages/SubscriptionSuccess"));
 const Notifications = lazyWithRetry(() => import("./pages/Notifications"));
+const LeaveReview = lazyWithRetry(() => import("./pages/LeaveReview"));
 
 
 import { RefreshCw } from "lucide-react";
@@ -347,6 +349,14 @@ const AppContent = () => {
               }
             />
             <Route
+              path="/dashboard/reviews"
+              element={
+                <ProtectedRoute>
+                  <Reviews />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/notifications"
               element={
                 <ProtectedRoute>
@@ -406,6 +416,9 @@ const AppContent = () => {
             {/* Public Info Routes */}
             <Route path="/politicas" element={<PrivacyPolicy />} />
             <Route path="/terminos" element={<TermsOfService />} />
+            
+            {/* Reviews */}
+            <Route path="/reviews/leave" element={<LeaveReview />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="/auth/microsoft/callback" element={<AuthCallback />} />

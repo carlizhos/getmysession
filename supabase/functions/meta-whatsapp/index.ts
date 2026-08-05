@@ -409,7 +409,7 @@ serve(async (req) => {
       const { action } = jsonBody;
 
       if (action === 'send') {
-        const { phone, body, organization_id, patient_id, template_id } = jsonBody;
+        const { phone, body, organization_id, patient_id, template_id, template_variables } = jsonBody;
 
         if (!phone || (!body && !template_id) || !organization_id) {
           return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: corsHeaders });
@@ -427,7 +427,7 @@ serve(async (req) => {
               const metaTemplateName = (template_id === 'test' || template_id === 'hello_world') ? 'hello_world' : (template_id.includes('reminder') ? 'reminder' : template_id);
               const langCode = metaTemplateName === 'hello_world' ? 'en_US' : 'es_MX';
 
-              const templatePayload = {
+              const templatePayload: any = {
                 messaging_product: "whatsapp",
                 to: cleanPhoneTo,
                 type: "template",
@@ -436,6 +436,18 @@ serve(async (req) => {
                   language: { code: langCode }
                 }
               };
+
+              if (template_variables && Array.isArray(template_variables) && template_variables.length > 0) {
+                templatePayload.template.components = [
+                  {
+                    type: "body",
+                    parameters: template_variables.map((v: string) => ({
+                      type: "text",
+                      text: v || ""
+                    }))
+                  }
+                ];
+              }
 
               const tplResponse = await fetch(`https://graph.facebook.com/v25.0/${metaPhoneNumberId}/messages`, {
                 method: "POST",

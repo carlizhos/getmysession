@@ -21,6 +21,8 @@ import {
     Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ReviewList, Review } from '@/components/reviews/ReviewList';
+import { StarRating } from '@/components/reviews/StarRating';
 
 interface SpecialistProfile {
     id: string;
@@ -40,6 +42,7 @@ interface SpecialistProfile {
         linkedin?: string;
         facebook?: string;
     } | null;
+    current_organization_id: string | null;
 }
 
 const PublicProfile = () => {
@@ -48,6 +51,7 @@ const PublicProfile = () => {
 
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<SpecialistProfile | null>(null);
+    const [reviews, setReviews] = useState<Review[]>([]);
     const [notFound, setNotFound] = useState(false);
 
     useEffect(() => {
@@ -66,6 +70,23 @@ const PublicProfile = () => {
                     setNotFound(true);
                 } else {
                     setProfile(data);
+                    
+                    // Fetch reviews if we have an organization
+                    if (data.current_organization_id) {
+                        const { data: reviewsData } = await supabase
+                            .from('reviews')
+                            .select(`
+                                id, rating, comment, reply_text, replied_at, created_at, is_anonymous,
+                                patients ( first_name, last_name )
+                            `)
+                            .eq('organization_id', data.current_organization_id)
+                            .eq('status', 'published')
+                            .order('created_at', { ascending: false });
+                            
+                        if (reviewsData) {
+                            setReviews(reviewsData as any[]);
+                        }
+                    }
                 }
             } catch (err) {
                 setNotFound(true);
@@ -108,8 +129,32 @@ const PublicProfile = () => {
 
     const displayName = `${profile.prefix && profile.prefix !== 'none' ? profile.prefix + ' ' : ''}${profile.full_name}`;
 
+    const averageRating = reviews.length > 0 
+        ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+        : 0;
+
+    // JSON-LD Schema for SEO
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Physician",
+      "name": displayName,
+      "image": profile.avatar_url || "",
+      "url": window.location.href,
+      "telephone": profile.telefono_profesional || "",
+      ...(reviews.length > 0 && {
+          "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": averageRating.toFixed(1),
+              "reviewCount": reviews.length,
+              "bestRating": "5",
+              "worstRating": "1"
+          }
+      })
+    };
+
     return (
         <div className="min-h-screen bg-[#FDFCFB] selection:bg-primary/10">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             {/* Header / Banner Area */}
             <div className="relative h-48 md:h-64 bg-gradient-to-br from-[#E8F3F1] via-[#F3F8F7] to-[#FDFCFB]">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-60" />
@@ -136,6 +181,13 @@ const PublicProfile = () => {
                                     <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-3 py-1">
                                         Psicólogo Especialista
                                     </Badge>
+                                    
+                                    {reviews.length > 0 && (
+                                        <div className="flex justify-center mt-2">
+                                            <StarRating rating={averageRating} showNumber={true} />
+                                            <span className="text-xs text-slate-500 ml-2">({reviews.length})</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="w-full space-y-4 pt-4">
@@ -279,6 +331,15 @@ const PublicProfile = () => {
                                         </div>
                                     </section>
                                 )}
+
+                                {/* Reviews Section */}
+                                <section className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-1 w-8 bg-primary/20 rounded-full" />
+                                        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Reseñas de Pacientes</h2>
+                                    </div>
+                                    <ReviewList reviews={reviews} therapistName={profile.full_name} />
+                                </section>
                             </div>
                         </div>
                     </CardContent>

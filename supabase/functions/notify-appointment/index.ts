@@ -427,16 +427,18 @@ serve(async (req) => {
 
     let patEmail = patientEmail;
     let patName = patientName;
+    let patPhone = '';
 
     if (patientId) {
       const { data: patientData } = await supabase
         .from('patients')
-        .select('name, email')
+        .select('name, email, phone')
         .eq('id', patientId)
         .single()
       if (patientData) {
         patEmail = patientData.email || patEmail;
         patName = patientData.name || patName;
+        patPhone = patientData.phone || '';
       }
     }
 
@@ -447,6 +449,8 @@ serve(async (req) => {
       psychEmailError: null,
       patientEmailSuccess: false,
       patientEmailError: null,
+      patientWhatsappSuccess: false,
+      patientWhatsappError: null,
     }
 
     if (psychChannels.includes('email')) {
@@ -510,6 +514,63 @@ serve(async (req) => {
       }
     } else {
       console.log(`[notify-appointment] Patient email skipped (channels: ${JSON.stringify(patientChannels)}, patEmail: ${patEmail || 'N/A'})`);
+    }
+
+    if (patientChannels.includes('whatsapp') && patPhone && profileData?.current_organization_id) {
+      console.log(`[notify-appointment] Sending patient WhatsApp to: ${patPhone}`);
+      const siteUrl = Deno.env.get('SUPABASE_URL');
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (siteUrl && serviceKey) {
+        // Variables matched to Meta template:
+        // {{1}} = Patient Name
+        // {{2}} = Therapist/Clinic Name
+        // {{3}} = Session Type
+        // {{4}} = Date
+        // {{5}} = Time
+        const shortName = patName ? patName.split(' ')[0] : 'Paciente';
+        const variables = [
+          shortName, 
+          psychName, 
+          typeLabel, 
+          patientDateStr, 
+          `${patientStartStr} ${patientTzLabel}`
+        ];
+        
+        try {
+          const waRes = await fetch(`${siteUrl}/functions/v1/meta-whatsapp`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${serviceKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              action: 'send',
+              phone: patPhone,
+              organization_id: profileData.current_organization_id,
+              patient_id: patientId,
+              template_id: 'confirmacion_cita',
+              template_variables: variables
+            })
+          });
+          
+          const waData = await waRes.json();
+          if (waRes.ok && waData.success) {
+            results.patientWhatsappSuccess = true;
+            console.log(`[notify-appointment] ✅ Patient WhatsApp sent successfully to ${patPhone}`);
+          } else {
+            results.patientWhatsappError = waData.error || 'WhatsApp trigger failed';
+            console.error(`[notify-appointment] ❌ Patient WhatsApp FAILED:`, results.patientWhatsappError);
+          }
+        } catch (err: any) {
+           results.patientWhatsappError = err.message;
+           console.error(`[notify-appointment] ❌ Patient WhatsApp FAILED:`, err.message);
+        }
+      } else {
+        console.warn(`[notify-appointment] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY to call meta-whatsapp`);
+      }
+    } else {
+      console.log(`[notify-appointment] Patient WhatsApp skipped (channels: ${JSON.stringify(patientChannels)}, patPhone: ${patPhone || 'N/A'})`);
     }
 
     return new Response(
