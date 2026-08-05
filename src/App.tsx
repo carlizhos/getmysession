@@ -47,6 +47,7 @@ const PatientTestView = lazyWithRetry(() => import("./pages/PatientTestView"));
 const Pipeline = lazyWithRetry(() => import("./pages/Pipeline"));
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
 const Reviews = lazyWithRetry(() => import("./pages/Reviews"));
+const SuperAdmin = lazyWithRetry(() => import("./pages/SuperAdmin"));
 const Consents = lazyWithRetry(() => import("./pages/Consents"));
 const TelehealthSession = lazyWithRetry(() => import("./pages/TelehealthSession"));
 const JoinSession = lazyWithRetry(() => import("./pages/JoinSession"));
@@ -353,6 +354,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Reviews />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/superadmin"
+              element={
+                <ProtectedRoute>
+                  <SuperAdmin />
                 </ProtectedRoute>
               }
             />
