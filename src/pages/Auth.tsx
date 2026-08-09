@@ -339,8 +339,8 @@ const Auth = () => {
                 <div className="w-full max-w-md space-y-8">
                     {/* Logo and Title */}
                     <div className="flex flex-col items-center text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
-                            <Brain className="h-8 w-8 text-primary-foreground" />
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm mb-4 overflow-hidden border border-border/50">
+                            <img src="/icono.jpg" alt="GetMySession Logo" className="h-full w-full object-cover" />
                         </div>
                         <h1 className="text-2xl font-bold">GetMySession</h1>
                         <div className="relative h-6 mt-2 w-full flex justify-center overflow-hidden">
