@@ -634,7 +634,7 @@ const NewAppointmentDialog = ({
 
             let finalMeetingLink = formData.meetingLink;
 
-            if (formData.meetingPlatform === 'saudade' && !finalMeetingLink) {
+            if (formData.meetingPlatform === 'getmysession' && !finalMeetingLink) {
                 finalMeetingLink = `${window.location.origin}/join/${appointmentId}`;
             }
 
@@ -673,7 +673,7 @@ const NewAppointmentDialog = ({
                             userId: sessionUser?.id,
                             createMeet: true,
                             event: {
-                                summary: `Cita Saudade: ${formData.patientName}`,
+                                summary: `Cita GetMySession: ${formData.patientName}`,
                                 description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                                 start: { dateTime: startDateTime.toISOString() },
                                 end: { dateTime: endDateTime.toISOString() },
@@ -701,7 +701,7 @@ const NewAppointmentDialog = ({
                                     userId: sessionUser?.id,
                                     createMeet: true,
                                     event: {
-                                        summary: `Cita Saudade: ${formData.patientName}`,
+                                        summary: `Cita GetMySession: ${formData.patientName}`,
                                         description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                                         start: { dateTime: startDateTime.toISOString() },
                                         end: { dateTime: endDateTime.toISOString() },
@@ -734,7 +734,7 @@ const NewAppointmentDialog = ({
                             userId: sessionUser?.id,
                             createTeams: true,
                             event: {
-                                summary: `Cita Saudade: ${formData.patientName}`,
+                                summary: `Cita GetMySession: ${formData.patientName}`,
                                 description: `Tipo: ${formData.type}\nEdad: ${formData.patientAge}\nMotivo: ${formData.reasonForConsultation}\nNotas: ${formData.notes || 'Ninguna'}`,
                                 start: { dateTime: startDateTime.toISOString() },
                                 end: { dateTime: endDateTime.toISOString() },
@@ -758,7 +758,7 @@ const NewAppointmentDialog = ({
                     const { data, error: syncErr } = await supabase.functions.invoke('zoom-meeting-create', {
                         body: {
                             userId: sessionUser?.id,
-                            topic: `Cita Saudade: ${formData.patientName}`,
+                            topic: `Cita GetMySession: ${formData.patientName}`,
                             startTime: startDateTime.toISOString(),
                             duration: duration
                         }
@@ -773,7 +773,7 @@ const NewAppointmentDialog = ({
                             const { data: retryData, error: retryErr } = await supabase.functions.invoke('zoom-meeting-create', {
                                 body: {
                                     userId: sessionUser?.id,
-                                    topic: `Cita Saudade: ${formData.patientName}`,
+                                    topic: `Cita GetMySession: ${formData.patientName}`,
                                     startTime: startDateTime.toISOString(),
                                     duration: duration
                                 }
@@ -862,7 +862,7 @@ const NewAppointmentDialog = ({
                         const currentEnd = new Date(endDateTime.getTime() + i * 7 * 24 * 60 * 60 * 1000);
                         const sessionAptId = crypto.randomUUID();
                         let sessionMeetingLink = finalMeetingLink;
-                        if (payload.meeting_platform === 'saudade') {
+                        if (payload.meeting_platform === 'getmysession') {
                             sessionMeetingLink = `${window.location.origin}/join/${sessionAptId}`;
                         }
 
@@ -1312,7 +1312,7 @@ const NewAppointmentDialog = ({
                                     if (isReadOnly) return;
                                     const updates: any = { modality: value };
                                     if (value === 'online' && !formData.meetingPlatform) {
-                                        updates.meetingPlatform = 'saudade';
+                                        updates.meetingPlatform = 'getmysession';
                                     }
                                     setFormData({ ...formData, ...updates });
                                 }}
@@ -1422,7 +1422,7 @@ const NewAppointmentDialog = ({
                                             <SelectValue placeholder="Selecciona la plataforma" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="saudade">Videollamada Saudade (Consultorio Virtual)</SelectItem>
+                                            <SelectItem value="getmysession">Videollamada GetMySession (Consultorio Virtual)</SelectItem>
                                             <SelectItem value="meet">Google Meet</SelectItem>
                                             <SelectItem value="zoom">Zoom</SelectItem>
                                             <SelectItem value="teams">Microsoft Teams</SelectItem>

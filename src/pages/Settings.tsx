@@ -42,7 +42,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'integraciones', label: 'Integraciones', icon: Plug },
   { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { id: 'seguridad', label: 'Seguridad y Notificaciones', icon: ShieldCheck },
-  { id: 'referidos', label: 'Recomendar Saudade', icon: Share2 },
+  { id: 'referidos', label: 'Recomendar GetMySession', icon: Share2 },
 ];
 
 const TAB_GROUPS = [

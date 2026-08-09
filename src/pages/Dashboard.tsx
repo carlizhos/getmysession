@@ -97,7 +97,7 @@ const Dashboard = () => {
 
   // Editable monthly session goal
   const [sessionGoal, setSessionGoal] = useState<number>(() => {
-    const saved = localStorage.getItem('saudade_session_goal');
+    const saved = localStorage.getItem('getmysession_session_goal');
     return saved ? parseInt(saved, 10) : 40;
   });
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
@@ -110,7 +110,7 @@ const Dashboard = () => {
       return;
     }
     setSessionGoal(parsed);
-    localStorage.setItem('saudade_session_goal', parsed.toString());
+    localStorage.setItem('getmysession_session_goal', parsed.toString());
     toast.success(`Meta mensual actualizada a ${parsed} sesiones`);
     setIsGoalDialogOpen(false);
   };

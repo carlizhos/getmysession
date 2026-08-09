@@ -548,7 +548,7 @@ export default function IntegrationSettings() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Conecta tu cuenta de Zoom para que Saudade genere de forma automática enlaces únicos para tus sesiones de teleterapia.
+                    Conecta tu cuenta de Zoom para que GetMySession genere de forma automática enlaces únicos para tus sesiones de teleterapia.
                   </p>
                 </div>
                 <div className="pt-6 mt-4 border-t border-border/50 flex justify-end gap-2">
@@ -655,7 +655,7 @@ export default function IntegrationSettings() {
               ¿Desconectar Google Calendar?
             </DialogTitle>
             <DialogDescription>
-              Se eliminará la sincronización bidireccional de eventos y Saudade dejará de crear reuniones en Meet.
+              Se eliminará la sincronización bidireccional de eventos y GetMySession dejará de crear reuniones en Meet.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

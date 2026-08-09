@@ -115,7 +115,7 @@ export default function Portal() {
   const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
 
   useEffect(() => {
-    const savedSession = localStorage.getItem('saudade_patient_session');
+    const savedSession = localStorage.getItem('getmysession_patient_session');
     if (!savedSession) {
       navigate('/portal/login');
       return;
@@ -131,7 +131,7 @@ export default function Portal() {
 
     // Check if token has expired
     if (parsedSession.expiresAt && new Date(parsedSession.expiresAt) < new Date()) {
-      localStorage.removeItem('saudade_patient_session');
+      localStorage.removeItem('getmysession_patient_session');
       toast.error('Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
       navigate('/portal/login');
       return;
@@ -251,7 +251,7 @@ export default function Portal() {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `Documento firmado digitalmente en Saudade Portal | Página ${i} de ${totalPages}`,
+            `Documento firmado digitalmente en GetMySession Portal | Página ${i} de ${totalPages}`,
             pageW / 2,
             doc.internal.pageSize.getHeight() - 8,
             { align: 'center' }
@@ -323,7 +323,7 @@ export default function Portal() {
       if (error) {
         // If token is invalid, redirect to login
         if (error.message.includes('invalid') || error.code === 'PGRST202') {
-          localStorage.removeItem('saudade_patient_session');
+          localStorage.removeItem('getmysession_patient_session');
           navigate('/portal/login');
           return;
         }
@@ -394,7 +394,7 @@ export default function Portal() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('saudade_patient_session');
+    localStorage.removeItem('getmysession_patient_session');
     navigate('/portal/login');
   };
 
@@ -414,7 +414,7 @@ export default function Portal() {
           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <span className="text-primary font-bold text-sm tracking-tighter">S.</span>
           </div>
-          <span className="font-bold tracking-tight text-lg">Saudade Portal</span>
+          <span className="font-bold tracking-tight text-lg">GetMySession Portal</span>
         </div>
 
         <div className="flex items-center gap-4">

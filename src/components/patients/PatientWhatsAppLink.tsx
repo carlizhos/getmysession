@@ -4,12 +4,12 @@ import { Patient } from '@/types';
 
 interface PatientWhatsAppLinkProps {
   patient: Patient;
-  saudadeMetaNumber?: string;
+  getmysessionMetaNumber?: string;
 }
 
 export const PatientWhatsAppLink: React.FC<PatientWhatsAppLinkProps> = ({ 
   patient, 
-  saudadeMetaNumber = import.meta.env.VITE_META_PHONE_NUMBER || '526642436756' 
+  getmysessionMetaNumber = import.meta.env.VITE_META_PHONE_NUMBER || '526642436756' 
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -17,8 +17,8 @@ export const PatientWhatsAppLink: React.FC<PatientWhatsAppLinkProps> = ({
   const displayCode = patient.link_code || 'Pendiente...';
   
   // Construir el mensaje y la URL
-  const message = `Hola, quiero habilitar mis notificaciones de Saudade. (Código: ${displayCode})`;
-  const whatsappUrl = `https://wa.me/${saudadeMetaNumber}?text=${encodeURIComponent(message)}`;
+  const message = `Hola, quiero habilitar mis notificaciones de GetMySession. (Código: ${displayCode})`;
+  const whatsappUrl = `https://wa.me/${getmysessionMetaNumber}?text=${encodeURIComponent(message)}`;
 
   const handleCopyLink = async () => {
     try {
@@ -70,7 +70,7 @@ export const PatientWhatsAppLink: React.FC<PatientWhatsAppLinkProps> = ({
       ) : (
         <div className="p-3 bg-success/10 rounded-xl border border-success/20">
           <p className="text-sm text-success font-medium">
-            El paciente ya recibe notificaciones y recordatorios de Saudade.
+            El paciente ya recibe notificaciones y recordatorios de GetMySession.
           </p>
         </div>
       )}

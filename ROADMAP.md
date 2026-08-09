@@ -116,12 +116,12 @@
 - ✅ **Gestor de Pruebas Psicométricas**:
   - ✅ Diálogo de asignación de pruebas con generación de URL segura
 - ✅ **Identidad y Configuración Premium**:
-  - ✅ Rebranding a Saudade (estética UI/UX glassmorphism)
+  - ✅ Rebranding a GetMySession (estética UI/UX glassmorphism)
   - ✅ Sistema de Avatar y subida de imágenes a Storage con soporte de iniciales
 
 ---
 
-## 📌 Fase 5: Saudade Premium (Inteligencia y Retención) 📅
+## 📌 Fase 5: GetMySession Premium (Inteligencia y Retención) 📅
 
 1. 📅 **Firma Digital de Consentimientos Integrada** — Conectar `SignaturePad` al Portal de Pacientes para firmas remotas previas a la primera cita.
 2. 📅 **Asistente de IA (Voz a Texto / Análisis)** — Subir audio o nota de voz al expediente y generar la nota clínica SOAP/CIE-10 automáticamente.
@@ -140,9 +140,9 @@
 - ✅ **Optimización de Hosting (Vercel)**:
   - ✅ Configuración de rewrites en `vercel.json` para soporte de SPA (soluciona error 404 en refresco y navegación directa).
 - ✅ **Experiencia de Usuario (Branding)**:
-  - ✅ Rediseño premium de la página 404 con identidad Saudade (ilustración 3D, gradientes y animaciones).
+  - ✅ Rediseño premium de la página 404 con identidad GetMySession (ilustración 3D, gradientes y animaciones).
 - ✅ **Autenticación de Siguiente Nivel**:
-  - ✅ **Google Authentication (Native/GSI)**: Implementación de popup nativo que muestra la marca "Saudade" en lugar del dominio de Supabase.
+  - ✅ **Google Authentication (Native/GSI)**: Implementación de popup nativo que muestra la marca "GetMySession" en lugar del dominio de Supabase.
   - ✅ **Google One Tap**: Activación de inicio de sesión con un solo clic.
   - ✅ **Fix de UX**: Resolución del bug de botón deshabilitado al navegar hacia atrás.
 - ✅ **Unificación Estética "Island Design"**:

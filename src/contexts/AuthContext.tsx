@@ -246,7 +246,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             // 2. Handle referral attribution
             try {
-                const refCode = localStorage.getItem('saudade_ref_code');
+                const refCode = localStorage.getItem('getmysession_ref_code');
                 if (refCode) {
                     // Look up the referrer by their referral_code
                     const { data: referrerProfile } = await supabase
@@ -289,12 +289,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     }
 
                     // Always clean up the ref code from storage
-                    localStorage.removeItem('saudade_ref_code');
+                    localStorage.removeItem('getmysession_ref_code');
                 }
             } catch (refErr) {
                 // Referral attribution is best-effort; don't block signup
                 console.warn('Referral attribution failed:', refErr);
-                localStorage.removeItem('saudade_ref_code');
+                localStorage.removeItem('getmysession_ref_code');
             }
         }
 

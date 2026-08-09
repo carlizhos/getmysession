@@ -357,7 +357,7 @@ const BookingPage = () => {
               slug: profile.slug,
               createMeet: true,
               event: {
-                summary: `Cita Saudade: ${patientInfo.name}`,
+                summary: `Cita GetMySession: ${patientInfo.name}`,
                 description: `Teléfono: ${patientInfo.phone}\nCorreo: ${patientInfo.email}\nEdad: ${patientInfo.age}\nMotivo: ${patientInfo.reason}\nAgendada desde el Portal Público.`,
                 start: { dateTime: startTime.toISOString() },
                 end: { dateTime: endTime.toISOString() },
@@ -371,9 +371,9 @@ const BookingPage = () => {
           console.error("Error sincronizando y creando Meet:", err);
         }
 
-        // Si no se generó enlace de Meet (por ejemplo, Google Calendar no conectado), usar Saudade integrado
+        // Si no se generó enlace de Meet (por ejemplo, Google Calendar no conectado), usar GetMySession integrado
         if (!finalMeetLink) {
-          finalPlatform = 'saudade';
+          finalPlatform = 'getmysession';
           finalMeetLink = `${window.location.origin}/join/${appointmentId}`;
         }
       } else {
@@ -382,7 +382,7 @@ const BookingPage = () => {
           body: {
             slug: profile.slug,
             event: {
-              summary: `Cita Saudade: ${patientInfo.name} (Presencial)`,
+              summary: `Cita GetMySession: ${patientInfo.name} (Presencial)`,
               description: `Teléfono: ${patientInfo.phone}\nCorreo: ${patientInfo.email}\nEdad: ${patientInfo.age}\nMotivo: ${patientInfo.reason}\nAgendada desde el Portal Público.`,
               start: { dateTime: startTime.toISOString() },
               end: { dateTime: endTime.toISOString() },
@@ -507,7 +507,7 @@ const BookingPage = () => {
           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <span className="text-primary font-bold text-sm tracking-tighter">S.</span>
           </div>
-          <span className="font-bold tracking-tight text-lg">Saudade</span>
+          <span className="font-bold tracking-tight text-lg">GetMySession</span>
         </div>
       </header>
 
@@ -931,7 +931,7 @@ const BookingPage = () => {
                   variant="ghost" 
                   size="sm" 
                   className="absolute top-0 right-0 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white hover:shadow-medium transition-all duration-300 px-6 scale-100 hover:scale-105 active:scale-95"
-                  onClick={() => window.location.href = 'https://saudade.mx'}
+                  onClick={() => window.location.href = 'https://getmysession.mx'}
                 >
                   Salir
                 </Button>

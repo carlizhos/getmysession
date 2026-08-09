@@ -164,7 +164,7 @@ const NotFound = () => {
         >
           <Compass className="w-4 h-4 text-muted-foreground/50" />
           <span className="text-sm text-muted-foreground/50 tracking-wide font-medium">
-            saudade
+            getmysession
           </span>
         </div>
       </div>

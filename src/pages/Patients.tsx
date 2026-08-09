@@ -887,7 +887,7 @@ const Patients = () => {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `pacientes_saudade_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.setAttribute('download', `pacientes_getmysession_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -2071,7 +2071,7 @@ const Patients = () => {
                                         description: 'Invitar a retomar su espacio',
                                         icon: <Activity className="h-5 w-5" />,
                                         color: 'secondary',
-                                        message: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: https://app.saudade.mx/reservar/${organization?.slug || 'psicologo'}. ¡Será un gusto volver a coincidir!`,
+                                        message: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: https://app.getmysession.mx/reservar/${organization?.slug || 'psicologo'}. ¡Será un gusto volver a coincidir!`,
                                         disabled: false,
                                       },
                                       {

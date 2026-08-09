@@ -40,7 +40,7 @@ export default function PortalLogin() {
       const session = data[0];
 
       // Save secure session with access_token (no raw email/phone in subsequent calls)
-      localStorage.setItem('saudade_patient_session', JSON.stringify({
+      localStorage.setItem('getmysession_patient_session', JSON.stringify({
         isLoggedIn: true,
         accessToken: session.access_token,
         email: session.patient_email,

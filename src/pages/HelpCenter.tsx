@@ -53,7 +53,7 @@ const ARTICLES: Article[] = [
     title: 'Plantillas de Meta WhatsApp y Estado de Entrega',
     content: (
       <div className="space-y-6">
-        <p>Saudade se conecta directamente con la API Cloud de Meta WhatsApp para enviar confirmaciones y recordatorios automáticos de citas a tus pacientes.</p>
+        <p>GetMySession se conecta directamente con la API Cloud de Meta WhatsApp para enviar confirmaciones y recordatorios automáticos de citas a tus pacientes.</p>
         
         <h3 className="text-xl font-bold text-black pt-4">Ventana de 24 Horas de Meta</h3>
         <p>Meta exige que para enviar mensajes a un usuario después de transcurridas 24 horas desde su último mensaje, se utilice una <strong>Plantilla Oficial (Template)</strong> registrada en Meta Business Manager.</p>
@@ -99,8 +99,8 @@ const ARTICLES: Article[] = [
     title: 'Recordar Correo Electrónico en el Inicio de Sesión',
     content: (
       <div className="space-y-6">
-        <p>En la pantalla de Login (<code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">app.saudade.mx/login</code>) puedes marcar la casilla <strong>"Recordar mi correo electrónico"</strong>.</p>
-        <p>Al activarla, Saudade guardará de forma segura tu correo en tu navegador local para que en tus siguientes visitas no tengas que volver a escribirlo.</p>
+        <p>En la pantalla de Login (<code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">app.getmysession.mx/login</code>) puedes marcar la casilla <strong>"Recordar mi correo electrónico"</strong>.</p>
+        <p>Al activarla, GetMySession guardará de forma segura tu correo en tu navegador local para que en tus siguientes visitas no tengas que volver a escribirlo.</p>
       </div>
     )
   },
@@ -127,7 +127,7 @@ const ARTICLES: Article[] = [
     title: 'Configuración de Servicios y Agenda',
     content: (
       <div className="space-y-6">
-        <p>Saudade permite una gestión dual de tu agenda, dividiendo tus actividades en servicios públicos y privados para optimizar tu práctica clínica.</p>
+        <p>GetMySession permite una gestión dual de tu agenda, dividiendo tus actividades en servicios públicos y privados para optimizar tu práctica clínica.</p>
         
         <h3 className="text-xl font-bold text-black pt-4">Servicios y Costos</h3>
         <p>En el panel de Configuración, puedes definir los servicios que ofreces. Cada servicio incluye:</p>
@@ -152,7 +152,7 @@ const ARTICLES: Article[] = [
         <p>Nuestro sistema de notas clínicas está diseñado para adaptarse a tu enfoque terapéutico, cumpliendo con la norma <strong>NOM-024-SSA3-2012</strong>.</p>
         
         <h3 className="text-xl font-bold text-black pt-4">Plantillas del Sistema y Dictado por Voz</h3>
-        <p>Saudade incluye plantillas basadas en los enfoques más utilizados (SOAP, TCC, ACT, DBT, Humanista/Sistémica) y permite utilizar dictado por voz inteligente para redactar en segundos.</p>
+        <p>GetMySession incluye plantillas basadas en los enfoques más utilizados (SOAP, TCC, ACT, DBT, Humanista/Sistémica) y permite utilizar dictado por voz inteligente para redactar en segundos.</p>
 
         <h3 className="text-xl font-bold text-black pt-4">Personalización Total</h3>
         <p>Puedes crear tus propias plantillas en <strong>Configuración {'>'} Plantillas de Notas</strong>. Elige qué secciones quieres ver (Estado de Ánimo, Plan de Acción, etc.) y personaliza sus nombres.</p>
@@ -165,7 +165,7 @@ const ARTICLES: Article[] = [
     title: 'Integración con Stripe Connect y Honorarios Netos',
     content: (
       <div className="space-y-6">
-        <p>Saudade se integra directamente con Stripe para facilitar el cobro de tus sesiones de forma profesional y segura.</p>
+        <p>GetMySession se integra directamente con Stripe para facilitar el cobro de tus sesiones de forma profesional y segura.</p>
         
         <h3 className="text-xl font-bold text-black pt-4">Cómo conectar tu cuenta</h3>
         <p>Dirígete a <strong>Configuración {'>'} Integraciones</strong> y haz clic en "Conectar con Stripe". Sigue los pasos para vincular tu cuenta bancaria y empezar a recibir pagos internacionales o locales.</p>
@@ -310,7 +310,7 @@ const HelpCenter = () => {
               
               <div className="space-y-4 mb-12">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Guía Saudade</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Guía GetMySession</span>
                   <span className="text-gray-300">•</span>
                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                     {CATEGORIES.find(c => c.id === currentArticle.category)?.name}
@@ -376,7 +376,7 @@ const HelpCenter = () => {
                   Estamos aquí para acompañarte.
                 </h1>
                 <p className="text-xl text-gray-500 leading-relaxed">
-                  Explora nuestras guías diseñadas para ayudarte a dominar Saudade y elevar tu práctica clínica.
+                  Explora nuestras guías diseñadas para ayudarte a dominar GetMySession y elevar tu práctica clínica.
                 </p>
               </div>
 
@@ -439,7 +439,7 @@ const HelpCenter = () => {
       <footer className="border-t border-gray-100 py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-gray-400 text-[11px] font-medium uppercase tracking-widest">
           <div className="flex items-center gap-6">
-            <span>&copy; 2026 Saudade. Todos los derechos reservados.</span>
+            <span>&copy; 2026 GetMySession. Todos los derechos reservados.</span>
             <a href="#" className="hover:text-black transition-colors">Términos</a>
             <a href="#" className="hover:text-black transition-colors">Privacidad</a>
           </div>

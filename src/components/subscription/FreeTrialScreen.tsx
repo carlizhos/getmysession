@@ -16,7 +16,7 @@ const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100
 
 export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScreenProps) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(() => {
-    const savedPlan = localStorage.getItem('saudade_selected_plan');
+    const savedPlan = localStorage.getItem('getmysession_selected_plan');
     return savedPlan === 'pro_annual' ? 'annual' : 'monthly';
   });
 
@@ -180,7 +180,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
             <p className="text-[10px] text-slate-400 text-center leading-tight mt-4">
               Todos los precios están en Pesos Mexicanos (MXN). Al continuar, aceptas los{' '}
               <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
-              <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a> de Saudade.
+              <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a> de GetMySession.
               Tu suscripción se renueva de forma automática con el método de pago que elegiste.
               Puedes cancelarla en cualquier momento desde tu configuración para evitar cargos.
             </p>
@@ -200,7 +200,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
               <div className="w-full pt-1">
                 <h4 className="font-bold text-slate-900 text-sm">Hoy: Pruébalo gratis 30 días.</h4>
                 <p className="text-xs text-slate-500 mt-1">
-                  Empieza hoy tu prueba gratis de Saudade Pro y accede a todas nuestras funciones premium sin restricciones.
+                  Empieza hoy tu prueba gratis de GetMySession Pro y accede a todas nuestras funciones premium sin restricciones.
                 </p>
               </div>
             </div>

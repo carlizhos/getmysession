@@ -158,7 +158,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
             doc.text(
-                `Documento generado electrónicamente. Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`,
+                `Documento generado electrónicamente. GetMySession © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`,
                 pageW / 2,
                 doc.internal.pageSize.getHeight() - 8,
                 { align: 'center' }

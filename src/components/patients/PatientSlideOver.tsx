@@ -388,7 +388,7 @@ const PatientSlideOver = ({
                                                         onClick={() => navigate('/messages')}
                                                         className="text-primary hover:underline font-medium"
                                                     >
-                                                        Ver bandeja Saudade →
+                                                        Ver bandeja GetMySession →
                                                     </button>
                                                 </div>
                                             )}

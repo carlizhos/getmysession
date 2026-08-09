@@ -494,7 +494,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         {/* Left: Brand */}
         <div className="flex items-center gap-2 w-max">
           {/* <AppLauncher /> - Ocultado temporalmente por solicitud del usuario */}
-          <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground/90 leading-none">Saudade</span>
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground/90 leading-none">GetMySession</span>
           <Button variant="ghost" size="icon-sm" className="lg:hidden ml-1" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
@@ -559,7 +559,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             {/* Footer Information */}
             <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col gap-4 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 uppercase tracking-widest">
-                <p>© {new Date().getFullYear()} Saudade · Todos los derechos reservados</p>
+                <p>© {new Date().getFullYear()} GetMySession · Todos los derechos reservados</p>
                 <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
                   <button
                     onClick={() => setShowNomModal(true)}
@@ -610,10 +610,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
           <div className="mt-4 space-y-3 text-xs sm:text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-2xl border border-border/40">
             <p>
-              <strong>Aviso Regulatorio (NOM-024):</strong> Saudade desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la <strong>NOM-024-SSA3-2012</strong> (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad.
+              <strong>Aviso Regulatorio (NOM-024):</strong> GetMySession desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la <strong>NOM-024-SSA3-2012</strong> (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad.
             </p>
             <p>
-              Se hace de conocimiento que Saudade no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
+              Se hace de conocimiento que GetMySession no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
             </p>
           </div>
 

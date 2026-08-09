@@ -353,7 +353,7 @@ const PublicProfile = () => {
                     </p>
                     <div className="flex items-center justify-center gap-2 pt-8">
                         <div className="h-px w-8 bg-slate-200" />
-                        <span className="text-[10px] uppercase tracking-widest text-slate-300 font-bold">Saudade Health</span>
+                        <span className="text-[10px] uppercase tracking-widest text-slate-300 font-bold">GetMySession Health</span>
                         <div className="h-px w-8 bg-slate-200" />
                     </div>
                 </div>

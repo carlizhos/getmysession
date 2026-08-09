@@ -304,7 +304,7 @@ const Finance = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', `ingresos_saudade_${format(selectedDate, 'yyyy-MM')}.csv`);
+      link.setAttribute('download', `ingresos_getmysession_${format(selectedDate, 'yyyy-MM')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

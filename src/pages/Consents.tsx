@@ -176,7 +176,7 @@ const Consents = () => {
             doc.setFontSize(8);
             doc.setTextColor(150);
             doc.text(
-                `Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`,
+                `GetMySession © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`,
                 pageW / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' },
             );
         }

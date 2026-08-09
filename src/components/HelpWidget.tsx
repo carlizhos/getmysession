@@ -159,7 +159,7 @@ const HelpWidget = () => {
                             <Sparkles className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0 relative">
-                            <h3 className="font-semibold text-sm">Asistente Saudade</h3>
+                            <h3 className="font-semibold text-sm">Asistente GetMySession</h3>
                             <p className="text-xs text-muted-foreground">
                                 Pregúntame cómo usar el sistema
                             </p>
@@ -198,7 +198,7 @@ const HelpWidget = () => {
                                     ¡Hola! 👋
                                 </h4>
                                 <p className="text-sm text-muted-foreground mb-6 max-w-[260px] leading-relaxed">
-                                    Soy tu asistente de soporte. Pregúntame cómo usar cualquier función de Saudade.
+                                    Soy tu asistente de soporte. Pregúntame cómo usar cualquier función de GetMySession.
                                 </p>
 
                                 {/* Quick suggestions */}
@@ -338,7 +338,7 @@ const HelpWidget = () => {
                             </button>
                         </div>
                         <p className="text-[10px] text-muted-foreground/50 text-center mt-2">
-                            Saudade Asistente · Respuestas basadas en la documentación del sistema
+                            GetMySession Asistente · Respuestas basadas en la documentación del sistema
                         </p>
                     </div>
                 </div>

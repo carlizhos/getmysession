@@ -186,7 +186,7 @@ export default function PatientTestView() {
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
             <HeartPulse className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900">Saudade</span>
+          <span className="text-xl font-bold tracking-tight text-slate-900">GetMySession</span>
         </div>
 
         <Card>

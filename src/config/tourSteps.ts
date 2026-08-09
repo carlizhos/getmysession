@@ -10,7 +10,7 @@ export const MODULE_TOURS: Record<string, TourConfig> = {
       {
         element: '#tour-dashboard-header',
         popover: {
-          title: '👋 ¡Bienvenido a Saudade!',
+          title: '👋 ¡Bienvenido a GetMySession!',
           description: 'Este es tu centro de control clínico. Aquí verás el resumen de tu práctica diaria, tus pacientes activos y el avance de tus metas.',
           side: 'bottom',
           align: 'start',

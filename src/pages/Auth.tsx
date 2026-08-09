@@ -53,7 +53,7 @@ const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem('saudade_remember_email') === 'true');
+    const [rememberEmail, setRememberEmail] = useState<boolean>(() => localStorage.getItem('getmysession_remember_email') === 'true');
     
     const { register, handleSubmit, watch, formState: { errors }, reset, setValue, clearErrors } = useForm<AuthFormValues>({
         resolver: zodResolver(authSchema),
@@ -82,8 +82,8 @@ const Auth = () => {
             const selector = '.driver-popover, .driver-overlay, .driver-active-element, .driver-stage-nolight, div[id^="driver-"]';
             document.querySelectorAll(selector).forEach(el => el.remove());
         }
-        const savedEmail = localStorage.getItem('saudade_saved_email');
-        if (savedEmail && localStorage.getItem('saudade_remember_email') === 'true') {
+        const savedEmail = localStorage.getItem('getmysession_saved_email');
+        if (savedEmail && localStorage.getItem('getmysession_remember_email') === 'true') {
             setValue('email', savedEmail);
         }
     }, [setValue]);
@@ -146,13 +146,13 @@ const Auth = () => {
         const params = new URLSearchParams(window.location.search);
         const plan = params.get('plan');
         if (plan === 'pro_monthly' || plan === 'pro_annual') {
-            localStorage.setItem('saudade_selected_plan', plan);
+            localStorage.setItem('getmysession_selected_plan', plan);
         }
 
         // Save referral code from invite link
         const ref = params.get('ref');
         if (ref) {
-            localStorage.setItem('saudade_ref_code', ref.toUpperCase());
+            localStorage.setItem('getmysession_ref_code', ref.toUpperCase());
             // Auto-switch to registration if coming from a referral link
             if (isLogin) setIsLogin(false);
         }
@@ -273,11 +273,11 @@ const Auth = () => {
         try {
             if (isLogin) {
                 if (rememberEmail) {
-                    localStorage.setItem('saudade_remember_email', 'true');
-                    localStorage.setItem('saudade_saved_email', data.email);
+                    localStorage.setItem('getmysession_remember_email', 'true');
+                    localStorage.setItem('getmysession_saved_email', data.email);
                 } else {
-                    localStorage.removeItem('saudade_remember_email');
-                    localStorage.removeItem('saudade_saved_email');
+                    localStorage.removeItem('getmysession_remember_email');
+                    localStorage.removeItem('getmysession_saved_email');
                 }
                 const { error } = await signIn(data.email, data.password!);
                 if (error) {
@@ -342,7 +342,7 @@ const Auth = () => {
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
                             <Brain className="h-8 w-8 text-primary-foreground" />
                         </div>
-                        <h1 className="text-2xl font-bold">Saudade</h1>
+                        <h1 className="text-2xl font-bold">GetMySession</h1>
                         <div className="relative h-6 mt-2 w-full flex justify-center overflow-hidden">
                             <p className={`absolute text-muted-foreground transition-all duration-300 ${isLogin ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                                 Bienvenido de vuelta
@@ -668,7 +668,7 @@ const Auth = () => {
 
                         {/* Google Sign-In Button */}
                         {GOOGLE_CLIENT_ID && gsiReady ? (
-                            /* Official Google-rendered button — shows "Saudade" app name */
+                            /* Official Google-rendered button — shows "GetMySession" app name */
                             <div className="flex justify-center w-full overflow-hidden rounded-md" ref={googleBtnRef} />
                         ) : (
                             /* Fallback: manual button (redirect flow) — only if GSI not configured */
@@ -739,7 +739,7 @@ const Auth = () => {
                         Gestiona tu práctica con tranquilidad
                     </h2>
                     <p className="text-lg opacity-90">
-                        Saudade te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
+                        GetMySession te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
                     </p>
 
                     <div className="grid grid-cols-3 gap-6 pt-8">

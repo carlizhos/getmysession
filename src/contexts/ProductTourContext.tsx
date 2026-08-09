@@ -92,7 +92,7 @@ export const ProductTourProvider: React.FC<{ children: React.ReactNode }> = ({ c
       onDestroyed: () => {
         driverInstanceRef.current = null;
         try {
-          localStorage.setItem(`saudade_tour_seen_${moduleKey}`, 'true');
+          localStorage.setItem(`getmysession_tour_seen_${moduleKey}`, 'true');
         } catch (e) {
           console.error('Error saving tour state:', e);
         }

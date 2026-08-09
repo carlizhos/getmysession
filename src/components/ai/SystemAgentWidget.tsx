@@ -161,7 +161,7 @@ const SystemAgentWidget = () => {
                             <BrainCircuit className="h-5 w-5 text-violet-500" />
                         </div>
                         <div className="flex-1 min-w-0 relative">
-                            <h3 className="font-bold text-sm tracking-tight">Saudade AI</h3>
+                            <h3 className="font-bold text-sm tracking-tight">GetMySession AI</h3>
                             <p className="text-xs text-muted-foreground">
                                 Agente inteligente conversacional
                             </p>
@@ -312,7 +312,7 @@ const SystemAgentWidget = () => {
                             </button>
                         </div>
                         <p className="text-[10px] text-muted-foreground/50 text-center mt-2">
-                            Saudade AI · Agente con acceso al sistema
+                            GetMySession AI · Agente con acceso al sistema
                         </p>
                     </div>
                 </div>
@@ -330,7 +330,7 @@ const SystemAgentWidget = () => {
                     isOpen && 'sm:scale-100 scale-0 sm:opacity-100 opacity-0'
                 )}
                 title="Agente Inteligente"
-                aria-label="Abrir agente inteligente Saudade AI"
+                aria-label="Abrir agente inteligente GetMySession AI"
             >
                 {/* Pulse ring */}
                 {showPulse && !isOpen && (

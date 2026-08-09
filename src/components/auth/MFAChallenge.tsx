@@ -127,7 +127,7 @@ const MFAChallenge = ({ factorId, onSuccess, onBack }: MFAChallengeProps) => {
                     <h2 className="text-4xl font-bold leading-tight">Capa extra de seguridad</h2>
                     <p className="text-lg opacity-90">
                         Abra su app <strong>Google Authenticator</strong> o <strong>Authy</strong>
-                        y encuentre el código de 6 dígitos para Saudade.
+                        y encuentre el código de 6 dígitos para GetMySession.
                     </p>
                     <div className="rounded-2xl bg-white/10 p-6 text-left space-y-3">
                         <p className="font-semibold">Apps recomendadas:</p>

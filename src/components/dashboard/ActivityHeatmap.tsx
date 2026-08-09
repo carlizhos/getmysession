@@ -94,7 +94,7 @@ const ActivityHeatmap = ({ appointments, loading }: ActivityHeatmapProps) => {
     return counts;
   }, [appointments]);
 
-  // 3. Determinar el color de intensidad (tonos ámbar/oro de Saudade)
+  // 3. Determinar el color de intensidad (tonos ámbar/oro de GetMySession)
   const getCellColorClass = (count: number) => {
     if (count === 0) {
       return 'bg-slate-100 dark:bg-slate-800/40 hover:bg-slate-200 dark:hover:bg-slate-700/50';

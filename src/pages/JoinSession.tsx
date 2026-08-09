@@ -70,7 +70,7 @@ export default function JoinSession() {
     );
   }
 
-  const roomName = `Saudade_Consulta_${appointment.id.replace(/-/g, '')}`;
+  const roomName = `GetMySession_Consulta_${appointment.id.replace(/-/g, '')}`;
   // Jitsi URL with configuration parameters
   const jitsiUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false&interfaceConfig.SHOW_PROMOTIONAL_CLOSE_PAGE=false&interfaceConfig.DEFAULT_LOGO_URL=""&userInfo.displayName="${encodeURIComponent(displayName)}"`;
 
@@ -95,7 +95,7 @@ export default function JoinSession() {
           </Button>
           <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-white/90 text-sm font-bold shadow-lg">
             <Brain className="w-4 h-4 text-emerald-400" />
-            Saudade Consulta Virtual
+            GetMySession Consulta Virtual
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function JoinSession() {
         <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
           <span className="text-primary font-black text-base tracking-tighter">S.</span>
         </div>
-        <span className="font-extrabold tracking-tight text-xl dark:text-white">Saudade</span>
+        <span className="font-extrabold tracking-tight text-xl dark:text-white">GetMySession</span>
       </div>
 
       <Card className="w-full max-w-lg shadow-elevated border border-border/80 backdrop-blur-md bg-white/70 dark:bg-slate-900/60 p-8 rounded-[24px]">

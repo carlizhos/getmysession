@@ -69,9 +69,9 @@ export const useMutateNotes = () => {
     mutationFn: async (payload: any) => {
       if (!navigator.onLine) {
         console.warn('Network offline, saving to local queue...');
-        const pending = JSON.parse(localStorage.getItem('saudade_offline_notes') || '[]');
+        const pending = JSON.parse(localStorage.getItem('getmysession_offline_notes') || '[]');
         pending.push({ ...payload, _offlineId: Date.now().toString() });
-        localStorage.setItem('saudade_offline_notes', JSON.stringify(pending));
+        localStorage.setItem('getmysession_offline_notes', JSON.stringify(pending));
         throw new Error('OFFLINE_SAVED');
       }
 

@@ -99,7 +99,7 @@ export default function PricingModal() {
         <div className="text-center pt-10 pb-6 px-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold uppercase tracking-widest text-primary mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            Saudade Pro
+            GetMySession Pro
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Elige tu plan
@@ -227,7 +227,7 @@ export default function PricingModal() {
         {/* ── Features List ── */}
         <div className="px-6 pb-6">
           <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Todo lo que incluye Saudade Pro</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Todo lo que incluye GetMySession Pro</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {FEATURES.map((feat) => (
                 <div key={feat} className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-300">

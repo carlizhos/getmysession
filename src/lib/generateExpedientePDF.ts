@@ -216,7 +216,7 @@ export function generateExpedientePDF(
             doc.setFontSize(7.5);
             doc.setTextColor(160, 160, 170);
             doc.text(
-                `Documento generado electrónicamente. Saudade © ${new Date().getFullYear()} | Página ${i} de ${total}`,
+                `Documento generado electrónicamente. GetMySession © ${new Date().getFullYear()} | Página ${i} de ${total}`,
                 pageW / 2,
                 pageH - 8,
                 { align: 'center' },
@@ -884,7 +884,7 @@ export function generateSessionNotePDF(
         doc.setPage(i);
         doc.setFontSize(7);
         doc.setTextColor(180, 180, 180);
-        doc.text(`Documento de validez clínica. Saudade © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`, pageW / 2, pageH - 8, { align: 'center' });
+        doc.text(`Documento de validez clínica. GetMySession © ${new Date().getFullYear()} | Página ${i} de ${totalPages}`, pageW / 2, pageH - 8, { align: 'center' });
     }
 
     doc.save(`nota_sesion_${note.session_number}_${patient.name.replace(/\s+/g, '_')}.pdf`);

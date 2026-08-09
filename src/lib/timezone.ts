@@ -1,5 +1,5 @@
 /**
- * timezone.ts — Utilidades centrales de zona horaria para Saudade.
+ * timezone.ts — Utilidades centrales de zona horaria para GetMySession.
  *
  * Principio: toda la lógica del sistema opera en UTC.
  * La zona horaria es exclusivamente un problema de presentación.

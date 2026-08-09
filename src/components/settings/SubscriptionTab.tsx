@@ -43,7 +43,7 @@ const SubscriptionTab = () => {
     // Handle Stripe redirect callbacks
     useEffect(() => {
         if (searchParams.get('success') === 'true') {
-            toast.success('¡Bienvenido a Saudade Pro! 🎉 Tu prueba de 30 días ha comenzado.', { duration: 6000 });
+            toast.success('¡Bienvenido a GetMySession Pro! 🎉 Tu prueba de 30 días ha comenzado.', { duration: 6000 });
             searchParams.delete('success');
             setSearchParams(searchParams, { replace: true });
         }
@@ -285,7 +285,7 @@ const SubscriptionTab = () => {
                 <div className="space-y-1">
                     <p className="text-sm font-semibold">Seguridad y Privacidad</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Saudade no almacena tus datos bancarios. Todos los pagos son procesados de forma segura a través de <strong>Stripe</strong>, cumpliendo con los estándares PCI-DSS. Puedes cancelar o cambiar tu plan en cualquier momento desde el portal de facturación.
+                        GetMySession no almacena tus datos bancarios. Todos los pagos son procesados de forma segura a través de <strong>Stripe</strong>, cumpliendo con los estándares PCI-DSS. Puedes cancelar o cambiar tu plan en cualquier momento desde el portal de facturación.
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">
                         Todos los precios están en Pesos Mexicanos (MXN).

@@ -2,7 +2,7 @@ import CryptoJS from 'crypto-js';
 
 // The secret key should ideally be injected via environment variables.
 // Fallback is provided ONLY for development/demonstration if env is missing.
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'SAUDADE_FALLBACK_SECURE_KEY_123!';
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'GETMYSESSION_FALLBACK_SECURE_KEY_123!';
 
 /**
  * Encrypts a plaintext string using AES.

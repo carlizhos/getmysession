@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const DISMISSED_KEY = 'saudade_onboarding_v2_dismissed';
+const DISMISSED_KEY = 'getmysession_onboarding_v2_dismissed';
 
 interface StepStatus {
     profileComplete: boolean;

@@ -145,7 +145,7 @@ export default function ResetPassword() {
                             <Brain className="h-6 w-6" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-lg leading-tight tracking-tight">Saudade</span>
+                            <span className="font-bold text-lg leading-tight tracking-tight">GetMySession</span>
                             <span className="text-[11px] text-muted-foreground font-medium">Plataforma de Salud Mental</span>
                         </div>
                     </Link>
@@ -417,7 +417,7 @@ export default function ResetPassword() {
                         Seguridad y Privacidad de Nivel Bancario
                     </h2>
                     <p className="text-base text-white/90 leading-relaxed font-normal">
-                        En Saudade, tus datos de acceso están protegidos con cifrado de extremo a extremo (AES-256). Tu tranquilidad es nuestra prioridad.
+                        En GetMySession, tus datos de acceso están protegidos con cifrado de extremo a extremo (AES-256). Tu tranquilidad es nuestra prioridad.
                     </p>
                 </div>
             </div>

@@ -7,7 +7,7 @@ export const useOfflineSync = () => {
     const handleOnline = async () => {
       console.log('🌐 Conexión restaurada, intentando sincronizar notas...');
       
-      const savedNotesStr = localStorage.getItem('saudade_offline_notes');
+      const savedNotesStr = localStorage.getItem('getmysession_offline_notes');
       if (!savedNotesStr) return;
 
       try {
@@ -29,7 +29,7 @@ export const useOfflineSync = () => {
         }
 
         // Si tuvo éxito, limpiar el localStorage
-        localStorage.removeItem('saudade_offline_notes');
+        localStorage.removeItem('getmysession_offline_notes');
         toast.success(`Se sincronizaron ${pendingNotes.length} nota(s) guardada(s) sin conexión.`, { id: 'sync-notes' });
       } catch (err: any) {
         console.error('Error al sincronizar notas offline:', err);

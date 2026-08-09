@@ -62,7 +62,7 @@ export default function TelehealthSession() {
 
     const initConference = () => {
       if (jitsiContainerRef.current && !callEnded) {
-        const roomName = `Saudade_Consulta_${appointment.id.replace(/-/g, '')}`;
+        const roomName = `GetMySession_Consulta_${appointment.id.replace(/-/g, '')}`;
         const domain = 'meet.jit.si';
         const options = {
           roomName: roomName,
@@ -240,7 +240,7 @@ export default function TelehealthSession() {
     return <div className="h-screen w-full flex items-center justify-center bg-slate-50"><p>No se encontró la cita.</p></div>;
   }
 
-  const roomName = `Saudade_Consulta_${appointment.id.replace(/-/g, '')}`;
+  const roomName = `GetMySession_Consulta_${appointment.id.replace(/-/g, '')}`;
   const jitsiUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false&interfaceConfig.SHOW_PROMOTIONAL_CLOSE_PAGE=false&interfaceConfig.DEFAULT_LOGO_URL=""`;
 
   // Parse Cedulas from Profile
@@ -262,14 +262,14 @@ export default function TelehealthSession() {
       
       {/* LEFT: Video Call (Jitsi API Container or Call Ended screen) */}
       <div className="w-1/2 lg:w-[60%] h-full relative bg-slate-900 border-r border-border shadow-2xl flex flex-col">
-        {/* Overlay para tapar el logo de Jitsi e inyectar marca Saudade */}
+        {/* Overlay para tapar el logo de Jitsi e inyectar marca GetMySession */}
         {!callEnded && (
           <div className="absolute top-4 left-4 z-10 flex gap-2">
              <div className="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-white/90 text-sm font-bold shadow-lg shadow-black/50">
                <div className="bg-primary/20 p-1.5 rounded-lg">
                  <Brain className="w-4 h-4 text-emerald-400" />
                </div>
-               Saudade Telehealth
+               GetMySession Telehealth
              </div>
           </div>
         )}
@@ -430,7 +430,7 @@ export default function TelehealthSession() {
                     </div>
                   )}
                   
-                  <h4 className="font-bold text-slate-800 text-lg">{profile?.full_name || 'Dr. Saudade'}</h4>
+                  <h4 className="font-bold text-slate-800 text-lg">{profile?.full_name || 'Dr. GetMySession'}</h4>
                   <p className="text-sm text-slate-500 mt-1">{cedulaText}</p>
                 </div>
               </div>

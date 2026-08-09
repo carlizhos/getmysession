@@ -277,7 +277,7 @@ const Notes = () => {
                   </div>
                   <h3 className="text-2xl font-black text-white tracking-tight mb-2">Redactar con Inteligencia Artificial</h3>
                   <p className="text-white/80 max-w-md leading-relaxed text-sm">
-                    Solo presiona grabar y habla sobre la sesión. Saudade extraerá, estructurará y redactará la nota SOAP automáticamente.
+                    Solo presiona grabar y habla sobre la sesión. GetMySession extraerá, estructurará y redactará la nota SOAP automáticamente.
                   </p>
                 </div>
               </button>

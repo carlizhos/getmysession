@@ -287,7 +287,7 @@ const SubscriptionSuccess = () => {
             ¡Bienvenido a{' '}
             <span className="relative">
               <span className="bg-gradient-to-r from-primary via-emerald-500 to-primary bg-clip-text text-transparent">
-                Saudade Pro
+                GetMySession Pro
               </span>
               <span className="absolute -bottom-1 left-0 right-0 h-1 rounded-full bg-gradient-to-r from-primary/40 via-emerald-500/40 to-transparent" />
             </span>

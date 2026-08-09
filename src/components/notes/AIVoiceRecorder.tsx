@@ -121,7 +121,7 @@ export default function AIVoiceRecorder({ onCancel, onSuccess }: AIVoiceRecorder
       <h2 className="text-2xl font-black text-slate-900 mb-2">Dictado por Voz</h2>
       
       <p className="text-slate-500 text-sm mb-10 max-w-[280px]">
-        {state === 'idle' && 'Habla sobre la sesión. Saudade redactará una nota SOAP perfecta automáticamente.'}
+        {state === 'idle' && 'Habla sobre la sesión. GetMySession redactará una nota SOAP perfecta automáticamente.'}
         {state === 'recording' && 'Te estamos escuchando...'}
         {state === 'processing' && 'Analizando y estructurando tu nota clínica...'}
         {state === 'success' && '¡Nota estructurada con éxito!'}

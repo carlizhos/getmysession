@@ -426,7 +426,7 @@ const Messages = () => {
                 <div className="h-20 w-20 rounded-full bg-success/5 flex items-center justify-center mb-4">
                   <MessageCircle className="h-10 w-10 text-success/30" />
                 </div>
-                <h3 className="text-lg font-bold text-muted-foreground mb-1">Saudade Messaging</h3>
+                <h3 className="text-lg font-bold text-muted-foreground mb-1">GetMySession Messaging</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
                   Selecciona una conversación para ver los mensajes o envía uno nuevo desde el expediente de un paciente.
                 </p>

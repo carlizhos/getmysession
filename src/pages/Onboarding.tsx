@@ -34,7 +34,7 @@ const STEPS = [
   { id: 3, title: 'Agenda y Horarios', desc: 'Define cuándo estarás disponible.' },
   { id: 4, title: 'Enlace de Reservas', desc: 'Personaliza la dirección web de tu consultorio.' },
   { id: 5, title: 'Firma y Legal', desc: 'Da validez a tus expedientes y recetas.' },
-  { id: 6, title: 'Prueba Gratis', desc: 'Activa tu acceso total a Saudade.' }
+  { id: 6, title: 'Prueba Gratis', desc: 'Activa tu acceso total a GetMySession.' }
 ];
 
 const COMMON_TIMEZONES = [
@@ -343,7 +343,7 @@ export default function Onboarding() {
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
               <Brain className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">Saudade</span>
+            <span className="text-2xl font-bold text-white tracking-tight">GetMySession</span>
           </div>
 
           <div className="relative z-10">
@@ -392,9 +392,9 @@ export default function Onboarding() {
       >
         {isLastStep && (
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center bg-slate-950">
-             {/* The brand gradient of Saudade */}
+             {/* The brand gradient of GetMySession */}
              <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(178_15%_56%)_0%,hsl(262_40%_70%)_100%)] opacity-35" />
-             {/* Large centered Saudade icon (watermark) */}
+             {/* Large centered GetMySession icon (watermark) */}
              <Brain className="w-[500px] h-[500px] text-white/5 absolute animate-pulse duration-10000" />
              {/* Mesh pattern and shadow overlay */}
              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:32px_32px]" />
@@ -416,7 +416,7 @@ export default function Onboarding() {
                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                       <Brain className="w-4 h-4 text-white" />
                    </div>
-                   <span className="font-bold text-slate-900">Saudade</span>
+                   <span className="font-bold text-slate-900">GetMySession</span>
                 </div>
                 <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                   Paso {currentStep} de {STEPS.length}
@@ -636,7 +636,7 @@ export default function Onboarding() {
                               
                               <div className="flex items-center gap-2 mt-4">
                                 <div className="bg-slate-100 border border-slate-200 text-slate-500 px-4 h-12 rounded-xl flex items-center font-medium select-none shrink-0 text-sm md:text-base">
-                                  saudade.mx/reservar/
+                                  getmysession.mx/reservar/
                                 </div>
                                 <div className="flex-1 relative">
                                   <Input 
@@ -678,7 +678,7 @@ export default function Onboarding() {
                                <div>
                                  <h5 className="font-bold text-slate-800 text-sm">{prefix} {fullName || 'Nombre Profesional'}</h5>
                                  <p className="text-xs text-slate-500">{specialty || 'Tu Especialidad'}</p>
-                                 <p className="text-xs text-primary font-semibold mt-1">saudade.mx/perfil/{slug || '...'}</p>
+                                 <p className="text-xs text-primary font-semibold mt-1">getmysession.mx/perfil/{slug || '...'}</p>
                                </div>
                              </div>
                            </div>
@@ -721,7 +721,7 @@ export default function Onboarding() {
                                 y el{" "}
                                 <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors font-semibold">
                                   Acuerdo de Procesamiento de Datos Clínicos
-                                </a> de Saudade, conforme a la regulación de salud digital NOM-024.
+                                </a> de GetMySession, conforme a la regulación de salud digital NOM-024.
                               </label>
                            </div>
                         </div>

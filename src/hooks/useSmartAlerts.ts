@@ -18,7 +18,7 @@ export const useSmartAlerts = () => {
   const { user } = useAuth();
   const [smartAlerts, setSmartAlerts] = useState<SmartActivityLog[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('saudade_dismissed_alerts');
+    const saved = localStorage.getItem('getmysession_dismissed_alerts');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
@@ -26,7 +26,7 @@ export const useSmartAlerts = () => {
     setDismissedAlerts(prev => {
       const next = new Set(prev);
       next.add(id);
-      localStorage.setItem('saudade_dismissed_alerts', JSON.stringify(Array.from(next)));
+      localStorage.setItem('getmysession_dismissed_alerts', JSON.stringify(Array.from(next)));
       return next;
     });
   };

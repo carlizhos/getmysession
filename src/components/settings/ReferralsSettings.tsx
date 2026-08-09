@@ -83,7 +83,7 @@ export default function ReferralsSettings() {
 
   const handleShareWhatsApp = () => {
     const message = encodeURIComponent(
-      `¡Hola! Te invito a probar Saudade, la plataforma que uso para gestionar mi consultorio de psicología. ` +
+      `¡Hola! Te invito a probar GetMySession, la plataforma que uso para gestionar mi consultorio de psicología. ` +
       `Regístrate con mi enlace y ambos recibiremos $${localConfig.reward_amount_referred} MXN de crédito: ${referralLink}`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
@@ -112,7 +112,7 @@ export default function ReferralsSettings() {
               <Gift className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Recomendar Saudade</h2>
+              <h2 className="text-xl font-bold tracking-tight">Recomendar GetMySession</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Invita a colegas y ambos ganan <span className="font-bold text-success">$99 MXN</span> de crédito al suscribirse
               </p>
