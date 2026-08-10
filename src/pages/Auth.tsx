@@ -12,6 +12,8 @@ import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import AnimatedBackground from '@/components/auth/AnimatedBackground';
+
 
 const authSchema = z.object({
     email: z.string().min(1, 'El correo es requerido').email('Ingresa un correo electrónico válido'),
@@ -722,28 +724,31 @@ const Auth = () => {
                 </div>
             </div>
 
-            {/* Right Side - Info */}
-            <div className="hidden lg:flex lg:w-1/2 p-12 items-center justify-center text-white" style={{ background: 'var(--gradient-auth)' }}>
-                <div className="max-w-md space-y-8">
-                    <h2 className="text-4xl font-bold leading-tight">
+            {/* Right Side - Animated Dynamic Background */}
+            <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center text-white overflow-hidden">
+                <AnimatedBackground />
+                
+                {/* Glassmorphism Card Overlay */}
+                <div className="relative z-10 max-w-md space-y-8 p-10 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+                    <h2 className="text-4xl font-bold leading-tight text-white drop-shadow-md">
                         Gestiona tu práctica con tranquilidad
                     </h2>
-                    <p className="text-lg opacity-90">
+                    <p className="text-lg text-white/90 drop-shadow-sm leading-relaxed">
                         GetMySession te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
                     </p>
 
-                    <div className="grid grid-cols-3 gap-6 pt-8">
+                    <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/20 mt-8">
                         <div className="text-center">
-                            <div className="text-2xl font-bold mb-1">NOM-024</div>
-                            <div className="text-sm opacity-75">Cumplimiento</div>
+                            <div className="text-2xl font-bold mb-1 text-white">NOM-024</div>
+                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Cumplimiento</div>
                         </div>
-                        <div className="text-center border-l border-r border-white/30 px-6">
-                            <div className="text-2xl font-bold mb-1">256bit</div>
-                            <div className="text-sm opacity-75">Encriptación</div>
+                        <div className="text-center border-l border-r border-white/20 px-6">
+                            <div className="text-2xl font-bold mb-1 text-white">256bit</div>
+                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Encriptación</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-2xl font-bold mb-1">IA</div>
-                            <div className="text-sm opacity-75">Integrada</div>
+                            <div className="text-2xl font-bold mb-1 text-white">IA</div>
+                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Integrada</div>
                         </div>
                     </div>
                 </div>
