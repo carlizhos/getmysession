@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ForgotPassword = () => {
@@ -50,10 +50,21 @@ const ForgotPassword = () => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background relative">
-            <div className="w-full max-w-[380px] space-y-6">
+            
+            {/* Top Navigation Bar */}
+            <div className="absolute top-0 left-0 right-0 h-14 border-b border-border/40 bg-background flex items-center px-6">
+                <Link to="/auth" className="flex h-8 w-8 items-center justify-center rounded-md bg-white shadow-sm overflow-hidden border border-border/50 hover:bg-muted/50 transition-colors">
+                    <Brain className="h-5 w-5 text-primary" />
+                </Link>
+            </div>
+
+            <div className="w-full max-w-[380px] space-y-6 mt-8">
                 
                 {/* Title */}
                 <div className="text-center mb-8">
+                    <div className="text-[22px] text-muted-foreground mb-4">
+                        getmy<span className="font-bold text-foreground">SESSION</span>
+                    </div>
                     <h1 className="text-3xl font-bold text-foreground">¿Olvidaste tu contraseña?</h1>
                 </div>
 
