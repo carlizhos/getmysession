@@ -11,6 +11,7 @@ const ForgotPassword = () => {
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
     const [cooldownTimer, setCooldownTimer] = useState<number>(0);
+    const [emailError, setEmailError] = useState<string>('');
 
     useEffect(() => {
         if (cooldownTimer <= 0) return;
@@ -22,10 +23,20 @@ const ForgotPassword = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (!email) {
-            toast.error('Por favor ingresa tu correo electrónico');
+            setEmailError('El correo es requerido');
             return;
         }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setEmailError('Ingresa un correo electrónico válido');
+            return;
+        }
+
+        setEmailError('');
+
         if (cooldownTimer > 0) {
             toast.warning(`Por favor espera ${cooldownTimer} segundos antes de solicitar otro correo.`);
             return;
@@ -117,10 +128,13 @@ const ForgotPassword = () => {
                             <Input
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="h-10 w-full rounded-md border-border bg-transparent px-3 py-2 text-sm"
-                                required
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (emailError) setEmailError('');
+                                }}
+                                className={`h-10 w-full rounded-md bg-transparent px-3 py-2 text-sm ${emailError ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
+                            {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
                         </div>
 
                         <Button
