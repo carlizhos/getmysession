@@ -483,7 +483,7 @@ const Auth = () => {
 
                         {/* Nombre completo */}
                         <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
-                            <div className="overflow-hidden">
+                            <div className="overflow-hidden p-1 -m-1">
                                 <div className="space-y-2 pb-3">
                                     <label className="text-sm font-medium">Nombre completo</label>
                                     <div className="relative">
@@ -519,7 +519,7 @@ const Auth = () => {
                         </div>
 
                         <div className={`grid transition-all duration-300 ease-in-out ${isMagicLink ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
-                            <div className="overflow-hidden space-y-2">
+                            <div className="overflow-hidden space-y-2 p-1 -m-1">
                                 <label className="text-sm font-medium">Contraseña</label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -591,7 +591,7 @@ const Auth = () => {
 
                         {/* Confirmar contraseña */}
                         <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
-                            <div className="overflow-hidden">
+                            <div className="overflow-hidden p-1 -m-1">
                                 <div className="space-y-2 pt-2 pb-2">
                                     <label className="text-sm font-medium">Confirmar contraseña</label>
                                     <div className="relative">
