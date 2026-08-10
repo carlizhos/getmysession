@@ -341,7 +341,6 @@ const Auth = () => {
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white shadow-sm overflow-hidden border border-border/50">
                     <img src="/icono.jpg" alt="GetMySession Logo" className="h-full w-full object-cover" />
                 </div>
-                <span className="font-bold text-lg text-foreground">GetMySession</span>
             </div>
 
             {/* Left Side - Form */}
@@ -626,26 +625,18 @@ const Auth = () => {
                             </div>
                         </div>
 
-                        {/* Recordar mi correo / Olvidaste tu contraseña */}
+                        {/* Recordar mi correo */}
                         <div className={`grid transition-all duration-300 ease-in-out ${!isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
-                                <div className="flex items-center justify-between pt-1.5 pb-1">
-                                    <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                                <div className="flex items-center pt-1.5 pb-2">
+                                    <label className="flex items-center gap-2 text-[13px] text-foreground font-medium cursor-pointer select-none">
                                         <Checkbox
                                             checked={rememberEmail}
                                             onCheckedChange={(checked) => setRememberEmail(!!checked)}
+                                            className="h-4 w-4 rounded-[4px] border-border"
                                         />
                                         <span>Recordar mi correo</span>
                                     </label>
-                                    {!isMagicLink && (
-                                        <Link
-                                            to="/forgot-password"
-                                            className="text-xs text-primary font-medium hover:underline transition-all"
-                                            tabIndex={isLogin ? 0 : -1}
-                                        >
-                                            ¿Olvidaste tu contraseña?
-                                        </Link>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -686,33 +677,36 @@ const Auth = () => {
                     </form>
                     )}
 
-                    {/* Legal Acceptance */}
-                    <div className="text-center text-[11px] text-muted-foreground px-4 mt-2">
-                        Al {isLogin ? 'iniciar sesión' : 'crear una cuenta'}, aceptas nuestros{' '}
-                        <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a>{' '}
-                        y{' '}
-                        <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a>.
-                    </div>
+                    {/* Forgot Password Links */}
+                    {isLogin && !isMagicLink && (
+                        <div className="text-center pt-4">
+                            <span className="text-[13px] text-muted-foreground">¿No tienes cuenta? </span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsLogin(false);
+                                    clearErrors();
+                                }}
+                                className="text-[13px] text-blue-500 hover:underline font-medium"
+                            >
+                                Regístrate
+                            </button>
+                            <br/>
+                            <Link
+                                to="/forgot-password"
+                                className="text-[13px] text-blue-500 hover:underline mt-2 inline-block font-medium"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        </div>
+                    )}
 
-                    {/* Toggle Login/Register */}
-                    <div className="text-center text-sm mt-4">
-                        <span className="text-muted-foreground">
-                            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                            setIsLogin(!isLogin);
-                            setShowResendEmail(false);
-                            setIsMagicLink(false);
-                            setShowPassword(false);
-                            setShowConfirmPassword(false);
-                            clearErrors();
-                        }}
-                            className="text-primary font-medium hover:underline"
-                        >
-                            {isLogin ? 'Regístrate' : 'Inicia sesión'}
-                        </button>
+                    {/* Legal Acceptance */}
+                    <div className="text-center text-[11px] text-muted-foreground px-4 mt-8">
+                        Al {isLogin ? 'iniciar sesión' : 'crear una cuenta'}, aceptas nuestros{' '}
+                        <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Términos de uso</a>{' '}
+                        y{' '}
+                        <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Política de privacidad</a>.
                     </div>
                 </div>
             </div>
