@@ -475,17 +475,7 @@ const Auth = () => {
                                 />
                             </div>
                             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-                            {isLogin && (
-                                <div className="flex justify-end pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsMagicLink(!isMagicLink)}
-                                        className="text-xs text-primary hover:underline flex items-center gap-1 transition-all"
-                                    >
-                                        {isMagicLink ? 'Usar contraseña tradicional' : '✨ Entrar sin contraseña (Enlace Mágico)'}
-                                    </button>
-                                </div>
-                            )}
+
                         </div>
 
                         <div className={`grid transition-all duration-300 ease-in-out ${isMagicLink ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
