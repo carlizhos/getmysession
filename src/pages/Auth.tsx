@@ -492,7 +492,7 @@ const Auth = () => {
                                             type="text"
                                             placeholder="Dr. Juan Pérez"
                                             {...register('fullName')}
-                                            className={`pl-10 ${errors.fullName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                            className={`pl-10 ${errors.fullName ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''}`}
                                             disabled={isLogin}
                                             autoComplete="name"
                                         />
@@ -510,7 +510,7 @@ const Auth = () => {
                                     type="email"
                                     placeholder="tu@correo.com"
                                     {...register('email')}
-                                    className={`pl-10 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                    className={`pl-10 ${errors.email ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''}`}
                                     autoComplete="email"
                                 />
                             </div>
@@ -527,7 +527,7 @@ const Auth = () => {
                                         type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
                                         {...register('password')}
-                                        className={`pl-10 pr-10 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                        className={`pl-10 pr-10 ${errors.password ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''}`}
                                         disabled={isMagicLink}
                                         autoComplete={isLogin ? "current-password" : "new-password"}
                                     />
@@ -600,7 +600,7 @@ const Auth = () => {
                                             type={showConfirmPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             {...register('confirmPassword')}
-                                            className={`pl-10 pr-10 ${(errors.confirmPassword || (confirmPassword && password !== confirmPassword)) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                            className={`pl-10 pr-10 ${(errors.confirmPassword || (confirmPassword && password !== confirmPassword)) ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''}`}
                                             disabled={isLogin}
                                             autoComplete="new-password"
                                         />
