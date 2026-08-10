@@ -54,7 +54,7 @@ const ForgotPassword = () => {
             {/* Top Navigation Bar */}
             <div className="absolute top-0 left-0 right-0 h-14 border-b border-border/40 bg-background flex items-center px-6">
                 <Link to="/auth" className="flex h-8 w-8 items-center justify-center rounded-md bg-white shadow-sm overflow-hidden border border-border/50 hover:bg-muted/50 transition-colors">
-                    <Brain className="h-5 w-5 text-primary" />
+                    <img src="/icono.jpg" alt="GetMySession Logo" className="h-full w-full object-cover" />
                 </Link>
             </div>
 
