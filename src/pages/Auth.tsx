@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle, RefreshCw, Clock, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Brain, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle, RefreshCw, Clock, Sparkles, CheckCircle2, Globe, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import MFAChallenge from '@/components/auth/MFAChallenge';
@@ -335,24 +335,23 @@ const Auth = () => {
     }
 
     return (
-        <div className="min-h-screen flex">
+        <div className="min-h-screen flex relative">
+            {/* Absolute Logo Top Left */}
+            <div className="absolute top-8 left-8 flex items-center gap-2 z-10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white shadow-sm overflow-hidden border border-border/50">
+                    <img src="/icono.jpg" alt="GetMySession Logo" className="h-full w-full object-cover" />
+                </div>
+                <span className="font-bold text-lg text-foreground">GetMySession</span>
+            </div>
+
             {/* Left Side - Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-                <div className="w-full max-w-md space-y-8">
-                    {/* Logo and Title */}
-                    <div className="flex flex-col items-center text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm mb-4 overflow-hidden border border-border/50">
-                            <img src="/icono.jpg" alt="GetMySession Logo" className="h-full w-full object-cover" />
-                        </div>
-                        <h1 className="text-2xl font-bold">GetMySession</h1>
-                        <div className="relative h-6 mt-2 w-full flex justify-center overflow-hidden">
-                            <p className={`absolute text-muted-foreground transition-all duration-300 ${isLogin ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-                                Bienvenido de vuelta
-                            </p>
-                            <p className={`absolute text-muted-foreground transition-all duration-300 ${!isLogin ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                                Crea tu cuenta profesional
-                            </p>
-                        </div>
+                <div className="w-full max-w-[360px] space-y-8 mt-12">
+                    {/* Title */}
+                    <div className="flex flex-col text-center">
+                        <h1 className="text-[26px] font-bold text-foreground">
+                            {isLogin ? 'Inicia sesión en GetMySession' : 'Crea tu cuenta'}
+                        </h1>
                     </div>
 
                     {/* Form or Magic Link Confirmation */}
@@ -443,6 +442,46 @@ const Auth = () => {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
+                            {/* Google Sign-In Button Top */}
+                            <div className="w-full pb-2">
+                                {GOOGLE_CLIENT_ID && gsiReady ? (
+                                    <div className="flex justify-center w-full overflow-hidden rounded-md" ref={googleBtnRef} />
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        className="w-full gap-2 border-border/80 h-10 shadow-sm"
+                                        variant="outline"
+                                        disabled={loading || googleLoading}
+                                        onClick={async () => {
+                                            setGoogleLoading(true);
+                                            try {
+                                                const { error } = await supabase.auth.signInWithOAuth({
+                                                    provider: 'google',
+                                                    options: { redirectTo: `${window.location.origin}/` },
+                                                });
+                                                if (error) throw error;
+                                            } catch (err: unknown) {
+                                                const error = err as Error;
+                                                toast.error('Error: ' + error.message);
+                                                setGoogleLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleSVG />}
+                                        <span className="font-medium text-sm">Continúa con Google</span>
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="relative my-5">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-border/60" />
+                                </div>
+                                <div className="relative flex justify-center text-[10px] uppercase">
+                                    <span className="bg-background px-4 text-muted-foreground/60 tracking-wider">O</span>
+                                </div>
+                            </div>
+
                         {/* Nombre completo */}
                         <div className={`grid transition-all duration-300 ease-in-out ${isLogin ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'}`}>
                             <div className="overflow-hidden">
@@ -613,16 +652,14 @@ const Auth = () => {
 
                         <Button
                             type="submit"
-                            className="w-full gap-2 relative overflow-hidden transition-all duration-300"
-                            variant="zen"
+                            className="w-full h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold transition-all shadow-sm"
                             disabled={loading || googleLoading}
                         >
                             {loading ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <span className="flex items-center gap-2 transition-all duration-300">
+                                <span>
                                     {isLogin ? (isMagicLink ? 'Enviar Enlace Mágico' : 'Iniciar Sesión') : 'Crear Cuenta'}
-                                    <ArrowRight className="h-4 w-4" />
                                 </span>
                             )}
                         </Button>
@@ -645,50 +682,6 @@ const Auth = () => {
                                     Reenviar correo de confirmación
                                 </Button>
                             </div>
-                        )}
-
-                        <div className="relative my-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-muted-foreground">
-                                    O continúa con
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Google Sign-In Button */}
-                        {GOOGLE_CLIENT_ID && gsiReady ? (
-                            /* Official Google-rendered button — shows "GetMySession" app name */
-                            <div className="flex justify-center w-full overflow-hidden rounded-md" ref={googleBtnRef} />
-                        ) : (
-                            /* Fallback: manual button (redirect flow) — only if GSI not configured */
-                            <Button
-                                type="button"
-                                className="w-full gap-2"
-                                variant="outline"
-                                disabled={loading || googleLoading}
-                                onClick={async () => {
-                                    setGoogleLoading(true);
-                                    try {
-                                        const { error } = await supabase.auth.signInWithOAuth({
-                                            provider: 'google',
-                                            options: { redirectTo: `${window.location.origin}/` },
-                                        });
-                                        if (error) throw error;
-                                    } catch (err: unknown) {
-                                        const error = err as Error;
-                                        toast.error('Error: ' + error.message);
-                                        setGoogleLoading(false);
-                                    }
-                                }}
-                            >
-                                {googleLoading
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <GoogleSVG />
-                                }
-                            </Button>
                         )}
                     </form>
                     )}
@@ -725,32 +718,41 @@ const Auth = () => {
             </div>
 
             {/* Right Side - Animated Dynamic Background */}
-            <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center text-white overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 relative items-center text-white overflow-hidden pl-24">
                 <AnimatedBackground />
-                
-                {/* Glassmorphism Card Overlay */}
-                <div className="relative z-10 max-w-md space-y-8 p-10 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-                    <h2 className="text-4xl font-bold leading-tight text-white drop-shadow-md">
-                        Gestiona tu práctica con tranquilidad
-                    </h2>
-                    <p className="text-lg text-white/90 drop-shadow-sm leading-relaxed">
-                        GetMySession te ayuda a organizar pacientes, citas, notas clínicas y finanzas en un solo lugar. Con asistencia de IA para generar reportes profesionales.
-                    </p>
 
-                    <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/20 mt-8">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold mb-1 text-white">NOM-024</div>
-                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Cumplimiento</div>
-                        </div>
-                        <div className="text-center border-l border-r border-white/20 px-6">
-                            <div className="text-2xl font-bold mb-1 text-white">256bit</div>
-                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Encriptación</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold mb-1 text-white">IA</div>
-                            <div className="text-xs text-white/80 font-medium uppercase tracking-wider">Integrada</div>
-                        </div>
-                    </div>
+                {/* Top Nav (Language + Sign Up) */}
+                <div className="absolute top-8 right-8 z-20 flex items-center gap-4">
+                    <button className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white font-medium">
+                        <Globe className="h-4 w-4" /> Español
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setIsLogin(!isLogin);
+                            clearErrors();
+                        }}
+                        className="px-4 py-1.5 bg-white text-slate-900 rounded-md text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm"
+                    >
+                        {isLogin ? 'Regístrate' : 'Inicia sesión'}
+                    </button>
+                </div>
+                
+                {/* Content aligned to the left side of the right panel */}
+                <div className="relative z-10 w-full max-w-lg">
+                    <p className="text-xs font-semibold tracking-wider text-white/80 uppercase mb-4">
+                        GetMySession Connect 2026
+                    </p>
+                    <h2 className="text-[3rem] font-bold leading-[1.1] tracking-tight mb-6">
+                        Gestiona tu práctica<br />con tranquilidad.
+                    </h2>
+                    <p className="text-lg text-white/90 leading-relaxed mb-8">
+                        Organiza pacientes, citas, notas clínicas y finanzas en un solo lugar.
+                    </p>
+                    
+                    <a href="#" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-900 font-semibold rounded-md hover:bg-white/90 transition-colors shadow-md text-sm">
+                        <ExternalLink className="h-4 w-4" />
+                        Saber más
+                    </a>
                 </div>
             </div>
         </div>
