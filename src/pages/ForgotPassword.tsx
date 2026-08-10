@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Mail, ArrowLeft, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ForgotPassword = () => {
@@ -27,7 +27,7 @@ const ForgotPassword = () => {
             return;
         }
         if (cooldownTimer > 0) {
-            toast.warning(`Por favor espera ${cooldownTimer} segundos antes de solicitar otro correo de recuperación.`);
+            toast.warning(`Por favor espera ${cooldownTimer} segundos antes de solicitar otro correo.`);
             return;
         }
 
@@ -39,7 +39,7 @@ const ForgotPassword = () => {
             if (error) throw error;
             setSent(true);
             setCooldownTimer(60);
-            toast.success('✨ Enlace enviado. Revisa tu correo y espera 60 segundos antes de solicitar otro.');
+            toast.success('Enlace enviado exitosamente.');
         } catch (err: unknown) {
             const error = err as Error;
             toast.error('Error: ' + error.message);
@@ -49,129 +49,103 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex">
-            {/* Left Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-                <div className="w-full max-w-md space-y-8">
-                    {/* Logo */}
-                    <div className="flex flex-col items-center text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
-                            <Brain className="h-8 w-8 text-primary-foreground" />
-                        </div>
-                        <h1 className="text-2xl font-bold">Recuperar Contraseña</h1>
-                        <p className="text-muted-foreground mt-2">
-                            {sent
-                                ? 'Revisa tu correo electrónico'
-                                : 'Te enviaremos un link para restablecer tu contraseña'}
-                        </p>
-                    </div>
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background relative">
+            <div className="w-full max-w-[380px] space-y-6">
+                
+                {/* Title */}
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-foreground">¿Olvidaste tu contraseña?</h1>
+                </div>
 
-                    {sent ? (
-                        /* Success State */
-                        <div className="space-y-6">
-                            <div className="flex flex-col items-center gap-4 rounded-2xl border border-success/20 bg-success/5 p-8 text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-                                    <CheckCircle className="h-8 w-8 text-success" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-lg">¡Email enviado!</p>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Hemos enviado un enlace a <span className="font-medium text-foreground">{email}</span>.
-                                        Puede tardar unos instantes en llegar.
-                                    </p>
-                                </div>
+                {sent ? (
+                    /* Success State */
+                    <div className="space-y-6">
+                        <div className="flex flex-col items-center gap-4 rounded-xl border border-success/20 bg-success/5 p-8 text-center">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                                <CheckCircle className="h-8 w-8 text-success" />
                             </div>
-
-                            <div className="text-center space-y-3">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={cooldownTimer > 0 || loading}
-                                    onClick={handleSubmit}
-                                    className="w-full h-11 text-xs font-bold gap-2 rounded-xl"
-                                >
-                                    {cooldownTimer > 0 ? (
-                                        <>
-                                            <Clock className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
-                                            Reenviar correo en {cooldownTimer}s
-                                        </>
-                                    ) : (
-                                        <>
-                                            <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                                            Reenviar correo de recuperación
-                                        </>
-                                    )}
-                                </Button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setSent(false)}
-                                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
-                                >
-                                    ← Cambiar correo electrónico
-                                </button>
+                            <div>
+                                <p className="font-semibold text-lg">¡Email enviado!</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Hemos enviado un enlace de recuperación a <span className="font-medium text-foreground">{email}</span>.
+                                </p>
                             </div>
                         </div>
-                    ) : (
-                        /* Form State */
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Correo electrónico</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="email"
-                                        placeholder="tu@correo.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="pl-10"
-                                        required
-                                    />
-                                </div>
-                            </div>
 
+                        <div className="text-center space-y-4 pt-2">
                             <Button
-                                type="submit"
-                                className="w-full"
-                                variant="zen"
-                                disabled={loading || cooldownTimer > 0}
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={cooldownTimer > 0 || loading}
+                                className="w-full h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold transition-all shadow-sm"
                             >
                                 {loading ? (
-                                    'Enviando...'
+                                    <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : cooldownTimer > 0 ? (
-                                    `Solicitar de nuevo en ${cooldownTimer}s`
+                                    `Reenviar correo en ${cooldownTimer}s`
                                 ) : (
-                                    'Enviar link de recuperación'
+                                    'Reenviar correo'
                                 )}
                             </Button>
-                        </form>
-                    )}
-
-                    {/* Back to login */}
-                    <div className="text-center">
-                        <Link
-                            to="/auth"
-                            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Volver al inicio de sesión
-                        </Link>
+                            
+                            <div className="flex flex-col space-y-2 text-[13px] text-muted-foreground">
+                                <div>
+                                    ¿Ya tienes una cuenta?{' '}
+                                    <Link to="/auth" className="text-foreground hover:underline font-semibold">
+                                        Iniciar sesión
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                ) : (
+                    /* Form State */
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-1.5">
+                            <label className="text-[13px] font-medium text-foreground">Ingresa tu correo</label>
+                            <Input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="h-10 w-full rounded-md border-border bg-transparent px-3 py-2 text-sm"
+                                required
+                            />
+                        </div>
 
-            {/* Right Side */}
-            <div
-                className="hidden lg:flex lg:w-1/2 p-12 items-center justify-center text-white"
-                style={{ background: 'linear-gradient(to bottom right, hsl(162 50% 52%) 0%, hsl(175 55% 55%) 30%, hsl(190 60% 58%) 70%, hsl(205 65% 60%) 100%)' }}
-            >
-                <div className="max-w-md space-y-6 text-center">
-                    <h2 className="text-4xl font-bold leading-tight">¿Olvidaste tu contraseña?</h2>
-                    <p className="text-lg opacity-90">
-                        No hay problema. Te enviamos un link seguro a tu correo para que puedas
-                        restablecer tu contraseña en segundos.
-                    </p>
-                </div>
+                        <Button
+                            type="submit"
+                            className="w-full h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold transition-all shadow-sm"
+                            disabled={loading || cooldownTimer > 0}
+                        >
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                'Enviar'
+                            )}
+                        </Button>
+
+                        <div className="text-center space-y-2 pt-4 flex flex-col text-[13px] text-muted-foreground">
+                            <div>
+                                ¿Ya tienes una cuenta?{' '}
+                                <Link to="/auth" className="text-foreground hover:underline font-semibold">
+                                    Iniciar sesión
+                                </Link>
+                            </div>
+                            <div>
+                                ¿Tienes problemas?{' '}
+                                <a href="mailto:soporte@getmysession.com" className="text-foreground hover:underline font-semibold">
+                                    Obtén ayuda
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                )}
+            </div>
+            
+            {/* Footer */}
+            <div className="absolute bottom-8 flex gap-6 text-[12px] font-medium text-muted-foreground/60">
+                <a href="/terminos" className="hover:text-foreground transition-colors">Términos de uso</a>
+                <a href="/politicas" className="hover:text-foreground transition-colors">Política de privacidad</a>
             </div>
         </div>
     );
