@@ -246,7 +246,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
+    <div className="min-h-screen bg-white dark:bg-[#1e1e2e] flex">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -389,71 +389,74 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       {/* ── Main Content Area (to the right of sidebar) ──────────────── */}
       <div className="flex-1 flex flex-col min-h-screen lg:pl-[72px] transition-all">
         
-        {/* Top Bar inside main content */}
-        <header className="h-14 flex items-center justify-between px-4 sm:px-6 bg-white dark:bg-[#1e1e2e] border-b border-gray-200 dark:border-gray-800 z-30 sticky top-0">
-          
-          {/* Left: Mobile Menu Toggle & Title */}
-          <div className="flex items-center gap-3 w-max">
-            <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-5 w-5" />
-            </Button>
-            <span className="text-sm font-semibold tracking-tight text-foreground/90 lg:text-base">
-              GetMySession
-            </span>
-          </div>
+        {/* Rounded content container — like Canva */}
+        <div className="flex-1 flex flex-col min-h-screen bg-[#f0f0f0] dark:bg-slate-950 lg:rounded-tl-[20px] overflow-hidden">
 
-          {/* Center: Search Trigger (Command Palette) */}
-          <div className="flex-1 hidden md:flex justify-center max-w-xl mx-4">
-            <button
-              onClick={() => setCommandOpen(true)}
-              className={cn(
-                "relative w-full h-9 pl-10 pr-4 rounded-full bg-gray-100 dark:bg-gray-800 border border-transparent outline-none transition-all",
-                "hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-[#1e1e2e] focus:border-primary/30 focus:ring-2 focus:ring-primary/20",
-                "text-sm text-muted-foreground text-left cursor-pointer group"
-              )}
-            >
-              <div className="absolute inset-y-0 left-3 flex items-center">
-                <Search className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <span className="opacity-80">Buscar en GetMySession...</span>
-              <div className="absolute inset-y-0 right-3 flex items-center">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded bg-white/50 dark:bg-black/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground border border-gray-200 dark:border-gray-700">
-                  <span className="text-xs">⌘</span>K
-                </kbd>
-              </div>
-            </button>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {hasTourForModule(moduleKey) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => startTour(moduleKey)}
-                title="Iniciar Recorrido Guiado de este módulo"
-                className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex"
-              >
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                <span>Recorrido</span>
+          {/* Top Bar inside rounded content */}
+          <header className="h-14 flex items-center justify-between px-4 sm:px-6 bg-[#f0f0f0] dark:bg-slate-950 z-30 sticky top-0">
+            
+            {/* Left: Mobile Menu Toggle & Title */}
+            <div className="flex items-center gap-3 w-max">
+              <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+                <Menu className="h-5 w-5" />
               </Button>
-            )}
-            <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
-            <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
-            
-            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 lg:mx-2" />
-            
-            <UserMenu avatarUrl={avatarUrl} />
+              <span className="text-sm font-semibold tracking-tight text-foreground/90 lg:text-base">
+                GetMySession
+              </span>
+            </div>
+
+            {/* Center: Search Trigger (Command Palette) */}
+            <div className="flex-1 hidden md:flex justify-center max-w-xl mx-4">
+              <button
+                onClick={() => setCommandOpen(true)}
+                className={cn(
+                  "relative w-full h-9 pl-10 pr-4 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none transition-all shadow-sm",
+                  "hover:border-gray-300 dark:hover:border-gray-600 hover:shadow focus:border-primary/30 focus:ring-2 focus:ring-primary/20",
+                  "text-sm text-muted-foreground text-left cursor-pointer group"
+                )}
+              >
+                <div className="absolute inset-y-0 left-3 flex items-center">
+                  <Search className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <span className="opacity-80">Buscar en GetMySession...</span>
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded bg-gray-100 dark:bg-black/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
+                </div>
+              </button>
+            </div>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              {hasTourForModule(moduleKey) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startTour(moduleKey)}
+                  title="Iniciar Recorrido Guiado de este módulo"
+                  className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex"
+                >
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                  <span>Recorrido</span>
+                </Button>
+              )}
+              <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
+              <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
+              
+              <div className="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1 lg:mx-2" />
+              
+              <UserMenu avatarUrl={avatarUrl} />
+            </div>
+          </header>
+
+          {/* Subscription Banner */}
+          <div className="w-full z-20">
+            <SubscriptionBanner />
           </div>
-        </header>
 
-        {/* Subscription Banner */}
-        <div className="w-full z-20">
-          <SubscriptionBanner />
-        </div>
-
-        {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-950 flex flex-col">
+          {/* Page Content */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
           <div className="flex-1 w-full max-w-7xl mx-auto">
             {children}
           </div>
@@ -490,6 +493,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             </div>
           </footer>
         </main>
+        </div> {/* End rounded content container */}
       </div>
 
       {/* Modal de Aviso Regulatorio NOM-024 */}
