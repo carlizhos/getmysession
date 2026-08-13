@@ -7,31 +7,20 @@ import {
   Brain,
   FileText,
   DollarSign,
-  Moon,
-  Sun,
   Menu,
   X,
-  Heart,
   Settings,
-  Kanban,
   FileSignature,
-  CheckSquare,
-  ChevronDown,
   Search,
-  PanelLeftClose,
-  PanelLeftOpen,
   BrainCircuit,
   ShieldCheck,
   MessageCircle,
   HelpCircle,
-  Activity,
-  TrendingUp,
-  Paperclip,
   User,
-  Sparkles
+  Sparkles,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -47,7 +36,6 @@ import { toast } from 'sonner';
 import useInactivityTimer from '@/hooks/useInactivityTimer';
 import InactivityModal from '@/components/auth/InactivityModal';
 import { supabase } from '@/lib/supabase';
-import AppLauncher from '@/components/AppLauncher';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageBell from '@/components/notifications/MessageBell';
@@ -55,39 +43,22 @@ import { useProductTour } from '@/contexts/ProductTourContext';
 import NotificationBadge from '@/components/ui/NotificationBadge';
 import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
-import SystemAgentWidget from '@/components/ai/SystemAgentWidget';
 import CommandPalette from '@/components/CommandPalette';
 import PricingModal from '@/components/subscription/PricingModal';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
-const navigationGroups = [
-  {
-    label: 'Principal',
-    items: [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Pacientes', href: '/patients', icon: Users },
-      { name: 'Agenda', href: '/agenda', icon: Calendar },
-    ]
-  },
-  {
-    label: 'Clínica & IA',
-    items: [
-      { name: 'Asistente IA', href: '/ai-assistant', icon: Brain },
-      { name: 'Notas Clínicas', href: '/notes', icon: FileText },
-      { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
-      { name: 'Consentimientos', href: '/consents', icon: FileSignature },
-    ]
-  },
-  {
-    label: 'Administración y Soporte',
-    items: [
-      { name: 'Finanzas', href: '/finance', icon: DollarSign },
-      { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
-      { name: 'Centro de Ayuda', href: '/help', icon: HelpCircle },
-    ]
-  }
+const navigationItems = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Agenda', href: '/agenda', icon: Calendar },
+  { name: 'Asistente IA', href: '/ai-assistant', icon: Brain },
+  { name: 'Notas Clínicas', href: '/notes', icon: FileText },
+  { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
+  { name: 'Consentimientos', href: '/consents', icon: FileSignature },
+  { name: 'Finanzas', href: '/finance', icon: DollarSign },
+  { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
+  { name: 'Centro de Ayuda', href: '/help', icon: HelpCircle },
 ];
-
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -98,13 +69,11 @@ interface LayoutProps {
 
 const INACTIVITY_SECONDS = 300;
 const COUNTDOWN_SECONDS = 30;
-const COLLAPSED_KEY = 'sidebar_collapsed';
 
 const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange }: LayoutProps) => {
   useOfflineSync();
   const { organization } = useOrganization();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [showNomModal, setShowNomModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -130,20 +99,17 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     return '';
   };
   const moduleKey = getModuleKey(location.pathname);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  
   const [badgesSettled, setBadgesSettled] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [canShowBadges, setCanShowBadges] = useState(false);
 
   // Synchronize badges: Start timers once on mount
   useEffect(() => {
-    // 1. Wait a moment for data fetching (NotificationBell) to be ready
     const showTimer = setTimeout(() => {
       setCanShowBadges(true);
     }, 1000);
 
-    // 2. Settle all badges in unison after 10s
     const settleTimer = setTimeout(() => {
       setBadgesSettled(true);
     }, 10000);
@@ -165,34 +131,6 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Smart Header Logic: Hide on scroll down, show on scroll up
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < 10) {
-        setShowHeader(true);
-      } else if (currentScrollY > lastScrollY) {
-        setShowHeader(false); // Scrolling down
-      } else {
-        setShowHeader(true); // Scrolling up
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  const toggleCollapsed = () => {
-    setCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSED_KEY, String(next));
-      return next;
-    });
-  };
 
   const handleWarning = useCallback(() => setShowInactivityModal(true), []);
   const handleTimeout = useCallback(async () => {
@@ -262,7 +200,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         gain.connect(ctx.destination);
         
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch (A5)
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
         
         gain.gain.setValueAtTime(0, ctx.currentTime);
@@ -307,293 +245,256 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
     }).then(({ error }) => { if (error) console.warn('[page_views]', error.message); });
   }, [location.pathname, user]);
 
-  const sidebarW = collapsed ? 'w-16' : 'w-64';
-  const contentPl = collapsed ? 'lg:pl-24' : 'lg:pl-[calc(16rem+2rem)]';
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* ── Sidebar ──────────────────────────────────────────────── */}
+      {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-50 transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:z-40 lg:translate-x-0',
-        'backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 border border-white/20 dark:border-white/5 shadow-soft rounded-[24px]',
-        'top-[4.5rem] bottom-2 left-2 lg:top-[5.25rem] lg:bottom-4 lg:left-4',
-        sidebarW,
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        'fixed z-50 lg:z-40 h-full flex flex-col',
+        'bg-white dark:bg-[#1e1e2e] border-r border-gray-200 dark:border-gray-800',
+        'top-0 bottom-0 left-0 transition-transform duration-300',
+        'w-[240px] lg:w-[72px]',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
-        <div className="flex h-full flex-col overflow-hidden">
-          {/* Sidebar Header (Mobile: Close only) */}
-          <div className="flex h-12 items-center px-3 border-b border-white/10 lg:hidden">
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Mobile close button */}
+          <div className="flex h-12 items-center justify-end px-3 lg:hidden">
             <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Floating Desktop Toggle (Aligned with Dashboard - "por fuera") */}
-          <button
-            onClick={toggleCollapsed}
-            title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-            className={cn(
-                "absolute -right-3 top-24 hidden lg:flex h-6 w-6 items-center justify-center rounded-full",
-                "border border-border bg-background shadow-md hover:bg-muted text-muted-foreground/60 hover:text-foreground",
-                "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 group/toggle"
-            )}
-          >
-            {collapsed ? (
-                <PanelLeftOpen className="h-3 w-3 transition-transform group-active/toggle:scale-95" />
-            ) : (
-                <PanelLeftClose className="h-3 w-3 transition-transform group-active/toggle:scale-95" />
-            )}
-          </button>
+          {/* Top Logo */}
+          <div className="pt-4 pb-4 flex flex-col items-center gap-4">
+            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-800 shrink-0">
+              <img src="/icono.jpg" alt="Logo" className="w-full h-full object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
+            </div>
+
+            {/* Prominent Create Button */}
+            <NavLink
+              to="/agenda"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary/80 text-white shadow-md hover:shadow-lg transition-all hover:scale-105 shrink-0"
+              title="Crear nueva cita"
+            >
+              <Plus className="w-5 h-5" />
+            </NavLink>
+          </div>
 
           {/* Navigation links */}
-          <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden pb-6 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]', collapsed ? 'px-2 py-5' : 'px-3 py-5')}>
-            {navigationGroups.map((group, groupIdx) => (
-              <div key={groupIdx} className="space-y-1.5">
-                {!collapsed && (
-                  <div className="px-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-2 mt-2">
-                    {group.label}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {navigationItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center transition-all duration-200 relative',
+                    'lg:flex-col lg:justify-center lg:h-14 lg:w-[60px] lg:mx-auto lg:rounded-lg',
+                    'flex-row gap-3 px-4 py-3 rounded-lg',
+                    isActive
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10'
+                  )}
+                >
+                  <div className="relative flex shrink-0 items-center justify-center">
+                    <item.icon className={cn(
+                      'transition-colors',
+                      'h-[22px] w-[22px] lg:h-5 lg:w-5',
+                      isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+                    )} />
+                    {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
+                      <NotificationBadge 
+                        count={unreadWa} 
+                        className="absolute -top-1.5 -right-1.5 bg-success shadow-success/40 scale-75 lg:scale-90 origin-top-right" 
+                        forceSettled={badgesSettled}
+                        delay={10000}
+                      />
+                    )}
                   </div>
-                )}
-                {collapsed && groupIdx > 0 && (
-                  <div className="w-8 h-px bg-border/50 mx-auto my-4" />
-                )}
-                {group.items.map((item) => {
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <div key={item.name} className="relative group/nav">
-                      <NavLink
-                        to={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={cn(
-                          'flex items-center rounded-xl transition-all duration-300 overflow-hidden relative',
-                          collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-4 py-2.5 hover:translate-x-1',
-                          isActive
-                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25'
-                            : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                        )}
-                      >
-                        {isActive && !collapsed && (
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/30 rounded-r-full" />
-                        )}
-                        <item.icon className={cn(
-                          'flex-shrink-0 transition-colors z-10',
-                          collapsed ? 'h-5 w-5' : 'h-5 w-5',
-                          isActive ? 'text-white drop-shadow-sm' : 'text-muted-foreground group-hover/nav:text-primary/70',
-                          item.name === 'WhatsApp' && isActive && 'text-white'
-                        )} />
-                        {!collapsed && (
-                          <span className="text-sm font-medium whitespace-nowrap flex-1 z-10">{item.name}</span>
-                        )}
-                        {!collapsed && item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
-                          <NotificationBadge 
-                            count={unreadWa} 
-                            className="ml-auto bg-success shadow-success/40" 
-                            forceSettled={badgesSettled}
-                            delay={10000}
-                          />
-                        )}
-                        {collapsed && item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
-                          <NotificationBadge 
-                            count={unreadWa} 
-                            className="absolute -top-1 -right-1 bg-success shadow-success/40" 
-                            forceSettled={badgesSettled}
-                            delay={10000}
-                          />
-                        )}
-                      </NavLink>
-
-
-
-                      {/* Tooltip in collapsed mode */}
-                      {collapsed && (
-                        <div className={cn(
-                          'pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-[100]',
-                          'rounded-lg bg-popover border border-border px-2.5 py-1.5 shadow-lg',
-                          'text-xs font-medium text-popover-foreground whitespace-nowrap',
-                          'opacity-0 translate-x-1 group-hover/nav:opacity-100 group-hover/nav:translate-x-0',
-                          'transition-all duration-150'
-                        )}>
-                          {item.name}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                  <span className={cn(
+                    'whitespace-nowrap transition-all',
+                    'lg:text-[10px] lg:mt-1 lg:leading-tight',
+                    'text-sm font-medium',
+                    isActive ? 'font-bold' : ''
+                  )}>
+                    {item.name}
+                  </span>
+                </NavLink>
+              );
+            })}
           </nav>
 
-          {/* Settings link — bottom of sidebar */}
-          <div className={cn('border-t border-white/15 dark:border-white/5 pt-4 pb-6 mt-auto', collapsed ? 'px-2' : 'px-3')}>
-            <div className="relative group/nav">
-              <NavLink
-                to="/settings"
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center rounded-xl transition-all duration-200 overflow-hidden',
-                  collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 px-4 py-2.5',
-                  location.pathname === '/settings'
-                    ? 'bg-primary text-white shadow-[0_4px_16px_-3px_rgba(129,159,157,0.35)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-              >
-                <div className="relative flex-shrink-0">
-                  <Settings className={cn(
-                    'h-5 w-5 transition-colors',
-                    location.pathname === '/settings' ? 'text-white' : 'text-muted-foreground'
-                  )} />
-                  {pendingCount > 0 && canShowBadges && (
-                    <NotificationBadge 
-                      count={pendingCount} 
-                      className="absolute -top-1 -right-1 bg-destructive shadow-destructive/40" 
-                      forceSettled={badgesSettled}
-                      delay={10000}
-                    />
-                  )}
-                </div>
-                {!collapsed && (
-                  <span className="text-sm font-medium whitespace-nowrap">Configuración</span>
-                )}
-              </NavLink>
-              {collapsed && (
-                <div className={cn(
-                  'pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-[100]',
-                  'rounded-lg bg-popover border border-border px-2.5 py-1.5 shadow-lg',
-                  'text-xs font-medium text-popover-foreground whitespace-nowrap',
-                  'opacity-0 translate-x-1 group-hover/nav:opacity-100 group-hover/nav:translate-x-0',
-                  'transition-all duration-150'
-                )}>
-                  Configuración
-                </div>
+          {/* Bottom section */}
+          <div className="border-t border-gray-200 dark:border-gray-800 pt-3 pb-4 px-2 flex flex-col gap-2 mt-auto">
+            <NavLink
+              to="/settings"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                'flex items-center transition-all duration-200 relative',
+                'lg:flex-col lg:justify-center lg:h-14 lg:w-[60px] lg:mx-auto lg:rounded-lg',
+                'flex-row gap-3 px-4 py-3 rounded-lg',
+                location.pathname === '/settings'
+                  ? 'bg-primary/10 text-primary font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10'
               )}
+            >
+              <div className="relative flex shrink-0 items-center justify-center">
+                <Settings className={cn(
+                  'transition-colors',
+                  'h-[22px] w-[22px] lg:h-5 lg:w-5',
+                  location.pathname === '/settings' ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+                )} />
+                {pendingCount > 0 && canShowBadges && (
+                  <NotificationBadge 
+                    count={pendingCount} 
+                    className="absolute -top-1.5 -right-1.5 bg-destructive shadow-destructive/40 scale-75 lg:scale-90 origin-top-right" 
+                    forceSettled={badgesSettled}
+                    delay={10000}
+                  />
+                )}
+              </div>
+              <span className={cn(
+                'whitespace-nowrap transition-all',
+                'lg:text-[10px] lg:mt-1 lg:leading-tight',
+                'text-sm font-medium'
+              )}>
+                Ajustes
+              </span>
+            </NavLink>
+
+            {/* Avatar below settings */}
+            <div className="flex justify-center mt-1">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center ring-2 ring-transparent hover:ring-primary/30 transition-all cursor-pointer">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 text-gray-500" />
+                )}
+              </div>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Premium Fade — Solo se activa al hacer scroll para no ensuciar el estado inicial */}
-      <div className={cn(
-        "fixed top-0 left-0 right-0 z-[35] h-12 pointer-events-none bg-gradient-to-b from-slate-50/90 via-slate-50/40 to-transparent dark:from-slate-950/90 dark:via-slate-950/40 dark:to-transparent transition-opacity duration-500",
-        lastScrollY > 10 ? "opacity-100" : "opacity-0"
-      )} />
-
-      {/* ── Top Bar ──────────────────────────────────────────────── */}
-      <header className={cn(
-        "fixed top-2 sm:top-3 lg:top-4 left-2 sm:left-3 lg:left-4 right-2 sm:right-3 lg:right-4 z-40 h-14 flex items-center justify-between gap-2 sm:gap-4",
-        "border border-white/20 dark:border-white/5 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 px-3 sm:px-4 shadow-soft rounded-[16px] sm:rounded-[20px]",
-        "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        showHeader ? "translate-y-0 opacity-100" : "-translate-y-24 opacity-0"
-      )}>
-        {/* Left: Brand */}
-        <div className="flex items-center gap-2 w-max">
-          {/* <AppLauncher /> - Ocultado temporalmente por solicitud del usuario */}
-          <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground/90 leading-none">GetMySession</span>
-          <Button variant="ghost" size="icon-sm" className="lg:hidden ml-1" onClick={() => setSidebarOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-
-        {/* Center: Search Trigger (Opens Command Palette) */}
-        <div className="flex-1 hidden md:flex justify-center max-w-2xl">
-          <button
-            onClick={() => setCommandOpen(true)}
-            className={cn(
-              "relative w-full max-w-md h-10 pl-10 pr-4 rounded-xl border border-white/10 bg-white/10 backdrop-blur-md outline-none transition-all",
-              "hover:bg-white/20 hover:border-primary/20 focus:bg-white/20 focus:border-primary/30 focus:ring-4 focus:ring-primary/10",
-              "text-sm text-muted-foreground/60 text-left cursor-pointer group"
-            )}
-          >
-            <div className="absolute inset-y-0 left-3 flex items-center">
-              <Search className="h-4 w-4 text-muted-foreground/70 group-hover:text-primary transition-colors" />
-            </div>
-            <span>Buscar...</span>
-            <div className="absolute inset-y-0 right-3 flex items-center">
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-muted-foreground/60 opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </div>
-          </button>
-        </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-0.5 sm:gap-1 w-auto justify-end">
-          {hasTourForModule(moduleKey) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => startTour(moduleKey)}
-              title="Iniciar Recorrido Guiado de este módulo"
-              className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200"
-            >
-              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-              <span className="hidden md:inline">Recorrido Guiado</span>
+      {/* ── Main Content Area (to the right of sidebar) ──────────────── */}
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-[72px] transition-all">
+        
+        {/* Top Bar inside main content */}
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 bg-white dark:bg-[#1e1e2e] border-b border-gray-200 dark:border-gray-800 z-30 sticky top-0">
+          
+          {/* Left: Mobile Menu Toggle & Title */}
+          <div className="flex items-center gap-3 w-max">
+            <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-5 w-5" />
             </Button>
-          )}
-          <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
-          <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
-          
-          <div className="w-px h-6 bg-white/20 mx-1 lg:mx-2" />
-          
-          <UserMenu avatarUrl={avatarUrl} />
-        </div>
-      </header>
-
-      {/* Subscription Banner */}
-      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fixed top-14 lg:top-16 left-0 right-0 z-40', contentPl)}>
-        <SubscriptionBanner />
-      </div>
-
-      {/* Main content — Glassmorphism card container */}
-      <div className={cn('transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', contentPl)}>
-        <main className="min-h-screen p-2 sm:p-3 lg:p-4 flex flex-col pt-20 lg:pt-[5.25rem]">
-          <div className="flex-1 backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 rounded-[18px] sm:rounded-[24px] border border-white/30 dark:border-white/5 shadow-elevated p-4 sm:p-6 lg:p-8">
-            {children}
-
-            {/* Footer Information */}
-            <footer className="mt-12 pt-8 border-t border-border/50 flex flex-col gap-4 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 uppercase tracking-widest">
-                <p>© {new Date().getFullYear()} GetMySession · Todos los derechos reservados</p>
-                <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
-                  <button
-                    onClick={() => setShowNomModal(true)}
-                    className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-primary/80 normal-case sm:uppercase"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    <span>Aviso Regulatorio (NOM-024)</span>
-                  </button>
-                  <a 
-                    href="/politicas" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors cursor-pointer"
-                  >
-                    Políticas de uso
-                  </a>
-                  <a 
-                    href="/terminos" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors cursor-pointer"
-                  >
-                    Términos y condiciones
-                  </a>
-                </div>
-              </div>
-            </footer>
+            <span className="text-sm font-semibold tracking-tight text-foreground/90 lg:text-base">
+              GetMySession
+            </span>
           </div>
+
+          {/* Center: Search Trigger (Command Palette) */}
+          <div className="flex-1 hidden md:flex justify-center max-w-xl mx-4">
+            <button
+              onClick={() => setCommandOpen(true)}
+              className={cn(
+                "relative w-full h-9 pl-10 pr-4 rounded-full bg-gray-100 dark:bg-gray-800 border border-transparent outline-none transition-all",
+                "hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-[#1e1e2e] focus:border-primary/30 focus:ring-2 focus:ring-primary/20",
+                "text-sm text-muted-foreground text-left cursor-pointer group"
+              )}
+            >
+              <div className="absolute inset-y-0 left-3 flex items-center">
+                <Search className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <span className="opacity-80">Buscar en GetMySession...</span>
+              <div className="absolute inset-y-0 right-3 flex items-center">
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded bg-white/50 dark:bg-black/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </div>
+            </button>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {hasTourForModule(moduleKey) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => startTour(moduleKey)}
+                title="Iniciar Recorrido Guiado de este módulo"
+                className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex"
+              >
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span>Recorrido</span>
+              </Button>
+            )}
+            <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
+            <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
+            
+            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 lg:mx-2" />
+            
+            <UserMenu avatarUrl={avatarUrl} />
+          </div>
+        </header>
+
+        {/* Subscription Banner */}
+        <div className="w-full z-20">
+          <SubscriptionBanner />
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-950 flex flex-col">
+          <div className="flex-1 w-full max-w-7xl mx-auto">
+            {children}
+          </div>
+
+          {/* Footer Information */}
+          <footer className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-4 text-[11px] text-muted-foreground font-medium max-w-7xl mx-auto w-full pb-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p>© {new Date().getFullYear()} GetMySession. Todos los derechos reservados.</p>
+              <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
+                <button
+                  onClick={() => setShowNomModal(true)}
+                  className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-primary/80"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>Aviso Regulatorio (NOM-024)</span>
+                </button>
+                <a 
+                  href="/politicas" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
+                  Políticas de uso
+                </a>
+                <a 
+                  href="/terminos" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
+                  Términos y condiciones
+                </a>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
 
       {/* Modal de Aviso Regulatorio NOM-024 */}
       <Dialog open={showNomModal} onOpenChange={setShowNomModal}>
-        <DialogContent className="sm:max-w-lg rounded-3xl border border-border/60 p-6 backdrop-blur-2xl">
+        <DialogContent className="sm:max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 p-6 bg-white dark:bg-[#1e1e2e]">
           <DialogHeader className="space-y-2">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -601,14 +502,14 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold">Aviso Regulatorio (NOM-024)</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                <DialogDescription className="text-xs text-muted-foreground mt-1">
                   Cumplimiento normativo y marco de registro clínico electrónico
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="mt-4 space-y-3 text-xs sm:text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-2xl border border-border/40">
+          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
             <p>
               <strong>Aviso Regulatorio (NOM-024):</strong> GetMySession desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la <strong>NOM-024-SSA3-2012</strong> (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad.
             </p>
@@ -617,8 +518,8 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             </p>
           </div>
 
-          <div className="mt-4 flex justify-end">
-            <Button variant="zen" size="sm" onClick={() => setShowNomModal(false)} className="rounded-xl px-6 font-bold">
+          <div className="mt-6 flex justify-end">
+            <Button variant="default" onClick={() => setShowNomModal(false)} className="rounded-lg px-6 font-semibold">
               Entendido
             </Button>
           </div>
@@ -632,11 +533,8 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         onLogout={() => { setShowInactivityModal(false); signOut('logout'); }}
       />
 
-      {/* Floating Help Widget — available on every page */}
+      {/* Floating Help Widget */}
       <HelpWidget />
-
-      {/* Floating AI System Agent — Ocultado temporalmente por solicitud del usuario */}
-      {/* <SystemAgentWidget /> */}
 
       {/* Global Command Palette (⌘K) */}
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
