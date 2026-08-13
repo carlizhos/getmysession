@@ -187,11 +187,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Si el usuario existe pero no ha completado el onboarding, obligarlo a ir.
-  if (profile && profile.onboarding_completed === false && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
-  }
-
   return <>{children}</>;
 };
 

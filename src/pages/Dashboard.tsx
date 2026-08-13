@@ -5,7 +5,6 @@ import MetricCard from '@/components/dashboard/MetricCard';
 import TodayAgenda from '@/components/dashboard/TodayAgenda';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import ActivityHeatmap from '@/components/dashboard/ActivityHeatmap';
-import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import { Appointment } from '@/types';
 import {
   DollarSign,
@@ -282,9 +281,6 @@ const Dashboard = () => {
             Aquí está el resumen de su práctica clínica
           </p>
         </div>
-
-        {/* Onboarding modal — auto-hides when profile + consent are done */}
-        <OnboardingModal />
 
         {/* Quick Stats */}
         <div id="tour-dashboard-kpis" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
