@@ -387,10 +387,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       </aside>
 
       {/* ── Main Content Area ──────────────── */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:pl-[2px] lg:pt-[2px] transition-all duration-300">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:p-2 lg:pl-2 transition-all duration-300">
         
         {/* Rounded white content container with top gradient — exactly like Canva */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-tl-[16px] shadow-[-2px_-2px_15px_rgba(0,0,0,0.03)] dark:shadow-none overflow-y-auto overflow-x-hidden relative">
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-[12px] border border-slate-200/80 dark:border-slate-800 shadow-sm dark:shadow-none overflow-y-auto overflow-x-hidden relative">
           
           {/* Canva-style Gradient Background Layer */}
           <div 
