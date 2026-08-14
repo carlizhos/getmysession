@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useEffect } from 'react';
 import useDarkMode from '@/hooks/useDarkMode';
@@ -246,6 +247,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="min-h-screen bg-slate-200 dark:bg-slate-950 flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
@@ -265,13 +267,25 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           {/* Top Header: Hamburger & Logo */}
           <div className="h-16 flex items-center shrink-0">
             <div className={cn("flex items-center gap-3 w-full", sidebarOpen ? "justify-start px-1" : "justify-center")}>
-              <button 
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-300"
-                title={sidebarOpen ? "Ocultar menú principal" : "Mostrar menú principal"}
-              >
-                <Menu className="h-5 w-5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/40 dark:hover:text-purple-300 transition-colors text-slate-700 dark:text-slate-300"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-all duration-200">
+                      <rect x="5" y="6" width="14" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
+                      <path d="M10 6V18" stroke="currentColor" strokeWidth="2" />
+                      {sidebarOpen && (
+                        <path d="M6 9C6 7.34315 7.34315 6 9 6H10V18H9C7.34315 18 6 16.6569 6 15V9Z" fill="currentColor" />
+                      )}
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-slate-900 text-white border-slate-800 font-medium text-sm">
+                  {sidebarOpen ? "Close menu" : "Open menu"}
+                </TooltipContent>
+              </Tooltip>
               {sidebarOpen && (
                 <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-slate-100 logo-font">GetMySession</span>
               )}
@@ -544,6 +558,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       {/* Global Pricing Modal */}
       <PricingModal />
     </div>
+    </TooltipProvider>
   );
 };
 
