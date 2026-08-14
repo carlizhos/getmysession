@@ -246,7 +246,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#ebf4ff] via-[#f3f0ff] to-[#fbf0ff] dark:from-slate-900 dark:to-slate-950 flex overflow-hidden">
+    <div className="min-h-screen bg-[#f4f5f7] dark:bg-slate-950 flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -387,13 +387,23 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       </aside>
 
       {/* ── Main Content Area ──────────────── */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:py-2 lg:pr-2 transition-all duration-300">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:pl-[2px] lg:pt-[2px] transition-all duration-300">
         
-        {/* Rounded white content container — exactly like Canva */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-[12px] shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.2)] overflow-y-auto overflow-x-hidden relative">
+        {/* Rounded white content container with top gradient — exactly like Canva */}
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-tl-[16px] shadow-[-2px_-2px_15px_rgba(0,0,0,0.03)] dark:shadow-none overflow-y-auto overflow-x-hidden relative">
+          
+          {/* Canva-style Gradient Background Layer */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none z-0 opacity-70 dark:opacity-20"
+            style={{ 
+              background: 'linear-gradient(135deg, #cffafe 0%, #e0e7ff 50%, #fae8ff 100%)',
+              maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
+            }} 
+          />
 
           {/* Floating Top Actions inside content area */}
-          <div className="sticky top-0 z-30 flex items-center justify-between lg:justify-end px-4 sm:px-6 py-4 bg-white/80 dark:bg-[#1a1b26]/80 backdrop-blur-md">
+          <div className="sticky top-0 z-30 flex items-center justify-between lg:justify-end px-4 sm:px-6 py-4 bg-transparent">
             
             {/* Mobile Header (only visible on mobile) */}
             <div className="flex items-center gap-3 lg:hidden">
