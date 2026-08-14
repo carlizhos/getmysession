@@ -396,7 +396,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           <div 
             className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none z-0 opacity-70 dark:opacity-20"
             style={{ 
-              background: 'linear-gradient(135deg, #cffafe 0%, #e0e7ff 50%, #fae8ff 100%)',
+              background: 'linear-gradient(135deg, #bfdbfe 0%, #a7f3d0 100%)',
               maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
             }} 
