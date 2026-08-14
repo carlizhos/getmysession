@@ -259,95 +259,79 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 bg-transparent transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-row shrink-0 bg-transparent transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] overflow-hidden',
         'top-0 bottom-0 left-0',
-        sidebarOpen ? 'w-[240px] translate-x-0' : 'w-[240px] -translate-x-full lg:w-[72px] lg:translate-x-0'
+        sidebarOpen ? 'w-[280px] lg:w-[312px] translate-x-0' : 'w-[280px] -translate-x-full lg:w-[72px] lg:translate-x-0'
       )}>
-        <div className="flex flex-col h-full overflow-hidden px-3">
-          {/* Top Header: Hamburger & Logo */}
-          <div className="h-16 flex items-center shrink-0">
-            <div className={cn("flex items-center gap-3 w-full", sidebarOpen ? "justify-start px-1" : "justify-center")}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button 
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/40 dark:hover:text-purple-300 transition-colors text-slate-700 dark:text-slate-300"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-all duration-200">
-                      <rect x="5" y="6" width="14" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
-                      <path d="M10 6V18" stroke="currentColor" strokeWidth="2" />
-                      {sidebarOpen && (
-                        <path d="M6 9C6 7.34315 7.34315 6 9 6H10V18H9C7.34315 18 6 16.6569 6 15V9Z" fill="currentColor" />
-                      )}
-                    </svg>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-slate-900 text-white border-slate-800 font-medium text-sm">
-                  {sidebarOpen ? "Close menu" : "Open menu"}
-                </TooltipContent>
-              </Tooltip>
-              {sidebarOpen && (
-                <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-slate-100 logo-font">GetMySession</span>
-              )}
-            </div>
+        
+        {/* 1. THIN RAIL (Main Navigation) - Always fixed at 72px */}
+        <div className="w-[72px] flex flex-col h-full overflow-hidden px-1.5 shrink-0 bg-transparent items-center border-r border-transparent">
+          {/* Top Header: Hamburger Toggle */}
+          <div className="h-16 flex items-center justify-center w-full shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/40 dark:hover:text-purple-300 transition-colors text-slate-700 dark:text-slate-300"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-all duration-200">
+                    <rect x="5" y="6" width="14" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
+                    <path d="M10 6V18" stroke="currentColor" strokeWidth="2" />
+                    {sidebarOpen && (
+                      <path d="M6 9C6 7.34315 7.34315 6 9 6H10V18H9C7.34315 18 6 16.6569 6 15V9Z" fill="currentColor" />
+                    )}
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-slate-900 text-white border-slate-800 font-medium text-sm">
+                {sidebarOpen ? "Close menu" : "Open menu"}
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Create Button */}
-          <div className="pt-2 pb-4 flex justify-center">
+          <div className="pt-2 pb-4 flex justify-center w-full">
             <NavLink
               to="/agenda"
-              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
-              className={cn(
-                "flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5",
-                sidebarOpen ? "w-full h-11 gap-2 px-4" : "w-11 h-11"
-              )}
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
             >
               <Plus className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="font-semibold text-sm">Crear cita</span>}
             </NavLink>
           </div>
 
-          {/* Navigation links */}
-          <nav className="flex-1 overflow-y-auto overflow-x-hidden pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Navigation links (Always icon + tiny text) */}
+          <nav className="flex-1 w-full overflow-y-auto overflow-x-hidden pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {navigationItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
                   className={cn(
-                    'flex items-center transition-all duration-200 relative group',
-                    sidebarOpen 
-                      ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
-                      : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
+                    'flex flex-col items-center justify-center h-[52px] w-full rounded-lg px-1 transition-all duration-200 relative group',
                     isActive
                       ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
                   )}
-                  title={!sidebarOpen ? item.name : undefined}
+                  title={item.name}
                 >
                   <div className="relative flex shrink-0 items-center justify-center">
                     <item.icon className={cn(
-                      'transition-colors',
-                      sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                      'transition-colors h-5 w-5',
                       isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
                     )} />
                     {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
                       <NotificationBadge 
                         count={unreadWa} 
-                        className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")} 
+                        className="-top-1.5 -right-1.5 scale-75 origin-top-right absolute bg-red-500 shadow-red-500/40" 
                         forceSettled={badgesSettled}
                         delay={10000}
                       />
                     )}
                   </div>
                   <span className={cn(
-                    'transition-all truncate',
-                    sidebarOpen 
-                      ? 'text-sm font-medium ml-1' 
-                      : 'text-[10px] mt-1 leading-tight w-full text-center',
-                    isActive && !sidebarOpen ? 'font-bold' : ''
+                    'text-[10px] mt-1 leading-tight w-full text-center truncate transition-all',
+                    isActive ? 'font-bold' : ''
                   )}>
                     {item.name}
                   </span>
@@ -357,45 +341,64 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           </nav>
 
           {/* Bottom section */}
-          <div className="pt-3 pb-6 flex flex-col gap-1 mt-auto">
+          <div className="pt-3 pb-6 flex flex-col gap-1 w-full mt-auto">
             <NavLink
               to="/settings"
-              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
               className={cn(
-                'flex items-center transition-all duration-200 relative group',
-                sidebarOpen 
-                  ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
-                  : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
+                'flex flex-col items-center justify-center h-[52px] w-full rounded-lg px-1 transition-all duration-200 relative group',
                 location.pathname === '/settings'
                   ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
               )}
-              title={!sidebarOpen ? 'Ajustes' : undefined}
+              title="Ajustes"
             >
               <div className="relative flex shrink-0 items-center justify-center">
                 <Settings className={cn(
-                  'transition-colors',
-                  sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                  'transition-colors h-5 w-5',
                   location.pathname === '/settings' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
                 )} />
                 {pendingCount > 0 && canShowBadges && (
                   <NotificationBadge 
                     count={pendingCount} 
-                    className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")}
+                    className="-top-1.5 -right-1.5 scale-75 origin-top-right absolute bg-red-500 shadow-red-500/40"
                     forceSettled={badgesSettled}
                     delay={10000}
                   />
                 )}
               </div>
-              <span className={cn(
-                'transition-all truncate',
-                sidebarOpen 
-                  ? 'text-sm font-medium ml-1' 
-                  : 'text-[10px] mt-1 leading-tight w-full text-center'
-              )}>
+              <span className="text-[10px] mt-1 leading-tight w-full text-center truncate">
                 Ajustes
               </span>
             </NavLink>
+          </div>
+        </div>
+
+        {/* 2. SECONDARY SUBMENU PANEL (240px wide) */}
+        <div className={cn(
+          "w-[240px] shrink-0 h-full flex flex-col bg-transparent pt-6 px-4 transition-opacity duration-300",
+          sidebarOpen ? "opacity-100 delay-100" : "opacity-0"
+        )}>
+          {/* This is a placeholder space for submenus like Canva's "Explore templates" */}
+          <div className="flex items-center justify-between mb-4 px-1">
+            <span className="font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100 logo-font">
+              GetMySession
+            </span>
+          </div>
+          
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-2 mt-4">
+            Submenú (Ejemplo)
+          </div>
+          
+          <div className="flex flex-col gap-1">
+            <div className="px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-black/5 dark:bg-white/10 rounded-lg cursor-pointer flex items-center gap-3 transition-colors">
+              <FileText className="w-4 h-4 text-slate-500" /> Resúmenes
+            </div>
+            <div className="px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg cursor-pointer transition-colors flex items-center gap-3">
+              <User className="w-4 h-4 text-slate-400" /> Plantillas de Pacientes
+            </div>
+            <div className="px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg cursor-pointer transition-colors flex items-center gap-3">
+              <Settings className="w-4 h-4 text-slate-400" /> Preferencias
+            </div>
           </div>
         </div>
       </aside>
