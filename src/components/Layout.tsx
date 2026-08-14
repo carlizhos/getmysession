@@ -257,7 +257,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 bg-white dark:bg-slate-900 transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 bg-transparent transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
         'top-0 bottom-0 left-0',
         sidebarOpen ? 'w-[240px] translate-x-0' : 'w-[240px] -translate-x-full lg:w-[72px] lg:translate-x-0'
       )}>
