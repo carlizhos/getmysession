@@ -283,7 +283,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   </svg>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-slate-900 text-white border-slate-800 font-medium text-sm">
+              <TooltipContent side="bottom" className="bg-slate-900 text-white border-slate-800 font-medium text-sm">
                 {sidebarOpen ? "Close menu" : "Open menu"}
               </TooltipContent>
             </Tooltip>
