@@ -246,7 +246,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e2e8f0] via-[#f3e8ff] to-[#fce7f3] dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 flex overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#ebf4ff] via-[#f3f0ff] to-[#fbf0ff] dark:from-slate-900 dark:to-slate-950 flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -255,109 +255,139 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         />
       )}
 
-      {/* ── Canva-style Dual Sidebar ────────────────────────────────────────── */}
-      
-      {/* 1. Thin Rail (Always visible on Desktop) */}
-      <aside className="fixed z-50 h-screen flex-col items-center py-4 bg-transparent hidden lg:flex w-[72px] left-0 top-0 bottom-0 border-r border-slate-200/50 dark:border-slate-800/50">
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-300 mb-4"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-sm shrink-0 mb-4">
-          <img src="/icono.jpg" alt="Logo" className="w-full h-full object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
-        </div>
-
-        <NavLink to="/agenda" className="flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 mb-6">
-          <Plus className="w-5 h-5 shrink-0" />
-        </NavLink>
-
-        <nav className="flex-1 flex flex-col items-center gap-2 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {navigationItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center h-[52px] w-[60px] rounded-lg relative group transition-all',
-                  isActive ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
-                )}
-                title={item.name}
-              >
-                <div className="relative">
-                  <item.icon className={cn('h-5 w-5', isActive ? 'text-slate-900 dark:text-white' : 'group-hover:text-slate-800 dark:group-hover:text-slate-300')} />
-                  {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
-                    <NotificationBadge count={unreadWa} className="absolute -top-1.5 -right-1.5 bg-red-500 scale-75 origin-top-right" forceSettled={badgesSettled} delay={10000} />
-                  )}
-                </div>
-                <span className={cn("text-[9px] mt-1 text-center w-full truncate px-1", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="mt-auto flex flex-col items-center gap-2 w-full pt-4">
-          <NavLink to="/settings" className={cn('flex flex-col items-center justify-center h-[52px] w-[60px] rounded-lg relative group transition-all', location.pathname === '/settings' ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10')} title="Ajustes">
-            <div className="relative">
-              <Settings className={cn('h-5 w-5', location.pathname === '/settings' ? 'text-slate-900 dark:text-white' : 'group-hover:text-slate-800 dark:group-hover:text-slate-300')} />
-              {pendingCount > 0 && canShowBadges && <NotificationBadge count={pendingCount} className="absolute -top-1.5 -right-1.5 bg-red-500 scale-75 origin-top-right" forceSettled={badgesSettled} delay={10000} />}
-            </div>
-            <span className="text-[9px] mt-1 font-medium">Ajustes</span>
-          </NavLink>
-        </div>
-      </aside>
-
-      {/* 2. Submenu Panel (Slides out next to the Rail) */}
+      {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-40 h-screen flex flex-col bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50 transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
-        'top-0 bottom-0 left-0 lg:left-[72px] w-[260px]',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'top-0 bottom-0 left-0',
+        sidebarOpen ? 'w-[240px] translate-x-0' : 'w-[240px] -translate-x-full lg:w-[72px] lg:translate-x-0'
       )}>
-        <div className="flex items-center justify-between h-16 px-4 lg:hidden">
-          <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-slate-100 logo-font">GetMySession</span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(false)}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        <div className="px-4 pt-6 pb-2 hidden lg:block">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Menú Principal</h2>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {navigationItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all',
-                  isActive ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
-                )}
+        <div className="flex flex-col h-full overflow-hidden px-3">
+          {/* Top Header: Hamburger & Logo */}
+          <div className="h-16 flex items-center shrink-0">
+            <div className={cn("flex items-center gap-3 w-full", sidebarOpen ? "justify-start px-1" : "justify-center")}>
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-300"
+                title={sidebarOpen ? "Ocultar menú principal" : "Mostrar menú principal"}
               >
-                <div className="relative flex shrink-0">
-                  <item.icon className={cn('h-5 w-5 transition-colors', isActive ? 'text-violet-600 dark:text-violet-400' : '')} />
-                  {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
-                    <NotificationBadge count={unreadWa} className="absolute -top-1 -right-1 bg-red-500 shadow-red-500/40" forceSettled={badgesSettled} delay={10000} />
+                <Menu className="h-5 w-5" />
+              </button>
+              {sidebarOpen && (
+                <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-slate-100 logo-font">GetMySession</span>
+              )}
+            </div>
+          </div>
+
+          {/* Create Button */}
+          <div className="pt-2 pb-4 flex justify-center">
+            <NavLink
+              to="/agenda"
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={cn(
+                "flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5",
+                sidebarOpen ? "w-full h-11 gap-2 px-4" : "w-11 h-11"
+              )}
+            >
+              <Plus className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span className="font-semibold text-sm">Crear cita</span>}
+            </NavLink>
+          </div>
+
+          {/* Navigation links */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {navigationItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+                  className={cn(
+                    'flex items-center transition-all duration-200 relative group',
+                    sidebarOpen 
+                      ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
+                      : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
+                    isActive
+                      ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
                   )}
-                </div>
-                <span className={cn('text-sm truncate', isActive ? 'font-semibold' : 'font-medium')}>{item.name}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
+                  title={!sidebarOpen ? item.name : undefined}
+                >
+                  <div className="relative flex shrink-0 items-center justify-center">
+                    <item.icon className={cn(
+                      'transition-colors',
+                      sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                      isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
+                    )} />
+                    {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
+                      <NotificationBadge 
+                        count={unreadWa} 
+                        className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")} 
+                        forceSettled={badgesSettled}
+                        delay={10000}
+                      />
+                    )}
+                  </div>
+                  <span className={cn(
+                    'transition-all truncate',
+                    sidebarOpen 
+                      ? 'text-sm font-medium ml-1' 
+                      : 'text-[10px] mt-1 leading-tight w-full text-center',
+                    isActive && !sidebarOpen ? 'font-bold' : ''
+                  )}>
+                    {item.name}
+                  </span>
+                </NavLink>
+              );
+            })}
+          </nav>
+
+          {/* Bottom section */}
+          <div className="pt-3 pb-6 flex flex-col gap-1 mt-auto">
+            <NavLink
+              to="/settings"
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={cn(
+                'flex items-center transition-all duration-200 relative group',
+                sidebarOpen 
+                  ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
+                  : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
+                location.pathname === '/settings'
+                  ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
+              )}
+              title={!sidebarOpen ? 'Ajustes' : undefined}
+            >
+              <div className="relative flex shrink-0 items-center justify-center">
+                <Settings className={cn(
+                  'transition-colors',
+                  sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                  location.pathname === '/settings' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
+                )} />
+                {pendingCount > 0 && canShowBadges && (
+                  <NotificationBadge 
+                    count={pendingCount} 
+                    className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")}
+                    forceSettled={badgesSettled}
+                    delay={10000}
+                  />
+                )}
+              </div>
+              <span className={cn(
+                'transition-all truncate',
+                sidebarOpen 
+                  ? 'text-sm font-medium ml-1' 
+                  : 'text-[10px] mt-1 leading-tight w-full text-center'
+              )}>
+                Ajustes
+              </span>
+            </NavLink>
+          </div>
+        </div>
       </aside>
 
       {/* ── Main Content Area ──────────────── */}
-      <div className={cn(
-        "flex-1 flex flex-col h-screen overflow-hidden lg:py-2 lg:pr-2 transition-all duration-300",
-        "lg:pl-[72px]"
-      )}>
+      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:py-2 lg:pr-2 transition-all duration-300">
         
         {/* Rounded white content container — exactly like Canva */}
         <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-[12px] shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.2)] overflow-y-auto overflow-x-hidden relative">
