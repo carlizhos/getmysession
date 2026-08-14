@@ -246,7 +246,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] dark:bg-slate-950 flex overflow-hidden">
+    <div className="min-h-screen bg-slate-200 dark:bg-slate-950 flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -257,7 +257,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
       {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 bg-white dark:bg-slate-900 transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
         'top-0 bottom-0 left-0',
         sidebarOpen ? 'w-[240px] translate-x-0' : 'w-[240px] -translate-x-full lg:w-[72px] lg:translate-x-0'
       )}>
@@ -387,10 +387,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
       </aside>
 
       {/* ── Main Content Area ──────────────── */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:pt-3 lg:pr-3 lg:pb-3 lg:pl-0 transition-all duration-300">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden pt-2 pr-2 pb-2 pl-0 lg:pt-4 lg:pr-4 lg:pb-4 lg:pl-0 transition-all duration-300">
         
         {/* Rounded white content container with top gradient — exactly like Canva */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-tl-[16px] lg:rounded-tr-[16px] lg:rounded-br-[16px] lg:rounded-bl-[16px] border border-slate-300/70 dark:border-slate-700 shadow-md dark:shadow-none overflow-y-auto overflow-x-hidden relative">
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] rounded-tl-[16px] rounded-tr-[16px] rounded-br-[16px] rounded-bl-[16px] border border-slate-300/80 dark:border-slate-700 shadow-lg dark:shadow-none overflow-y-auto overflow-x-hidden relative">
           
           {/* Canva-style Gradient Background Layer */}
           <div 
