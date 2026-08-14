@@ -379,14 +379,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           sidebarOpen ? "opacity-100 delay-100" : "opacity-0"
         )}>
           {/* This is a placeholder space for submenus like Canva's "Explore templates" */}
-          <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center justify-between mb-8 px-1">
             <span className="font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100 logo-font">
               GetMySession
             </span>
-          </div>
-          
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-2 mt-4">
-            Submenú (Ejemplo)
           </div>
           
           <div className="flex flex-col gap-1">
