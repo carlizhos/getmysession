@@ -274,7 +274,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   onClick={() => setSidebarOpen(!sidebarOpen)}
                   className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/40 dark:hover:text-purple-300 transition-colors text-slate-700 dark:text-slate-300"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-all duration-200">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 transition-all duration-200">
                     <rect x="5" y="6" width="14" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
                     <path d="M10 6V18" stroke="currentColor" strokeWidth="2" />
                     {sidebarOpen && (
