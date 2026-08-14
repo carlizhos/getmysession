@@ -246,86 +246,94 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   }, [location.pathname, user]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#1e1e2e] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#ebf4ff] via-[#f3f0ff] to-[#fbf0ff] dark:from-slate-900 dark:to-slate-950 flex overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* ── Canva-style Sidebar ──────────────────────────────────────────────── */}
       <aside className={cn(
-        'fixed z-50 lg:z-40 h-full flex flex-col',
-        'bg-white dark:bg-[#1e1e2e] border-r border-gray-200 dark:border-gray-800',
-        'top-0 bottom-0 left-0 transition-transform duration-300',
-        'w-[240px] lg:w-[72px]',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        'fixed z-50 lg:relative lg:z-40 h-screen flex flex-col shrink-0 transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]',
+        'top-0 bottom-0 left-0',
+        sidebarOpen ? 'w-[240px] translate-x-0' : 'w-[240px] -translate-x-full lg:w-[72px] lg:translate-x-0'
       )}>
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Mobile close button */}
-          <div className="flex h-12 items-center justify-end px-3 lg:hidden">
-            <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
+        <div className="flex flex-col h-full overflow-hidden px-3">
+          {/* Top Header: Hamburger & Logo */}
+          <div className="h-16 flex items-center shrink-0">
+            <div className={cn("flex items-center gap-3 w-full", sidebarOpen ? "justify-start px-1" : "justify-center")}>
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-300"
+                title={sidebarOpen ? "Ocultar menú principal" : "Mostrar menú principal"}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              {sidebarOpen && (
+                <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-slate-100 logo-font">GetMySession</span>
+              )}
+            </div>
           </div>
 
-          {/* Top Logo */}
-          <div className="pt-4 pb-4 flex flex-col items-center gap-4">
-            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-800 shrink-0">
-              <img src="/icono.jpg" alt="Logo" className="w-full h-full object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
-            </div>
-
-            {/* Prominent Create Button */}
+          {/* Create Button */}
+          <div className="pt-2 pb-4 flex justify-center">
             <NavLink
               to="/agenda"
-              onClick={() => setSidebarOpen(false)}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary/80 text-white shadow-md hover:shadow-lg transition-all hover:scale-105 shrink-0"
-              title="Crear nueva cita"
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={cn(
+                "flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5",
+                sidebarOpen ? "w-full h-11 gap-2 px-4" : "w-11 h-11"
+              )}
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span className="font-semibold text-sm">Crear cita</span>}
             </NavLink>
           </div>
 
           {/* Navigation links */}
-          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden pb-6 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {navigationItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
                   className={cn(
-                    'flex items-center transition-all duration-200 relative',
-                    'lg:flex-col lg:justify-center lg:h-14 lg:w-[60px] lg:mx-auto lg:rounded-lg',
-                    'flex-row gap-3 px-4 py-3 rounded-lg',
+                    'flex items-center transition-all duration-200 relative group',
+                    sidebarOpen 
+                      ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
+                      : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
                     isActive
-                      ? 'bg-primary/10 text-primary font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10'
+                      ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
                   )}
+                  title={!sidebarOpen ? item.name : undefined}
                 >
                   <div className="relative flex shrink-0 items-center justify-center">
                     <item.icon className={cn(
                       'transition-colors',
-                      'h-[22px] w-[22px] lg:h-5 lg:w-5',
-                      isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+                      sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                      isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
                     )} />
                     {item.name === 'WhatsApp' && unreadWa > 0 && canShowBadges && (
                       <NotificationBadge 
                         count={unreadWa} 
-                        className="absolute -top-1.5 -right-1.5 bg-success shadow-success/40 scale-75 lg:scale-90 origin-top-right" 
+                        className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")} 
                         forceSettled={badgesSettled}
                         delay={10000}
                       />
                     )}
                   </div>
                   <span className={cn(
-                    'whitespace-nowrap transition-all',
-                    'lg:text-[10px] lg:mt-1 lg:leading-tight',
-                    'text-sm font-medium',
-                    isActive ? 'font-bold' : ''
+                    'transition-all truncate',
+                    sidebarOpen 
+                      ? 'text-sm font-medium ml-1' 
+                      : 'text-[10px] mt-1 leading-tight w-full text-center',
+                    isActive && !sidebarOpen ? 'font-bold' : ''
                   )}>
                     {item.name}
                   </span>
@@ -335,129 +343,109 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           </nav>
 
           {/* Bottom section */}
-          <div className="border-t border-gray-200 dark:border-gray-800 pt-3 pb-4 px-2 flex flex-col gap-2 mt-auto">
+          <div className="pt-3 pb-6 flex flex-col gap-1 mt-auto">
             <NavLink
               to="/settings"
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
               className={cn(
-                'flex items-center transition-all duration-200 relative',
-                'lg:flex-col lg:justify-center lg:h-14 lg:w-[60px] lg:mx-auto lg:rounded-lg',
-                'flex-row gap-3 px-4 py-3 rounded-lg',
+                'flex items-center transition-all duration-200 relative group',
+                sidebarOpen 
+                  ? 'flex-row gap-3 px-3 py-2.5 rounded-lg'
+                  : 'flex-col justify-center h-[52px] w-full rounded-lg px-1',
                 location.pathname === '/settings'
-                  ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10'
+                  ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
               )}
+              title={!sidebarOpen ? 'Ajustes' : undefined}
             >
               <div className="relative flex shrink-0 items-center justify-center">
                 <Settings className={cn(
                   'transition-colors',
-                  'h-[22px] w-[22px] lg:h-5 lg:w-5',
-                  location.pathname === '/settings' ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+                  sidebarOpen ? 'h-[20px] w-[20px]' : 'h-5 w-5',
+                  location.pathname === '/settings' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300'
                 )} />
                 {pendingCount > 0 && canShowBadges && (
                   <NotificationBadge 
                     count={pendingCount} 
-                    className="absolute -top-1.5 -right-1.5 bg-destructive shadow-destructive/40 scale-75 lg:scale-90 origin-top-right" 
+                    className={cn("absolute bg-red-500 shadow-red-500/40", sidebarOpen ? "-top-1 -right-1" : "-top-1.5 -right-1.5 scale-75 origin-top-right")}
                     forceSettled={badgesSettled}
                     delay={10000}
                   />
                 )}
               </div>
               <span className={cn(
-                'whitespace-nowrap transition-all',
-                'lg:text-[10px] lg:mt-1 lg:leading-tight',
-                'text-sm font-medium'
+                'transition-all truncate',
+                sidebarOpen 
+                  ? 'text-sm font-medium ml-1' 
+                  : 'text-[10px] mt-1 leading-tight w-full text-center'
               )}>
                 Ajustes
               </span>
             </NavLink>
-
-            {/* Avatar below settings */}
-            <div className="flex justify-center mt-1">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center ring-2 ring-transparent hover:ring-primary/30 transition-all cursor-pointer">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-4 h-4 text-gray-500" />
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </aside>
 
-      {/* ── Main Content Area (to the right of sidebar) ──────────────── */}
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-[72px] transition-all">
+      {/* ── Main Content Area ──────────────── */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:py-2 lg:pr-2 transition-all duration-300">
         
-        {/* Rounded content container — like Canva */}
-        <div className="flex-1 flex flex-col min-h-screen bg-[#f0f0f0] dark:bg-slate-950 lg:rounded-tl-[20px] overflow-hidden">
+        {/* Rounded white content container — exactly like Canva */}
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a1b26] lg:rounded-[12px] shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.2)] overflow-y-auto overflow-x-hidden relative">
 
-          {/* Top Bar inside rounded content */}
-          <header className="h-14 flex items-center justify-between px-4 sm:px-6 bg-[#f0f0f0] dark:bg-slate-950 z-30 sticky top-0">
+          {/* Floating Top Actions inside content area */}
+          <div className="sticky top-0 z-30 flex items-center justify-between lg:justify-end px-4 sm:px-6 py-4 bg-white/80 dark:bg-[#1a1b26]/80 backdrop-blur-md">
             
-            {/* Left: Mobile Menu Toggle & Title */}
-            <div className="flex items-center gap-3 w-max">
-              <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+            {/* Mobile Header (only visible on mobile) */}
+            <div className="flex items-center gap-3 lg:hidden">
+              <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(true)}>
                 <Menu className="h-5 w-5" />
               </Button>
-              <span className="text-sm font-semibold tracking-tight text-foreground/90 lg:text-base">
-                GetMySession
-              </span>
-            </div>
-
-            {/* Center: Search Trigger (Command Palette) */}
-            <div className="flex-1 hidden md:flex justify-center max-w-xl mx-4">
-              <button
-                onClick={() => setCommandOpen(true)}
-                className={cn(
-                  "relative w-full h-9 pl-10 pr-4 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none transition-all shadow-sm",
-                  "hover:border-gray-300 dark:hover:border-gray-600 hover:shadow focus:border-primary/30 focus:ring-2 focus:ring-primary/20",
-                  "text-sm text-muted-foreground text-left cursor-pointer group"
-                )}
-              >
-                <div className="absolute inset-y-0 left-3 flex items-center">
-                  <Search className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <span className="opacity-80">Buscar en GetMySession...</span>
-                <div className="absolute inset-y-0 right-3 flex items-center">
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded bg-gray-100 dark:bg-black/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground border border-gray-200 dark:border-gray-700">
-                    <span className="text-xs">⌘</span>K
-                  </kbd>
-                </div>
-              </button>
+              <span className="font-bold tracking-tight text-slate-800 dark:text-slate-100">GetMySession</span>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              {/* Compact Search Trigger */}
+              <button
+                onClick={() => setCommandOpen(true)}
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Buscar (⌘K)"
+              >
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
+              </button>
+
               {hasTourForModule(moduleKey) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => startTour(moduleKey)}
-                  title="Iniciar Recorrido Guiado de este módulo"
-                  className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex"
+                  title="Iniciar Recorrido Guiado"
+                  className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex h-10 rounded-full px-4"
                 >
                   <Sparkles className="h-4 w-4 text-primary animate-pulse" />
                   <span>Recorrido</span>
                 </Button>
               )}
-              <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
-              <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
               
-              <div className="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1 lg:mx-2" />
+              <div className="flex items-center gap-1">
+                <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
+                <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
+              </div>
               
-              <UserMenu avatarUrl={avatarUrl} />
+              <div className="ml-1 sm:ml-2">
+                <UserMenu avatarUrl={avatarUrl} />
+              </div>
             </div>
-          </header>
+          </div>
 
           {/* Subscription Banner */}
-          <div className="w-full z-20">
+          <div className="w-full z-20 px-4 sm:px-6">
             <SubscriptionBanner />
           </div>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
-          <div className="flex-1 w-full max-w-7xl mx-auto">
+          <main className="flex-1 p-4 sm:p-6 lg:px-10 lg:py-6 flex flex-col">
+          <div className="flex-1 w-full max-w-[1400px] mx-auto">
             {children}
           </div>
 
