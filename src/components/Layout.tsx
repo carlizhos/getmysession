@@ -426,38 +426,9 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
               <span className="font-bold tracking-tight text-slate-800 dark:text-slate-100">GetMySession</span>
             </div>
 
-            {/* Right: Actions */}
+            {/* Right: Actions (Ocultos temporalmente para reubicación) */}
             <div className="flex items-center gap-1.5 sm:gap-3">
-              {/* Compact Search Trigger */}
-              <button
-                onClick={() => setCommandOpen(true)}
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Buscar (⌘K)"
-              >
-                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
-              </button>
-
-              {hasTourForModule(moduleKey) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => startTour(moduleKey)}
-                  title="Iniciar Recorrido Guiado"
-                  className="gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-all duration-200 hidden sm:flex h-10 rounded-full px-4"
-                >
-                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                  <span>Recorrido</span>
-                </Button>
-              )}
-              
-              <div className="flex items-center gap-1">
-                <MessageBell count={unreadWa} forceSettled={badgesSettled} canShow={canShowBadges} />
-                <NotificationBell forceSettled={badgesSettled} canShow={canShowBadges} />
-              </div>
-              
-              <div className="ml-1 sm:ml-2">
-                <UserMenu avatarUrl={avatarUrl} />
-              </div>
+              {/* Espacio reservado temporalmente */}
             </div>
           </div>
 
