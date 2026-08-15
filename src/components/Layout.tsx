@@ -416,24 +416,24 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
           />
 
           {/* Floating Top Actions inside content area */}
-          <div className="sticky top-0 z-30 flex items-center justify-between lg:justify-end px-4 sm:px-6 py-4 bg-transparent">
+          <div className="absolute top-4 sm:top-6 lg:top-10 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:px-10 pointer-events-none">
             
             {/* Mobile Header (only visible on mobile) */}
-            <div className="flex items-center gap-3 lg:hidden">
+            <div className="flex items-center gap-3 lg:hidden pointer-events-auto">
               <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(true)}>
                 <Menu className="h-5 w-5" />
               </Button>
-              <span className="font-bold tracking-tight text-slate-800 dark:text-slate-100">GetMySession</span>
+              <span className="font-bold tracking-tight text-slate-800 dark:text-slate-100 shadow-sm">GetMySession</span>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 pointer-events-auto ml-auto">
               <SubscriptionBanner />
             </div>
           </div>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:px-10 lg:py-6 flex flex-col">
+          <main className="flex-1 p-4 sm:p-6 lg:p-10 flex flex-col relative z-20 pt-16 sm:pt-20 lg:pt-10">
           <div className="flex-1 w-full max-w-[1400px] mx-auto">
             {children}
           </div>
