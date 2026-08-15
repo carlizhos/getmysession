@@ -426,15 +426,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
               <span className="font-bold tracking-tight text-slate-800 dark:text-slate-100">GetMySession</span>
             </div>
 
-            {/* Right: Actions (Ocultos temporalmente para reubicación) */}
+            {/* Right: Actions */}
             <div className="flex items-center gap-1.5 sm:gap-3">
-              {/* Espacio reservado temporalmente */}
+              <SubscriptionBanner />
             </div>
-          </div>
-
-          {/* Subscription Banner */}
-          <div className="w-full z-20 px-4 sm:px-6">
-            <SubscriptionBanner />
           </div>
 
           {/* Page Content */}
