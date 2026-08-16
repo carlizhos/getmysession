@@ -58,7 +58,7 @@ const navigationItems = [
   { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
   { name: 'Consentimientos', href: '/consents', icon: FileSignature },
   { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
-  { name: 'Centro de Ayuda', href: '/help', icon: HelpCircle },
+  { name: 'Ayuda', href: '/help', icon: HelpCircle },
 ];
 
 interface LayoutProps {
