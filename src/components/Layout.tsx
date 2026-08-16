@@ -350,7 +350,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   ? 'bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
               )}
-              title="Ajustes"
+              title="Configuración"
             >
               <div className="relative flex shrink-0 items-center justify-center">
                 <Settings className={cn(
@@ -367,7 +367,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                 )}
               </div>
               <span className="text-[10px] mt-1 leading-tight w-full text-center truncate">
-                Ajustes
+                Configuración
               </span>
             </NavLink>
           </div>
