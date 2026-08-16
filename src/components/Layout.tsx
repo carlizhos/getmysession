@@ -49,14 +49,14 @@ import PricingModal from '@/components/subscription/PricingModal';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 const navigationItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Agenda', href: '/agenda', icon: Calendar },
-  { name: 'Asistente IA', href: '/ai-assistant', icon: Brain },
-  { name: 'Notas Clínicas', href: '/notes', icon: FileText },
+  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Facturación', href: '/finance', icon: DollarSign },
+  { name: 'IA', href: '/ai-assistant', icon: Brain },
+  { name: 'Notas', href: '/notes', icon: FileText },
   { name: 'Pruebas', href: '/tests', icon: BrainCircuit },
   { name: 'Consentimientos', href: '/consents', icon: FileSignature },
-  { name: 'Finanzas', href: '/finance', icon: DollarSign },
   { name: 'WhatsApp', href: '/messages', icon: MessageCircle },
   { name: 'Centro de Ayuda', href: '/help', icon: HelpCircle },
 ];
