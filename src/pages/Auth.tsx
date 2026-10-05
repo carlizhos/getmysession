@@ -69,15 +69,19 @@ const Auth = () => {
     const [googleLoading, setGoogleLoading] = useState(false);
     const [mfaPending, setMfaPending] = useState(false);
     const [mfaFactorId, setMfaFactorId] = useState('');
-    const [gsiReady, setGsiReady] = useState(false);
-    const googleBtnRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
     const [showResendEmail, setShowResendEmail] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
     const [isMagicLink, setIsMagicLink] = useState(false);
     const [sentMagicLinkEmail, setSentMagicLinkEmail] = useState<string | null>(null);
     const [resendTimer, setResendTimer] = useState<number>(0);
-    const { signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogleIdToken } = useAuth();
+    const { user, signIn, signUp, resendConfirmationEmail, signInWithMagicLink, signInWithGoogle, signInWithGoogleIdToken } = useAuth();
+
+    useEffect(() => {
+        if (user) {
+            navigate('/', { replace: true });
+        }
+    }, [user, navigate]);
 
     useEffect(() => {
         if (typeof document !== 'undefined') {
@@ -160,7 +164,19 @@ const Auth = () => {
         }
     }, []);
 
-    // Handle the credential returned by Google GSI
+    const handleGoogleSignIn = async () => {
+        setGoogleLoading(true);
+        try {
+            const { error } = await signInWithGoogle();
+            if (error) throw error;
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error('Error al iniciar sesión con Google: ' + error.message);
+            setGoogleLoading(false);
+        }
+    };
+
+    // Handle credential if user signs in via Google One-Tap
     const handleGoogleCredential = useCallback(async (response: { credential: string }) => {
         setGoogleLoading(true);
         try {
@@ -176,22 +192,26 @@ const Auth = () => {
         }
     }, [signInWithGoogleIdToken, navigate]);
 
-    // Initialize Google Identity Services
+    // Optional Google One-Tap prompt in background
     useEffect(() => {
-        if (!GOOGLE_CLIENT_ID) return;
+        if (!GOOGLE_CLIENT_ID || typeof window === 'undefined') return;
 
         const initGSI = () => {
             if (!window.google) return;
-            if (!(window as any).__gsiAuthInitialized) {
-                (window as any).__gsiAuthInitialized = true;
-                window.google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleGoogleCredential,
-                    use_fedcm_for_prompt: true,
-                    auto_select: false,
-                });
+            try {
+                if (!(window as any).__gsiAuthInitialized) {
+                    (window as any).__gsiAuthInitialized = true;
+                    window.google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID,
+                        callback: handleGoogleCredential,
+                        auto_select: false,
+                        cancel_on_tap_outside: true,
+                    });
+                }
+                window.google.accounts.id.prompt();
+            } catch (e) {
+                // Silently ignore if origin is not registered for One-Tap
             }
-            setGsiReady(true);
         };
 
         if (window.google) {
@@ -199,27 +219,12 @@ const Auth = () => {
             return;
         }
 
-        // Script already in DOM (added via index.html)
         const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
         if (existingScript) {
             existingScript.addEventListener('load', initGSI);
             return () => existingScript.removeEventListener('load', initGSI);
         }
     }, [handleGoogleCredential]);
-
-    // Render the official Google-branded button inside our container
-    useEffect(() => {
-        if (!gsiReady || !googleBtnRef.current || !window.google) return;
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-            type: 'standard',
-            theme: 'outline',
-            size: 'large',
-            text: isLogin ? 'signin_with' : 'signup_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            width: googleBtnRef.current.offsetWidth || 400,
-        });
-    }, [gsiReady, isLogin]);
 
     const handleResendEmail = async () => {
         setResendLoading(true);
@@ -443,33 +448,16 @@ const Auth = () => {
                         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
                             {/* Google Sign-In Button Top */}
                             <div className="w-full pb-2">
-                                {GOOGLE_CLIENT_ID && gsiReady ? (
-                                    <div className="flex justify-center w-full overflow-hidden rounded-md" ref={googleBtnRef} />
-                                ) : (
-                                    <Button
-                                        type="button"
-                                        className="w-full gap-2 border-border/80 h-10 shadow-sm"
-                                        variant="outline"
-                                        disabled={loading || googleLoading}
-                                        onClick={async () => {
-                                            setGoogleLoading(true);
-                                            try {
-                                                const { error } = await supabase.auth.signInWithOAuth({
-                                                    provider: 'google',
-                                                    options: { redirectTo: `${window.location.origin}/` },
-                                                });
-                                                if (error) throw error;
-                                            } catch (err: unknown) {
-                                                const error = err as Error;
-                                                toast.error('Error: ' + error.message);
-                                                setGoogleLoading(false);
-                                            }
-                                        }}
-                                    >
-                                        {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleSVG />}
-                                        <span className="font-medium text-sm">Continúa con Google</span>
-                                    </Button>
-                                )}
+                                <Button
+                                    type="button"
+                                    className="w-full gap-2 border-border/80 h-10 shadow-sm font-medium hover:bg-muted/50 transition-colors"
+                                    variant="outline"
+                                    disabled={loading || googleLoading}
+                                    onClick={handleGoogleSignIn}
+                                >
+                                    {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleSVG />}
+                                    <span className="font-medium text-sm">Continúa con Google</span>
+                                </Button>
                             </div>
 
                             <div className="relative my-5">

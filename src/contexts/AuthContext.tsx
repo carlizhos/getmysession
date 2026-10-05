@@ -156,27 +156,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
+                const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuario';
+                await supabase.from('profiles').upsert({
+                    id: session.user.id,
+                    full_name: fullName,
+                }, { onConflict: 'id' });
+
                 const start = new Date();
                 setSessionStartTime(start);
                 sessionStartRef.current = start;
-                fetchOrganization(session.user.id);
+                await fetchOrganization(session.user.id);
             }
             setLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
 
             if (event === 'SIGNED_IN' && session?.user) {
+                const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuario';
+                await supabase.from('profiles').upsert({
+                    id: session.user.id,
+                    full_name: fullName,
+                }, { onConflict: 'id' });
+
                 const start = new Date();
                 setSessionStartTime(start);
                 sessionStartRef.current = start;
-                fetchOrganization(session.user.id);
+                await logSessionEvent(session.user.id, session.user.email ?? '', 'login');
+                await fetchOrganization(session.user.id);
             }
             if (event === 'SIGNED_OUT') {
                 setSessionStartTime(null);
@@ -342,6 +355,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             provider: 'google',
             options: {
                 redirectTo: `${window.location.origin}/`,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
             }
         });
         return { error };
