@@ -6,7 +6,7 @@ import { Search, X, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ── Catálogo CIE-10 Capítulo V (Trastornos Mentales y del Comportamiento) ───
-// NOM-024-SSA3-2012 INT-01: Usar codificación CIE-10 en expediente clínico
+// MinSalud Colombia (Res. 2275/2023 RIPS y Res. 1995/1999): Usar codificación CIE-10 en historia clínica
 export const CIE10_MENTAL_HEALTH: { code: string; description: string; group: string }[] = [
     // Trastornos del humor (afectivos)
     { code: 'F31.0', description: 'Trastorno bipolar, episodio hipomaníaco', group: 'Trastornos del humor' },

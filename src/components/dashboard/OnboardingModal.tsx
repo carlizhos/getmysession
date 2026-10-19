@@ -80,8 +80,8 @@ const OnboardingModal = () => {
     const steps = [
         {
             id: 'profile',
-            label: 'Perfil Profesional y Cédulas',
-            description: 'Nombre y cédulas requeridos por la NOM-024.',
+            label: 'Perfil Profesional y Habilitación',
+            description: 'Nombre, Tarjeta Profesional (Colpsic) y REPS requeridos por MinSalud.',
             icon: Settings2,
             cta: 'Configurar',
             href: '/settings',

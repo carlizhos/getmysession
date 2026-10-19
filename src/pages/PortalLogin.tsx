@@ -115,7 +115,7 @@ export default function PortalLogin() {
 
             <div className="pt-4 border-t border-border/40 flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-              <span>Conexión cifrada de extremo a extremo · NOM-024-SSA3</span>
+              <span>Conexión cifrada de extremo a extremo · Ley 2015 / Res. 1995 (MinSalud)</span>
             </div>
           </form>
         </CardContent>

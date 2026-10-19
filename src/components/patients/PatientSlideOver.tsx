@@ -394,16 +394,26 @@ const PatientSlideOver = ({
                                             )}
                                         </div>
 
-                                        {/* Datos NOM-024 */}
-                                        {(patient.curp || patient.gender || patient.occupation) && (
+                                        {/* Datos Oficiales MinSalud / Colombia */}
+                                        {(patient.document_number || patient.curp || patient.gender || patient.occupation || patient.municipality_code) && (
                                             <div className="space-y-2 pt-1">
                                                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                                    <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Datos oficiales (NOM-024)
+                                                    <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Identificación Oficial (Colombia · RIPS)
                                                 </p>
-                                                {patient.curp && (
+                                                {(patient.document_number || patient.curp) && (
                                                     <div className="flex items-center justify-between text-sm p-3 rounded-xl bg-muted/40">
-                                                        <span className="text-muted-foreground">CURP</span>
-                                                        <span className="font-mono text-xs font-medium tracking-wide">{patient.curp}</span>
+                                                        <span className="text-muted-foreground">{patient.document_type || 'Documento'}:</span>
+                                                        <span className="font-mono text-xs font-medium tracking-wide">
+                                                            {patient.document_number || patient.curp}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {patient.municipality_code && (
+                                                    <div className="flex items-center justify-between text-sm p-3 rounded-xl bg-muted/40">
+                                                        <span className="text-muted-foreground">Municipio (DANE)</span>
+                                                        <span className="text-xs font-medium">
+                                                            {patient.municipality_code === '11001' ? 'Bogotá D.C.' : patient.municipality_code}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 {patient.gender && (
@@ -578,7 +588,7 @@ const PatientSlideOver = ({
                                                                     )}
                                                                     {item.type === 'payment' && (
                                                                         <div className="space-y-1">
-                                                                            <p className="text-sm font-semibold">${(item.data as any).amount} MXN</p>
+                                                                            <p className="text-sm font-semibold">${Number((item.data as any).amount).toLocaleString('es-CO')} COP</p>
                                                                             <p className="text-[10px] text-muted-foreground">Vía {(item.data as any).method} • {(item.data as any).status}</p>
                                                                         </div>
                                                                     )}
@@ -757,7 +767,7 @@ const PatientSlideOver = ({
                                                             <ShoppingCart className="h-4 w-4" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-bold">${p.amount} MXN</p>
+                                                            <p className="text-sm font-bold">${Number(p.amount).toLocaleString('es-CO')} COP</p>
                                                             <p className="text-[10px] text-muted-foreground capitalize">{p.method} • {p.status}</p>
                                                         </div>
                                                     </div>

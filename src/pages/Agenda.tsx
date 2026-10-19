@@ -450,7 +450,7 @@ const AgendaPage = () => {
                     <Badge variant="outline" className="text-[10px] font-bold px-1.5 h-5 border-[#5da05d]/30 text-[#5da05d] bg-[#5da05d]/5">HOY</Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Zona horaria: {getTimezoneFriendlyLabel(organization?.settings?.timezone || 'America/Mexico_City')}</p>
+                <p className="text-xs text-muted-foreground mt-1">Zona horaria: {getTimezoneFriendlyLabel(organization?.settings?.timezone || 'America/Bogota')}</p>
               </div>
 
             </div>

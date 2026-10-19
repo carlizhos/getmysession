@@ -101,7 +101,7 @@ export const useMutateNotes = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Nota archivada (retenida 5 años según NOM-024)');
+      toast.success('Nota archivada (custodiada según Res. 839/2017 MinSalud)');
       queryClient.invalidateQueries({ queryKey: ['session_notes'] });
     },
     onError: (error: any) => {

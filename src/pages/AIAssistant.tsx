@@ -60,7 +60,7 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
   const [{ data: patient }, { data: notes }] = await Promise.all([
     supabase
       .from('patients')
-      .select('name, date_of_birth, birth_date, gender, occupation, status, tags, curp, patient_clinical_data(notes)')
+      .select('name, date_of_birth, birth_date, gender, occupation, status, tags, document_type, document_number, patient_clinical_data(notes)')
       .eq('id', patientId)
       .eq('organization_id', organizationId)
       .single(),
@@ -174,7 +174,7 @@ const AIAssistant = () => {
       const recognition = new SpeechVar();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'es-MX';
+      recognition.lang = 'es-CO';
 
       recognition.onstart = () => {
         setIsListening(true);

@@ -88,7 +88,7 @@ const NewIncomeDialog = ({ open, onOpenChange, onSuccess }: NewIncomeDialogProps
             const { error } = await supabase.from('payments').insert({
                 patient_name: formData.description, // Usamos patient_name como descripción general
                 amount: amountNum,
-                currency: 'mxn',
+                currency: 'cop',
                 status: 'paid',
                 method: formData.method,
                 category: formData.category,
@@ -141,11 +141,11 @@ const NewIncomeDialog = ({ open, onOpenChange, onSuccess }: NewIncomeDialogProps
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                                <CreditCard className="h-3.5 w-3.5" /> Monto (MXN)
+                                <CreditCard className="h-3.5 w-3.5" /> Monto (COP)
                             </label>
                             <Input 
                                 type="number"
-                                placeholder="0.00"
+                                placeholder="0"
                                 value={formData.amount}
                                 onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
                                 className="bg-white/50 dark:bg-slate-950/50 font-mono text-lg"

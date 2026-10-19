@@ -366,7 +366,7 @@ export default function NoteEditorSheet({
       const [{ data: patient }, { data: prevNotes }] = await Promise.all([
         supabase
           .from('patients')
-          .select('name, date_of_birth, birth_date, gender, occupation, status, tags, curp, patient_clinical_data(notes)')
+          .select('name, date_of_birth, birth_date, gender, occupation, status, tags, document_type, document_number, patient_clinical_data(notes)')
           .eq('id', patientId)
           .eq('organization_id', organization.id)
           .single(),

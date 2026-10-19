@@ -307,8 +307,8 @@ const PublicProfile = () => {
                                                     <Award className="h-5 w-5 text-primary" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-semibold text-slate-800 capitalize">{cedula.tipo || 'Cédula Profesional'}</h3>
-                                                    <p className="text-slate-500 text-sm">Cédula No. {cedula.numero} · {cedula.institucion}</p>
+                                                    <h3 className="font-semibold text-slate-800 capitalize">{cedula.tipo || 'Tarjeta Profesional / ReTHUS'}</h3>
+                                                    <p className="text-slate-500 text-sm">Registro No. {cedula.numero} · {cedula.institucion}</p>
                                                 </div>
                                             </div>
                                         ))}

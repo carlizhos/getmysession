@@ -118,7 +118,7 @@ const Consents = () => {
 
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
-        doc.text('NOM-024-SSA3-2012 | Expediente Cl\u00ednico Electr\u00f3nico', margin, 15);
+        doc.text('Ley 2015 de 2020 & Res. 1995 de 1999 | Historia Cl\u00ednica Electr\u00f3nica (Colombia)', margin, 15);
 
         // Render logo in top-right header if available
         if (professional?.logo_data) {
@@ -266,7 +266,7 @@ const Consents = () => {
                             </Button>
                             <div className="space-y-0.5">
                                 <h1 className="text-2xl font-black tracking-tight text-foreground">Nuevo Consentimiento</h1>
-                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Firma digital NOM-024</p>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Firma digital · Res. 1995 / Ley 2015</p>
                             </div>
                         </div>
                     </div>
@@ -293,7 +293,7 @@ const Consents = () => {
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-2xl font-black tracking-tight text-foreground">Consentimientos Informados</h1>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Documentos firmados digitalmente · NOM-024-SSA3-2012</p>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Documentos firmados digitalmente · Res. 1995 / Ley 2015</p>
                         </div>
                     </div>
 

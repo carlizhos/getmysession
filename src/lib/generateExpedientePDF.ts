@@ -10,6 +10,9 @@ export interface PatientData {
     email?: string;
     phone?: string;
     date_of_birth?: string;
+    document_type?: string;
+    document_number?: string;
+    municipality_code?: string;
     curp?: string;
     gender?: string;
     occupation?: string;
@@ -68,7 +71,7 @@ export interface ProfessionalData {
 const FORM_TYPE_LABELS: Record<string, string> = {
     general: 'Consentimiento Informado General',
     tratamiento: 'Tratamiento Psicológico',
-    datos_personales: 'Datos Personales (LFPDPPP)',
+    datos_personales: 'Tratamiento de Datos Personales (Ley 1581 de 2012 / Colombia)',
 };
 
 const GENDER_LABELS: Record<string, string> = {
@@ -193,15 +196,15 @@ export function generateExpedientePDF(
         if (professional?.logo_data) {
             try {
                 doc.addImage(professional.logo_data, 'PNG', pageW - margin - 22, 3.5, 22, 8);
-                doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+                doc.text('Historia Clínica Digital · Ley 2015 de 2020 / MinSalud Colombia', margin, 10);
                 doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin - 24, 10, { align: 'right' });
             } catch (e) {
                 console.error("Error al renderizar logotipo en cabecera de PDF:", e);
-                doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+                doc.text('Historia Clínica Digital · Ley 2015 de 2020 / MinSalud Colombia', margin, 10);
                 doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
             }
         } else {
-            doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 10);
+            doc.text('Historia Clínica Digital · Ley 2015 de 2020 / MinSalud Colombia', margin, 10);
             doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
         }
 
@@ -259,7 +262,7 @@ export function generateExpedientePDF(
         ['Nombre completo', patient.name || '—'],
         ['Edad', age],
         ['Fecha de nacimiento', safeFormatDate(patient.date_of_birth, 'd MMM yyyy', { locale: es })],
-        ['CURP', patient.curp || '—'],
+        ['Documento de Identidad', patient.document_number ? `${patient.document_type || 'CC'} ${patient.document_number}` : (patient.curp || '—')],
         ['Género', patient.gender ? (GENDER_LABELS[patient.gender] || patient.gender) : '—'],
         ['Ocupación', patient.occupation || '—'],
         ['Correo electrónico', patient.email || '—'],
@@ -662,15 +665,15 @@ export function generateSessionNotePDF(
         if (professional?.logo_data) {
             try {
                 doc.addImage(professional.logo_data, 'PNG', pageW - margin - 22, 3.5, 22, 8);
-                doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+                doc.text('Evolución Clínica · Res. 1995 de 1999 / MinSalud Colombia', margin, 10);
                 doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin - 24, 10, { align: 'right' });
             } catch (e) {
                 console.error("Error al renderizar logotipo en cabecera de PDF:", e);
-                doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+                doc.text('Evolución Clínica · Res. 1995 de 1999 / MinSalud Colombia', margin, 10);
                 doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
             }
         } else {
-            doc.text('NOM-024-SSA3-2012 | Nota de Evolución Clínica', margin, 10);
+            doc.text('Evolución Clínica · Res. 1995 de 1999 / MinSalud Colombia', margin, 10);
             doc.text(`${patient.name} | Folio: ${folio}`, pageW - margin, 10, { align: 'right' });
         }
 

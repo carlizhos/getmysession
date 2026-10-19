@@ -51,35 +51,35 @@ const TermsOfService = () => {
                     </section>
 
                     <section className="space-y-3">
-                        <h2 className="text-xl font-bold text-foreground">2. Elegibilidad y Cédula Profesional</h2>
+                        <h2 className="text-xl font-bold text-foreground">2. Elegibilidad, Tarjeta Profesional y ReTHUS (Colpsic)</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            El uso del Servicio está restringido exclusivamente a profesionales de la salud mental. Usted garantiza bajo protesta de decir verdad que posee una Cédula Profesional vigente. GetMySession se reserva el derecho de validar su cédula y cancelar cuentas sin habilitación.
+                            El uso del Servicio está restringido a profesionales de la psicología y salud mental debidamente titulados. Usted declara y garantiza que cuenta con Tarjeta Profesional expedida por el Colegio Colombiano de Psicólogos (Colpsic) e inscripción activa en el Registro Único Nacional del Talento Humano en Salud (ReTHUS) conforme a la Ley 1090 de 2006. GetMySession se reserva el derecho de verificar tales credenciales y suspender cuentas que no acrediten habilitación profesional.
                         </p>
                     </section>
 
                     <section className="space-y-3">
                         <h2 className="text-xl font-bold text-foreground">3. Funcionalidades del Servicio</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            GetMySession provee gestión integral: facturación (CFDI), control financiero, expedientes, notas, tareas, citas, integraciones (Google Calendar/Meet/Zoom) y un consultorio virtual integrado para videollamadas encriptadas.
+                            GetMySession provee gestión integral: facturación electrónica DIAN y RIPS (Res. 2275), control financiero, historias clínicas, notas de evolución, tareas, citas, integraciones (Google Calendar/Meet/Zoom) y un consultorio virtual integrado para videollamadas encriptadas.
                         </p>
                     </section>
 
                     <section className="space-y-3">
-                        <h2 className="text-xl font-bold text-foreground">4. Estándares Técnicos y Cumplimiento de la NOM-024-SSA3-2012</h2>
+                        <h2 className="text-xl font-bold text-foreground">4. Estándares Técnicos y Normativa de Salud en Colombia</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            GetMySession opera siguiendo las reglas de la NOM-024-SSA3-2012.
+                            GetMySession opera siguiendo las directrices de la Ley 2015 de 2020 (Historia Clínica Electrónica Interoperable), la Resolución 1995 de 1999 (MinSalud), la Resolución 2275 de 2023 (RIPS en Salud Mental), la Resolución 839 de 2017 y la Ley 1090 de 2006 (Código Deontológico del Psicólogo en Colombia).
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                            <li><strong>Resguardo por 5 años:</strong> Los expedientes clínicos se resguardarán por el periodo obligatorio de 5 años tras el último registro.</li>
-                            <li>El profesional es el responsable último de la veracidad y el secreto profesional.</li>
+                            <li><strong>Custodia y Retención Legal:</strong> Las historias clínicas se conservarán bajo estrictas medidas de seguridad por el periodo obligatorio de retención legal (Resolución 839 de 2017 de MinSalud).</li>
+                            <li>El profesional es el responsable exclusivo de la veracidad de los registros clínicos y del secreto profesional según la Ley 1090 de 2006.</li>
                         </ul>
                     </section>
 
                     <section className="space-y-3">
-                        <h2 className="text-xl font-bold text-foreground">5. Privacidad y Datos (LFPDPPP)</h2>
+                        <h2 className="text-xl font-bold text-foreground">5. Privacidad y Datos (Habeas Data - Ley 1581 de 2012)</h2>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                            <li><strong>Terapeuta como Responsable:</strong> El Terapeuta es el Responsable del Tratamiento de datos sensibles de sus pacientes y debe contar con su propio Aviso de Privacidad.</li>
-                            <li><strong>GetMySession como Encargado:</strong> Procesamos información por cuenta del Terapeuta con cifrado estándar.</li>
+                            <li><strong>Terapeuta como Responsable:</strong> El Terapeuta es el Responsable del Tratamiento de datos sensibles de sus pacientes y debe contar con su propia Política de Tratamiento de Información.</li>
+                            <li><strong>GetMySession como Encargado:</strong> Procesamos información por cuenta del Terapeuta con cifrado estándar de alta seguridad.</li>
                         </ul>
                     </section>
 
@@ -93,7 +93,7 @@ const TermsOfService = () => {
                     <section className="space-y-3">
                         <h2 className="text-xl font-bold text-foreground">7. Pagos, Renovaciones y Cancelaciones</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            <strong>Derecho de Acceso Post-Cancelación:</strong> Si cancela su suscripción, perderá acceso a herramientas premium (IA, facturación, etc.), pero GetMySession mantendrá habilitado el acceso exclusivo para la descarga de expedientes clínicos durante el periodo de 5 años de resguardo legal.
+                            <strong>Derecho de Acceso Post-Cancelación:</strong> Si cancela su suscripción, perderá acceso a herramientas premium (IA, facturación DIAN, etc.), pero GetMySession mantendrá habilitado el acceso exclusivo para la descarga de historias clínicas durante el periodo de retención legal.
                         </p>
                     </section>
 
@@ -130,7 +130,7 @@ const TermsOfService = () => {
                     <section className="space-y-3">
                         <h2 className="text-xl font-bold text-foreground">12. Jurisdicción y Ley Aplicable</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Para cualquier controversia, las partes se someten a las leyes federales de México y a la jurisdicción exclusiva de los tribunales competentes de Tijuana, Baja California, México.
+                            Para cualquier controversia, las partes se someten a las leyes de la República de Colombia y a la jurisdicción exclusiva de los tribunales competentes de la ciudad de Bogotá D.C., Colombia.
                         </p>
                     </section>
                 </div>

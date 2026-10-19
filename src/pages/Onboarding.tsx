@@ -38,15 +38,11 @@ const STEPS = [
 ];
 
 const COMMON_TIMEZONES = [
-  "America/Mexico_City",
-  "America/Tijuana",
-  "America/Monterrey",
-  "America/Hermosillo",
-  "America/Cancun",
   "America/Bogota",
   "America/Lima",
-  "America/Buenos_Aires",
   "America/Santiago",
+  "America/Buenos_Aires",
+  "America/Mexico_City",
   "America/New_York",
   "America/Los_Angeles",
   "Europe/Madrid",
@@ -96,11 +92,11 @@ export default function Onboarding() {
   const [serviceName, setServiceName] = useState('Terapia Individual');
   const [modality, setModality] = useState('En Línea');
   const [sessionDuration, setSessionDuration] = useState('50');
-  const [sessionPrice, setSessionPrice] = useState('800');
-  const [currency, setCurrency] = useState('MXN');
+  const [sessionPrice, setSessionPrice] = useState('120000');
+  const [currency, setCurrency] = useState('COP');
 
   const [skipSchedule, setSkipSchedule] = useState(false);
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Mexico_City');
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Bogota');
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('18:00');
@@ -279,7 +275,7 @@ export default function Onboarding() {
           workingHours: skipSchedule ? { start: '09:00', end: '18:00' } : { start: startTime, end: endTime },
           defaultSessionDuration: skipService ? 50 : parseInt(sessionDuration, 10),
           defaultSessionPrice: skipService ? 0 : parseFloat(sessionPrice),
-          currency: skipService ? 'MXN' : currency
+          currency: skipService ? 'COP' : currency
         };
         const { error: orgError } = await supabase.from('organizations').update({ name: orgName, settings: orgSettings }).eq('id', orgId);
         if (orgError) throw orgError;
@@ -492,7 +488,7 @@ export default function Onboarding() {
                            </div>
 
                            <div className="space-y-2">
-                              <Label className="text-slate-700 font-semibold text-sm">Cédula Profesional</Label>
+                              <Label className="text-slate-700 font-semibold text-sm">Tarjeta Profesional / Registro ReTHUS (Colpsic)</Label>
                               <Input value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="Ej. 12345678" className="h-12 bg-white rounded-xl shadow-sm border-slate-200" />
                            </div>
                         </div>
@@ -555,7 +551,7 @@ export default function Onboarding() {
                                     <Input type="number" className="pl-8 text-lg font-bold h-12 bg-white rounded-xl shadow-sm border-slate-200" value={sessionPrice} onChange={(e) => setSessionPrice(e.target.value)} />
                                   </div>
                                   <div className="w-24 bg-slate-100 flex items-center justify-center rounded-xl border border-slate-200 font-semibold text-slate-600">
-                                    MXN
+                                    COP
                                   </div>
                                 </div>
                               </div>
@@ -636,7 +632,7 @@ export default function Onboarding() {
                               
                               <div className="flex items-center gap-2 mt-4">
                                 <div className="bg-slate-100 border border-slate-200 text-slate-500 px-4 h-12 rounded-xl flex items-center font-medium select-none shrink-0 text-sm md:text-base">
-                                  getmysession.mx/reservar/
+                                  getmysession.com/reservar/
                                 </div>
                                 <div className="flex-1 relative">
                                   <Input 
@@ -678,7 +674,7 @@ export default function Onboarding() {
                                <div>
                                  <h5 className="font-bold text-slate-800 text-sm">{prefix} {fullName || 'Nombre Profesional'}</h5>
                                  <p className="text-xs text-slate-500">{specialty || 'Tu Especialidad'}</p>
-                                 <p className="text-xs text-primary font-semibold mt-1">getmysession.mx/perfil/{slug || '...'}</p>
+                                 <p className="text-xs text-primary font-semibold mt-1">getmysession.com/perfil/{slug || '...'}</p>
                                </div>
                              </div>
                            </div>
@@ -695,7 +691,7 @@ export default function Onboarding() {
                                 </div>
                                 <div>
                                   <Label className="text-slate-800 font-bold text-lg">Firma Digital</Label>
-                                  <p className="text-sm text-slate-500">Requerida por la NOM-024 para recetas y notas.</p>
+                                  <p className="text-sm text-slate-500">Requerida por MinSalud (Res. 1995/1999) para la validez de la historia clínica.</p>
                                 </div>
                               </div>
                               <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-md ring-4 ring-slate-50/50">
@@ -721,7 +717,7 @@ export default function Onboarding() {
                                 y el{" "}
                                 <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors font-semibold">
                                   Acuerdo de Procesamiento de Datos Clínicos
-                                </a> de GetMySession, conforme a la regulación de salud digital NOM-024.
+                                </a> de GetMySession, conforme a la regulación de salud digital e historia clínica en Colombia (Ley 2015 de 2020, Ley 1581 de 2012 y Res. 1995 de 1999).
                               </label>
                            </div>
                         </div>

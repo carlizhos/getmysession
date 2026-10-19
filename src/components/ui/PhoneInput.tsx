@@ -11,21 +11,21 @@ export interface CountryCode {
   expectedDigits: number; // Local phone digit length
 }
 
-// 1º México (Default), 2º Estados Unidos, luego orden alfabético por nombre
+// 1º Colombia (Default), 2º Estados Unidos, luego orden alfabético por nombre
 export const COUNTRY_CODES: CountryCode[] = [
-  { code: 'MX', dialCode: '+52', flag: '🇲🇽', name: 'México', expectedDigits: 10 },
+  { code: 'CO', dialCode: '+57', flag: '🇨🇴', name: 'Colombia', expectedDigits: 10 },
   { code: 'US', dialCode: '+1', flag: '🇺🇸', name: 'Estados Unidos', expectedDigits: 10 },
   { code: 'AR', dialCode: '+54', flag: '🇦🇷', name: 'Argentina', expectedDigits: 10 },
   { code: 'BO', dialCode: '+591', flag: '🇧🇴', name: 'Bolivia', expectedDigits: 8 },
   { code: 'CA', dialCode: '+1', flag: '🇨🇦', name: 'Canadá', expectedDigits: 10 },
   { code: 'CL', dialCode: '+56', flag: '🇨🇱', name: 'Chile', expectedDigits: 9 },
-  { code: 'CO', dialCode: '+57', flag: '🇨🇴', name: 'Colombia', expectedDigits: 10 },
   { code: 'CR', dialCode: '+506', flag: '🇨🇷', name: 'Costa Rica', expectedDigits: 8 },
   { code: 'EC', dialCode: '+593', flag: '🇪🇨', name: 'Ecuador', expectedDigits: 9 },
   { code: 'SV', dialCode: '+503', flag: '🇸🇻', name: 'El Salvador', expectedDigits: 8 },
   { code: 'ES', dialCode: '+34', flag: '🇪🇸', name: 'España', expectedDigits: 9 },
   { code: 'GT', dialCode: '+502', flag: '🇬🇹', name: 'Guatemala', expectedDigits: 8 },
   { code: 'HN', dialCode: '+504', flag: '🇭🇳', name: 'Honduras', expectedDigits: 8 },
+  { code: 'MX', dialCode: '+52', flag: '🇲🇽', name: 'México', expectedDigits: 10 },
   { code: 'PA', dialCode: '+507', flag: '🇵🇦', name: 'Panamá', expectedDigits: 8 },
   { code: 'PE', dialCode: '+51', flag: '🇵🇪', name: 'Perú', expectedDigits: 9 },
   { code: 'PR', dialCode: '+1', flag: '🇵🇷', name: 'Puerto Rico', expectedDigits: 10 },
@@ -45,11 +45,11 @@ export interface PhoneInputProps {
 
 // Utility to parse raw stored phone string into { dialCode, localDigits }
 export function parsePhoneNumber(rawPhone?: string): { dialCode: string; localDigits: string } {
-  if (!rawPhone) return { dialCode: '+52', localDigits: '' };
+  if (!rawPhone) return { dialCode: '+57', localDigits: '' };
   
   const cleaned = rawPhone.replace(/[^\d+]/g, '');
   
-  // Try matching known dial codes sorted by length descending (+593, +502, +52, +1)
+  // Try matching known dial codes sorted by length descending (+593, +502, +57, +1)
   const sortedCountries = [...COUNTRY_CODES].sort((a, b) => b.dialCode.length - a.dialCode.length);
   
   for (const country of sortedCountries) {
@@ -57,7 +57,7 @@ export function parsePhoneNumber(rawPhone?: string): { dialCode: string; localDi
       const local = cleaned.slice(country.dialCode.length).slice(0, country.expectedDigits);
       return { dialCode: country.dialCode, localDigits: local };
     }
-    // Also check without plus sign (e.g., 525512345678)
+    // Also check without plus sign (e.g., 573001234567)
     const dialNoPlus = country.dialCode.replace('+', '');
     if (cleaned.startsWith(dialNoPlus) && cleaned.length >= dialNoPlus.length + 7) {
       const local = cleaned.slice(dialNoPlus.length).slice(0, country.expectedDigits);
@@ -65,18 +65,18 @@ export function parsePhoneNumber(rawPhone?: string): { dialCode: string; localDi
     }
   }
 
-  // Fallback: assume 10 digits are local Mexican number
+  // Fallback: assume 10 digits are local Colombian number
   const justDigits = cleaned.replace(/\D/g, '').slice(-10);
-  return { dialCode: '+52', localDigits: justDigits };
+  return { dialCode: '+57', localDigits: justDigits };
 }
 
-// Format digits nicely on display (e.g., "55 1234 5678" or "612 345 678")
+// Format digits nicely on display (e.g., "300 123 4567" or "612 345 678")
 export function formatLocalDisplay(digits: string): string {
   const clean = digits.replace(/\D/g, '');
   if (clean.length <= 2) return clean;
   if (clean.length <= 6) return `${clean.slice(0, 2)} ${clean.slice(2)}`;
   if (clean.length <= 9) return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
-  return `${clean.slice(0, 2)} ${clean.slice(2, 6)} ${clean.slice(6, 10)}`;
+  return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 10)}`;
 }
 
 export const PhoneInput: React.FC<PhoneInputProps> = ({
@@ -86,9 +86,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   disabled = false,
   className,
   id,
-  placeholder = '55 1234 5678',
+  placeholder = '300 123 4567',
 }) => {
-  const [selectedDialCode, setSelectedDialCode] = useState<string>('+52');
+  const [selectedDialCode, setSelectedDialCode] = useState<string>('+57');
   const [localDigits, setLocalDigits] = useState<string>('');
 
   // Sync internal state when external value changes

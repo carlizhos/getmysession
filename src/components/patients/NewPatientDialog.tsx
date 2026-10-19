@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { X, ShieldCheck, User, ShieldAlert, Receipt, FileText, Sparkles } from 'lucide-react';
+import { X, ShieldCheck, User, ShieldAlert, Receipt, FileText, Sparkles, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -23,6 +23,13 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PhoneInput } from '@/components/ui/PhoneInput';
+import { 
+    COLOMBIA_DOCUMENT_TYPES, 
+    COLOMBIA_USER_TYPES, 
+    COLOMBIA_RESIDENCE_ZONES, 
+    COLOMBIA_DANE_CITIES,
+    findDaneCity 
+} from '@/lib/colombiaCatalogs';
 
 interface Patient {
     id: string;
@@ -33,16 +40,20 @@ interface Patient {
     dateOfBirth?: string;
     notes: string;
     tags: string[];
-    curp?: string;
+    document_type?: string;
+    document_number?: string;
+    municipality_code?: string;
+    department_code?: string;
+    residence_area?: string;
+    user_type?: string;
     gender?: string;
     occupation?: string;
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
-    rfc?: string;
+    nit?: string;
     tax_name?: string;
     tax_zip_code?: string;
     tax_regime?: string;
-    cfdi_use?: string;
 }
 
 interface NewPatientDialogProps {
@@ -52,24 +63,28 @@ interface NewPatientDialogProps {
     editingPatient?: Patient | null;
 }
 
-const CURP_REGEX = /^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/;
-
 const patientSchema = z.object({
     name: z.string().min(1, 'El nombre completo es requerido'),
     email: z.string().min(1, 'El correo es requerido').email('Correo electrónico inválido'),
     phone: z.string().refine(val => val.replace(/\D/g, '').length >= 7, 'Número telefónico inválido'),
     dateOfBirth: z.string().min(1, 'Fecha de nacimiento requerida'),
-    curp: z.string().optional().refine(val => !val || CURP_REGEX.test(val.toUpperCase()), 'Formato inválido (18 caracteres)'),
+    
+    // Colombia RIPS / MinSalud
+    documentType: z.string().default('CC'),
+    documentNumber: z.string().optional(),
+    municipalityCode: z.string().default('11001'),
+    residenceArea: z.string().default('01'),
+    userType: z.string().default('04'),
+
     gender: z.string().optional(),
     occupation: z.string().optional(),
     emergencyContactName: z.string().optional(),
     emergencyContactPhone: z.string().optional(),
     notes: z.string().optional(),
-    rfc: z.string().optional(),
+    
+    // Facturación DIAN
+    nit: z.string().optional(),
     taxName: z.string().optional(),
-    taxZipCode: z.string().optional(),
-    taxRegime: z.string().optional(),
-    cfdiUse: z.string().optional(),
 });
 
 type PatientFormValues = z.infer<typeof patientSchema>;
@@ -81,9 +96,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<PatientFormValues>({
         resolver: zodResolver(patientSchema),
         defaultValues: {
-            name: '', email: '', phone: '', dateOfBirth: '', curp: '', gender: '', occupation: '',
+            name: '', email: '', phone: '', dateOfBirth: '', 
+            documentType: 'CC', documentNumber: '', municipalityCode: '11001', residenceArea: '01', userType: '04',
+            gender: '', occupation: '',
             emergencyContactName: '', emergencyContactPhone: '', notes: '',
-            rfc: '', taxName: '', taxZipCode: '', taxRegime: '', cfdiUse: '',
+            nit: '', taxName: '',
         }
     });
 
@@ -99,25 +116,27 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 email: editingPatient.email || '',
                 phone: editingPatient.phone || '',
                 dateOfBirth: editingPatient.date_of_birth || '',
-                curp: editingPatient.curp || '',
+                documentType: editingPatient.document_type || 'CC',
+                documentNumber: editingPatient.document_number || '',
+                municipalityCode: editingPatient.municipality_code || '11001',
+                residenceArea: editingPatient.residence_area || '01',
+                userType: editingPatient.user_type || '04',
                 gender: editingPatient.gender || '',
                 occupation: editingPatient.occupation || '',
                 emergencyContactName: editingPatient.emergency_contact_name || '',
                 emergencyContactPhone: editingPatient.emergency_contact_phone || '',
                 notes: editingPatient.notes || '',
-                rfc: editingPatient.rfc || '',
+                nit: editingPatient.nit || '',
                 taxName: editingPatient.tax_name || '',
-                taxZipCode: editingPatient.tax_zip_code || '',
-                taxRegime: editingPatient.tax_regime || '',
-                cfdiUse: editingPatient.cfdi_use || '',
             });
             setTags(editingPatient.tags || []);
         } else {
             reset({
                 name: '', email: '', phone: '', dateOfBirth: '',
-                curp: '', gender: '', occupation: '',
+                documentType: 'CC', documentNumber: '', municipalityCode: '11001', residenceArea: '01', userType: '04',
+                gender: '', occupation: '',
                 emergencyContactName: '', emergencyContactPhone: '', notes: '',
-                rfc: '', taxName: '', taxZipCode: '', taxRegime: '', cfdiUse: '',
+                nit: '', taxName: '',
             });
             setTags([]);
         }
@@ -129,13 +148,19 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
+            const city = findDaneCity(data.municipalityCode);
 
             const basePayload = {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
                 date_of_birth: data.dateOfBirth,
-                curp: encryptText(data.curp?.toUpperCase() || null),
+                document_type: data.documentType,
+                document_number: data.documentNumber?.trim() || null,
+                municipality_code: data.municipalityCode,
+                department_code: city?.deptCode || '11',
+                residence_area: data.residenceArea,
+                user_type: data.userType,
                 gender: data.gender || null,
                 occupation: data.occupation || null,
                 emergency_contact_name: data.emergencyContactName || null,
@@ -150,11 +175,9 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
             };
 
             const fiscalPayload = {
-                rfc: data.rfc?.toUpperCase() || null,
-                tax_name: data.taxName?.toUpperCase() || null,
-                tax_zip_code: data.taxZipCode || null,
-                tax_regime: data.taxRegime || null,
-                cfdi_use: data.cfdiUse || null,
+                nit: data.nit?.trim() || null,
+                tax_name: data.taxName?.trim() || data.name,
+                tax_zip_code: data.municipalityCode,
             };
 
             if (isEditing && editingPatient) {
@@ -189,11 +212,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     await supabase.from('patient_clinical_data').insert({ patient_id: insertedPatient.id, ...clinicalPayload });
                 }
 
-                if (insertedPatient && (fiscalPayload.tax_name || fiscalPayload.rfc || fiscalPayload.tax_zip_code)) {
+                if (insertedPatient && (fiscalPayload.tax_name || fiscalPayload.nit)) {
                     await supabase.from('patient_fiscal_data').insert({ patient_id: insertedPatient.id, ...fiscalPayload });
                 }
 
-                toast.success('Paciente agregado exitosamente');
+                toast.success('Paciente registrado exitosamente');
 
                 await logActivity({
                     profile_id: user!.id,
@@ -230,9 +253,6 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         if (e.key === 'Enter') { e.preventDefault(); addTag(); }
     };
 
-    const curpVal = watch('curp');
-    const isCurpValid = !curpVal || CURP_REGEX.test(curpVal.toUpperCase());
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl sm:max-w-3xl h-[85vh] p-0 flex flex-col gap-0 overflow-hidden rounded-2xl">
@@ -240,7 +260,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold">{isEditing ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
                         <DialogDescription>
-                            {isEditing ? 'Modifica los datos del expediente clínico' : 'Agrega un nuevo expediente clínico cumpliendo con la NOM-024'}
+                            {isEditing ? 'Modifica los datos de la historia clínica' : 'Nuevo expediente clínico bajo Ley 2015 de 2020 y Res. 1995 de 1999 (Colombia)'}
                         </DialogDescription>
                     </DialogHeader>
                 </div>
@@ -324,7 +344,84 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                     {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* IDENTIFICACIÓN OFICIAL COLOMBIA (RIPS Res. 2275) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/60">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="documentType" className="text-xs font-semibold">Tipo Documento</Label>
+                                        <Select
+                                            value={watch('documentType')}
+                                            onValueChange={(v) => setValue('documentType', v)}
+                                        >
+                                            <SelectTrigger id="documentType" className="h-9">
+                                                <SelectValue placeholder="Tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {COLOMBIA_DOCUMENT_TYPES.map((doc) => (
+                                                    <SelectItem key={doc.code} value={doc.code}>
+                                                        {doc.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <Label htmlFor="documentNumber" className="text-xs font-semibold flex items-center gap-1">
+                                            <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Número de Identificación (RIPS)
+                                        </Label>
+                                        <Input
+                                            id="documentNumber"
+                                            {...register('documentNumber')}
+                                            placeholder="Ej: 1018223344"
+                                            className="h-9"
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* LOCALIZACIÓN Y RÉGIMEN DANE / MINSALUD */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <Label htmlFor="municipalityCode" className="text-xs font-semibold flex items-center gap-1">
+                                            <MapPin className="h-3.5 w-3.5 text-primary" /> Municipio de Residencia (DANE)
+                                        </Label>
+                                        <Select
+                                            value={watch('municipalityCode')}
+                                            onValueChange={(v) => setValue('municipalityCode', v)}
+                                        >
+                                            <SelectTrigger id="municipalityCode" className="h-9">
+                                                <SelectValue placeholder="Selecciona municipio..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-60">
+                                                {COLOMBIA_DANE_CITIES.map((city) => (
+                                                    <SelectItem key={city.code} value={city.code}>
+                                                        {city.name} ({city.department}) — {city.code}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="residenceArea" className="text-xs font-semibold">Zona</Label>
+                                        <Select
+                                            value={watch('residenceArea')}
+                                            onValueChange={(v) => setValue('residenceArea', v)}
+                                        >
+                                            <SelectTrigger id="residenceArea" className="h-9">
+                                                <SelectValue placeholder="Zona" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {COLOMBIA_RESIDENCE_ZONES.map((z) => (
+                                                    <SelectItem key={z.code} value={z.code}>
+                                                        {z.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="gender">Género</Label>
                                         <Select
@@ -341,6 +438,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                             </SelectContent>
                                         </Select>
                                     </div>
+
                                     <div className="space-y-2">
                                         <Label htmlFor="occupation">Ocupación</Label>
                                         <Input
@@ -350,29 +448,25 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                             disabled={isSubmitting}
                                         />
                                     </div>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="curp" className="flex items-center gap-1.5">
-                                        <ShieldCheck className="h-4 w-4 text-primary" /> CURP (NOM-024)
-                                        <span className="ml-auto text-xs text-muted-foreground font-normal">18 caracteres</span>
-                                    </Label>
-                                    <Input
-                                        id="curp"
-                                        {...register('curp', {
-                                            onChange: (e) => setValue('curp', e.target.value.toUpperCase())
-                                        })}
-                                        placeholder="LOMP800101MDFGZR02"
-                                        maxLength={18}
-                                        className={errors.curp ? 'border-destructive' : ''}
-                                        disabled={isSubmitting}
-                                    />
-                                    {errors.curp && <p className="text-xs text-destructive">{errors.curp.message}</p>}
-                                    {curpVal && isCurpValid && (
-                                        <p className="text-xs text-emerald-600 flex items-center gap-1">
-                                            <ShieldCheck className="h-3 w-3" /> CURP válido según norma NOM-024-SSA3-2012
-                                        </p>
-                                    )}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="userType">Tipo Usuario SGSSS</Label>
+                                        <Select
+                                            value={watch('userType')}
+                                            onValueChange={(v) => setValue('userType', v)}
+                                        >
+                                            <SelectTrigger id="userType">
+                                                <SelectValue placeholder="Tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {COLOMBIA_USER_TYPES.map((u) => (
+                                                    <SelectItem key={u.code} value={u.code}>
+                                                        {u.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
 
                                 {/* Etiquetas */}
@@ -413,7 +507,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         <ShieldAlert className="h-4 w-4" /> Contacto en Caso de Urgencia
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        Información de contacto familiar o tutor responsable requerida para el expediente clínico NOM-024.
+                                        Información requerida para el expediente e historia clínica bajo la Ley 2015 de 2020 y Res. 1995 de 1999 (Colombia).
                                     </p>
                                 </div>
 
@@ -423,7 +517,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         <Input
                                             id="emergencyContactName"
                                             {...register('emergencyContactName')}
-                                            placeholder="Ej: Roberto López (Padre / Tutor)"
+                                            placeholder="Ej: Roberto López (Padre / Tutor / Pareja)"
                                             disabled={isSubmitting}
                                         />
                                     </div>
@@ -440,83 +534,35 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 </div>
                             </TabsContent>
 
-                            {/* TAB 3: DATOS FISCALES (CFDI 4.0) */}
+                            {/* TAB 3: FACTURACIÓN ELECTRÓNICA DIAN */}
                             <TabsContent value="fiscales" className="mt-0 space-y-4 focus-visible:outline-none">
                                 <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-1">
                                     <p className="text-xs font-bold flex items-center gap-1.5">
-                                        <Receipt className="h-4 w-4 text-primary" /> Información de Facturación CFDI 4.0
+                                        <Receipt className="h-4 w-4 text-primary" /> Facturación Electrónica de Venta en Salud (DIAN & RIPS)
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        Datos necesarios si el paciente requiere factura electrónica de sus honorarios médicos/psicológicos.
+                                        Datos fiscales del paciente o de la persona jurídica/familiar que pagará los honorarios de la consulta.
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="rfc">RFC</Label>
+                                        <Label htmlFor="nit">NIT o Cédula para Factura</Label>
                                         <Input
-                                            id="rfc"
-                                            {...register('rfc', {
-                                                onChange: (e) => setValue('rfc', e.target.value.toUpperCase())
-                                            })}
-                                            placeholder="XAXX010101000"
+                                            id="nit"
+                                            {...register('nit')}
+                                            placeholder="Ej: 1018223344 o 900123456-1"
                                             disabled={isSubmitting}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="taxName">Razón Social / Nombre Fiscal</Label>
+                                        <Label htmlFor="taxName">Razón Social o Nombre Completo Adquirente</Label>
                                         <Input
                                             id="taxName"
-                                            {...register('taxName', {
-                                                onChange: (e) => setValue('taxName', e.target.value.toUpperCase())
-                                            })}
-                                            placeholder="Ej: JUAN PÉREZ LÓPEZ"
+                                            {...register('taxName')}
+                                            placeholder="Ej: MARÍA LÓPEZ GARCÍA"
                                             disabled={isSubmitting}
                                         />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="taxZipCode">Código Postal Fiscal</Label>
-                                        <Input
-                                            id="taxZipCode"
-                                            {...register('taxZipCode')}
-                                            placeholder="06000"
-                                            maxLength={5}
-                                            disabled={isSubmitting}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="cfdiUse">Uso de CFDI</Label>
-                                        <Select
-                                            value={watch('cfdiUse')}
-                                            onValueChange={(v) => setValue('cfdiUse', v)}
-                                        >
-                                            <SelectTrigger id="cfdiUse">
-                                                <SelectValue placeholder="Selecciona" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="D01">D01 - Honorarios médicos, dentales y gastos hospitalarios</SelectItem>
-                                                <SelectItem value="G03">G03 - Gastos en general</SelectItem>
-                                                <SelectItem value="P01">P01 - Por definir</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2 col-span-1 sm:col-span-2">
-                                        <Label htmlFor="taxRegime">Régimen Fiscal</Label>
-                                        <Select
-                                            value={watch('taxRegime')}
-                                            onValueChange={(v) => setValue('taxRegime', v)}
-                                        >
-                                            <SelectTrigger id="taxRegime">
-                                                <SelectValue placeholder="Selecciona el régimen fiscal" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="605">605 - Sueldos y Salarios e Ingresos Asimilados a Salarios</SelectItem>
-                                                <SelectItem value="606">606 - Arrendamiento</SelectItem>
-                                                <SelectItem value="612">612 - Personas Físicas con Actividades Empresariales y Profesionales</SelectItem>
-                                                <SelectItem value="616">616 - Sin obligaciones fiscales</SelectItem>
-                                                <SelectItem value="626">626 - Régimen Simplificado de Confianza (RESICO)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
                                     </div>
                                 </div>
                             </TabsContent>

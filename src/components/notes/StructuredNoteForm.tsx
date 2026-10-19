@@ -98,7 +98,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     const [actionPlanItems, setActionPlanItems] = useState<string[]>([]);
     const [newActionPlanItem, setNewActionPlanItem] = useState('');
 
-    // CIE-10 (NOM-024 INT-01)
+    // CIE-10 (MinSalud RIPS / Res. 2275)
     const [cie10, setCie10] = useState<{ code: string; description: string } | null>(null);
     const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
 
@@ -249,10 +249,10 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                         </div>
                     </div>
 
-                    {/* CIE-10 Diagnóstico (NOM-024 INT-01) */}
+                    {/* CIE-10 Diagnóstico (MinSalud RIPS / Colombia) */}
                     <div className="space-y-3 pt-2">
                         <label className="text-xs font-semibold uppercase tracking-wider text-red-700 flex items-center gap-1.5">
-                            🏥 Diagnóstico CIE-10 (NOM-024)
+                            🏥 Diagnóstico CIE-10 (MinSalud RIPS)
                         </label>
                         <div className="relative">
                             <CIE10Selector value={cie10} onChange={setCie10} />
@@ -522,7 +522,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                 <Card className="border-border shadow-sm bg-muted/20">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-                            <Save className="h-4 w-4" /> Diagnóstico y Clasificación (NOM-024)
+                            <Save className="h-4 w-4" /> Diagnóstico y Clasificación (MinSalud RIPS)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">

@@ -9,7 +9,7 @@ export type PremiumFeature =
   | 'ai_voice'        // AI Voice Recorder in Notes
   | 'telehealth'      // Virtual Consultorio (Jitsi)
   | 'pdf_export'      // Export clinical notes as PDF
-  | 'invoicing'       // Electronic invoicing (SAT)
+  | 'invoicing'       // Facturación Electrónica DIAN & RIPS
   | 'core_patients'   // CRM
   | 'core_agenda'     // Agenda
   | 'core_notes'      // Clinical Notes Library

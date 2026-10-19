@@ -8,11 +8,11 @@ interface FreeTrialScreenProps {
   isLoading: boolean;
 }
 
-const MONTHLY_PRICE = 749;
-const ANNUAL_PRICE = 7490;
-const MONTHLY_EQUIVALENT = Math.round(ANNUAL_PRICE / 12); // 624
-const ANNUAL_SAVINGS = (MONTHLY_PRICE * 12) - ANNUAL_PRICE; // 1498
-const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100); // 16
+const MONTHLY_PRICE = 149000;
+const ANNUAL_PRICE = 1490000;
+const MONTHLY_EQUIVALENT = Math.round(ANNUAL_PRICE / 12);
+const ANNUAL_SAVINGS = (MONTHLY_PRICE * 12) - ANNUAL_PRICE;
+const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100);
 
 export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScreenProps) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(() => {
@@ -28,7 +28,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
   chargeDate.setDate(today.getDate() + 30);
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const selectedPrice = billingCycle === 'monthly' ? MONTHLY_PRICE : ANNUAL_PRICE;
@@ -120,7 +120,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
               </div>
               <div className="flex-1">
                 <span className="font-semibold text-slate-900 block">Mensual</span>
-                <span className="text-sm text-slate-500">MX${MONTHLY_PRICE.toLocaleString()} / mes</span>
+                <span className="text-sm text-slate-500">COP ${MONTHLY_PRICE.toLocaleString('es-CO')} / mes</span>
               </div>
             </div>
 
@@ -148,7 +148,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
                   </span>
                 </div>
                 <span className="text-sm text-slate-500">
-                  MX${ANNUAL_PRICE.toLocaleString()} (MX${MONTHLY_EQUIVALENT} al mes)
+                  COP ${ANNUAL_PRICE.toLocaleString('es-CO')} (COP ${MONTHLY_EQUIVALENT.toLocaleString('es-CO')} al mes)
                 </span>
               </div>
             </div>
@@ -158,11 +158,11 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
           <div className="space-y-3 border-t border-slate-200 pt-6">
             <div className="flex justify-between text-sm text-slate-600 font-medium">
               <span>A pagar el {formatDate(chargeDate)}</span>
-              <span>MX${selectedPrice.toLocaleString()}</span>
+              <span>COP ${selectedPrice.toLocaleString('es-CO')}</span>
             </div>
             <div className="flex justify-between text-base font-bold text-slate-900">
               <span>A pagar hoy (30 días gratis)</span>
-              <span>MX$0</span>
+              <span>COP $0</span>
             </div>
             
             <Button 
@@ -178,7 +178,7 @@ export default function FreeTrialScreen({ onContinue, isLoading }: FreeTrialScre
             </Button>
             
             <p className="text-[10px] text-slate-400 text-center leading-tight mt-4">
-              Todos los precios están en Pesos Mexicanos (MXN). Al continuar, aceptas los{' '}
+              Todos los precios están en Pesos Colombianos (COP). Al continuar, aceptas los{' '}
               <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
               <a href="/politicas" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Política de privacidad</a> de GetMySession.
               Tu suscripción se renueva de forma automática con el método de pago que elegiste.

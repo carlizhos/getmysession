@@ -60,7 +60,7 @@ export const MODULE_TOURS: Record<string, TourConfig> = {
         element: '#tour-patients-header',
         popover: {
           title: '👥 Expedientes de Pacientes',
-          description: 'Administra todo el historial clínico, notas, pruebas y datos de contacto de tus pacientes cumpliendo con la NOM-024.',
+          description: 'Administra todo el historial clínico, notas, pruebas y datos de contacto de tus pacientes cumpliendo con la Ley 2015 de 2020 y Res. 1995 (MinSalud).',
           side: 'bottom',
           align: 'start',
         },
@@ -157,7 +157,7 @@ export const MODULE_TOURS: Record<string, TourConfig> = {
         element: '#tour-notes-header',
         popover: {
           title: '📝 Notas Clínicas Estructuradas',
-          description: 'Crea, consulta y gestiona las notas de sesión formateadas bajo la norma mexicana NOM-024-SSA3-2012.',
+          description: 'Crea, consulta y gestiona las notas de sesión y evolución clínica formateadas bajo la normativa del Ministerio de Salud (Res. 1995 y RIPS Res. 2275).',
           side: 'bottom',
           align: 'start',
         },

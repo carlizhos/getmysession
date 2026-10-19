@@ -10,9 +10,9 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const COMMON_TIMEZONES = [
-  "America/Mexico_City",
   "America/Bogota",
   "America/Lima",
+  "America/Mexico_City",
   "America/Buenos_Aires",
   "America/Santiago",
   "America/New_York",
@@ -23,7 +23,7 @@ const COMMON_TIMEZONES = [
 export default function OrganizationSettings() {
   const { organization, availableOrganizations, switch: switchOrg, refresh, isAdmin } = useOrganization();
   const [isUpdatingOrg, setIsUpdatingOrg] = useState(false);
-  const [orgTimezone, setOrgTimezone] = useState('America/Mexico_City');
+  const [orgTimezone, setOrgTimezone] = useState('America/Bogota');
 
   useEffect(() => {
     if (organization?.settings?.timezone) {

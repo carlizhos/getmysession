@@ -52,7 +52,7 @@ const OnboardingChecklist = () => {
                 {
                     id: 'patient',
                     label: 'Agrega tu primer paciente',
-                    description: 'Crea el expediente clínico con datos de contacto y NOM-024.',
+                    description: 'Crea la historia clínica con identificación oficial y MinSalud (Res. 1995/2275).',
                     icon: Users,
                     href: '/patients',
                     cta: 'Ir a Pacientes',

@@ -84,7 +84,7 @@ export default function ReferralsSettings() {
   const handleShareWhatsApp = () => {
     const message = encodeURIComponent(
       `¡Hola! Te invito a probar GetMySession, la plataforma que uso para gestionar mi consultorio de psicología. ` +
-      `Regístrate con mi enlace y ambos recibiremos $${localConfig.reward_amount_referred} MXN de crédito: ${referralLink}`
+      `Regístrate con mi enlace y ambos recibiremos $${localConfig.reward_amount_referred.toLocaleString('es-CO')} COP de crédito: ${referralLink}`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
@@ -114,7 +114,7 @@ export default function ReferralsSettings() {
             <div>
               <h2 className="text-xl font-bold tracking-tight">Recomendar GetMySession</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Invita a colegas y ambos ganan <span className="font-bold text-success">$99 MXN</span> de crédito al suscribirse
+                Invita a colegas y ambos ganan <span className="font-bold text-success">$50.000 COP</span> de crédito al suscribirse
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function ReferralsSettings() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Suscritos</p>
             </div>
             <div className="rounded-xl bg-primary/5 border border-primary/10 p-3.5 text-center space-y-1">
-              <p className="text-2xl font-black text-primary">${totalCredit.toLocaleString('es-MX')}</p>
+              <p className="text-2xl font-black text-primary">${totalCredit.toLocaleString('es-CO')} COP</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Crédito</p>
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function ReferralsSettings() {
                     <div className="flex items-center gap-3 ml-0 sm:ml-auto">
                       {ref.status === 'rewarded' && (
                         <span className="text-sm font-bold text-success">
-                          +${ref.reward_amount_referrer.toLocaleString('es-MX')} MXN
+                          +${ref.reward_amount_referrer.toLocaleString('es-CO')} COP
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${statusInfo.color}`}>
@@ -258,7 +258,7 @@ export default function ReferralsSettings() {
                 <div className="flex items-center justify-between p-4 rounded-xl bg-success/5 border border-success/15 mt-4">
                   <span className="text-sm font-medium text-success">Crédito Total Acumulado</span>
                   <span className="text-xl font-black text-success">
-                    ${totalCredit.toLocaleString('es-MX')} MXN
+                    ${totalCredit.toLocaleString('es-CO')} COP
                   </span>
                 </div>
               )}

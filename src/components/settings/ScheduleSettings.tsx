@@ -519,19 +519,19 @@ export default function ScheduleSettings() {
 
           {/* Preview */}
           <div className="rounded-xl bg-muted/40 p-4 space-y-2 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Vista previa — sesión de $900 MXN</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Vista previa — sesión de $120.000 COP</p>
             {(() => {
-              const bruto = 900;
+              const bruto = 120000;
               const fee = bruto * (commissions.stripe_fee_percent / 100);
               const neto = bruto - fee;
               const consultorio = neto * (commissions.porcentaje_consultorio / 100);
               const psicologo = neto - consultorio;
               return (<>
-                <div className="flex justify-between"><span className="text-muted-foreground">Cobrado al paciente</span><span>${bruto.toFixed(2)}</span></div>
-                <div className="flex justify-between text-destructive"><span>− Fees Stripe ({commissions.stripe_fee_percent}%)</span><span>−${fee.toFixed(2)}</span></div>
-                <div className="flex justify-between font-semibold border-t pt-2"><span>Neto</span><span>${neto.toFixed(2)}</span></div>
-                <div className="flex justify-between text-muted-foreground"><span>Consultorio ({commissions.porcentaje_consultorio}%)</span><span>−${consultorio.toFixed(2)}</span></div>
-                <div className="flex justify-between text-success font-bold text-base border-t pt-2"><span>Ingreso Neto del Psicólogo</span><span>${psicologo.toFixed(2)} MXN</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Cobrado al paciente</span><span>${Math.round(bruto).toLocaleString('es-CO')} COP</span></div>
+                <div className="flex justify-between text-destructive"><span>− Fees Stripe ({commissions.stripe_fee_percent}%)</span><span>−${Math.round(fee).toLocaleString('es-CO')} COP</span></div>
+                <div className="flex justify-between font-semibold border-t pt-2"><span>Neto</span><span>${Math.round(neto).toLocaleString('es-CO')} COP</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Consultorio ({commissions.porcentaje_consultorio}%)</span><span>−${Math.round(consultorio).toLocaleString('es-CO')} COP</span></div>
+                <div className="flex justify-between text-success font-bold text-base border-t pt-2"><span>Ingreso Neto del Psicólogo</span><span>${Math.round(psicologo).toLocaleString('es-CO')} COP</span></div>
               </>);
             })()}
           </div>

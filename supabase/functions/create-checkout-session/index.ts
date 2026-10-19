@@ -37,10 +37,11 @@ serve(async (req) => {
 
     // 2. Parse request body
     const body = await req.json();
-    const { appointment_id, amount_mxn, patient_name, description } = body;
+    const { appointment_id, amount_mxn, amount, patient_name, description } = body;
+    const sessionAmount = amount ?? amount_mxn;
 
-    if (!appointment_id || !amount_mxn) {
-      throw new Error('Missing appointment_id or amount_mxn');
+    if (!appointment_id || !sessionAmount) {
+      throw new Error('Missing appointment_id or amount');
     }
 
     // 3. Get psychologist's Stripe connected account ID
@@ -63,20 +64,20 @@ serve(async (req) => {
       line_items: [
         {
           price_data: {
-            currency: 'mxn',
+            currency: 'cop',
             product_data: {
               name: `Sesión con ${patient_name || 'Paciente'}`,
               description: description || 'Pago de sesión terapéutica',
             },
-            unit_amount: Math.round(amount_mxn * 100), // Stripe expects cents
+            unit_amount: Math.round(sessionAmount * 100), // Stripe expects cents
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       // We don't redirect anywhere since we just want to generate a link to copy or open
-      success_url: `${origin || 'https://saudade.mx'}/portal/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin || 'https://saudade.mx'}`,
+      success_url: `${origin || 'https://getmysession.com'}/portal/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin || 'https://getmysession.com'}`,
       metadata: {
         appointment_id,
         user_id: user.id, // The psychologist

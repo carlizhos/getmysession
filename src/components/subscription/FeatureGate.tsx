@@ -34,8 +34,8 @@ const FEATURE_LABELS: Record<PremiumFeature, { title: string; description: strin
     description: 'Descarga expedientes y notas clínicas en formato PDF profesional.',
   },
   invoicing: {
-    title: 'Facturación Electrónica',
-    description: 'Genera facturas CFDI directamente desde la plataforma.',
+    title: 'Facturación Electrónica DIAN & RIPS',
+    description: 'Genera facturas electrónicas DIAN y archivos RIPS (Res. 2275) directamente.',
   },
   core_patients: {
     title: 'Gestión de Pacientes',

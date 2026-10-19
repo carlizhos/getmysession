@@ -61,7 +61,7 @@ const BookingPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<{clinic: string, local: string}[]>([]);
-  const [clinicTimezone, setClinicTimezone] = useState('America/Mexico_City');
+  const [clinicTimezone, setClinicTimezone] = useState('America/Bogota');
   const visitorTimezone = getVisitorTimezone();
 
   const [loadingSlots, setLoadingSlots] = useState(false);

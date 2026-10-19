@@ -28,11 +28,11 @@ export const DEFAULT_CONSENT_TEXTS: Record<string, { title: string; body: string
 DECLARO que:
 1. He sido informado/a de manera clara y comprensible sobre el proceso terapéutico, sus objetivos, técnicas y duración estimada.
 2. Comprendo que puedo retirar mi consentimiento en cualquier momento, sin que ello afecte la atención recibida.
-3. He sido informado/a sobre la confidencialidad de la información compartida en las sesiones, y de las excepciones legales y éticas que la limitan (riesgo para la vida, mandato judicial, etc.).
-4. Acepto que mis datos personales y de salud sean registrados en un expediente clínico electrónico, de conformidad con la NOM-024-SSA3-2012 y la Ley General de Protección de Datos Personales.
-5. Autorizo el uso de mis datos de forma anónima con fines estadísticos o de investigación, sin que sea posible mi identificación.
+3. He sido informado/a sobre la confidencialidad de la información compartida en las sesiones, y de las excepciones legales y éticas que la limitan (riesgo para la vida, mandato judicial, Ley 1090 de 2006 del psicólogo, etc.).
+4. Acepto que mis datos personales y de salud sean registrados en una historia clínica electrónica, de conformidad con la Ley 2015 de 2020, Resolución 1995 de 1999 de MinSalud y la Ley Estatutaria 1581 de 2012 de Protección de Datos Personales (Habeas Data).
+5. Autorizo el uso de mis datos de forma anonimizada con fines estadísticos o de reporte obligatorio ante el Ministerio de Salud (RIPS - Res. 2275 de 2023).
 
-Este consentimiento cumple con lo establecido en la NOM-024-SSA3-2012 para Sistemas de Información de Registro Electrónico para la Salud.`,
+Este consentimiento cumple con lo establecido en la Ley 2015 de 2020 y la Resolución 1995 de 1999 para Sistemas de Historia Clínica Electrónica en Colombia.`,
     },
     tratamiento: {
         title: 'Consentimiento Informado para Tratamiento Psicológico',
@@ -43,26 +43,26 @@ RECONOZCO que:
 2. Los resultados del tratamiento no pueden garantizarse, ya que dependen de múltiples factores.
 3. La duración del tratamiento es orientativa y puede variar según la evolución.
 4. Tengo derecho a solicitar una segunda opinión en cualquier momento.
-5. En caso de emergencia o crisis grave, seré referido/a al servicio de urgencias correspondiente.
+5. En caso de emergencia o crisis grave, seré referido/a a los servicios de urgencias de mi EPS o red hospitalaria correspondiente.
 
-Declaro haber leído y entendido el presente consentimiento, y lo firmo de manera voluntaria.`,
+Declaro haber leído y entendido el presente consentimiento, y lo firmo de manera libre y voluntaria conforme a la Ley 1090 de 2006.`,
     },
     datos_personales: {
-        title: 'Consentimiento para Tratamiento de Datos Personales',
-        body: `De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, así como con la NOM-024-SSA3-2012, por medio del presente documento OTORGO MI CONSENTIMIENTO EXPRESO para el tratamiento de mis datos personales, incluyendo datos sensibles relacionados con mi salud mental.
+        title: 'Consentimiento para Tratamiento de Datos Personales (Habeas Data)',
+        body: `De conformidad con la Ley Estatutaria 1581 de 2012 de Protección de Datos Personales (Habeas Data), su Decreto Reglamentario 1377 de 2013, la Ley 2015 de 2020 y la Resolución 1995 de 1999 del Ministerio de Salud y Protección Social, por medio del presente documento OTORGO MI CONSENTIMIENTO EXPRESO para el tratamiento de mis datos personales, incluyendo datos sensibles relacionados con mi salud mental.
 
 FINALIDADES DEL TRATAMIENTO:
 • Prestación de servicios de salud mental y psicoterapia
-• Elaboración y mantenimiento de expediente clínico electrónico
-• Coordinación con otros profesionales de la salud cuando sea necesario
-• Facturación y gestión administrativa
+• Diligenciamiento y custodia de la historia clínica electrónica
+• Coordinación interdisciplinaria con otros profesionales de salud cuando sea requerido
+• Facturación electrónica en salud (DIAN) y reporte de RIPS (MinSalud - Res. 2275 de 2023)
 
-MIS DERECHOS ARCO:
-Tengo derecho a Acceder, Rectificar, Cancelar u Oponerne al tratamiento de mis datos personales, mediante solicitud escrita al responsable del tratamiento.
+DERECHOS DE HABEAS DATA:
+Tengo derecho a conocer, actualizar, rectificar y solicitar la supresión de mis datos personales no clínicos, así como a revocar la autorización otorgada conforme a la Ley 1581 de 2012.
 
-CONSERVACIÓN: Mis datos serán conservados por un mínimo de 5 años conforme a la normativa aplicable.
+CONSERVACIÓN: Mis datos clínicos e historia clínica serán conservados por el término mínimo legal de retención de 15 años conforme a la Resolución 839 de 2017 del Ministerio de Salud y Protección Social.
 
-Declaro que la información proporcionada es verídica y que he leído el Aviso de Privacidad disponible en consulta.`,
+Declaro que la información proporcionada es verídica y que conozco la Política de Tratamiento de Información disponible en consulta.`,
     },
 };
 
@@ -71,7 +71,7 @@ type TemplateKey = 'general' | 'tratamiento' | 'datos_personales';
 const TYPE_LABELS: Record<TemplateKey, string> = {
     general: 'Consentimiento General',
     tratamiento: 'Tratamiento Psicológico',
-    datos_personales: 'Datos Personales (LFPDPPP)',
+    datos_personales: 'Datos Personales (Habeas Data - Ley 1581)',
 };
 
 interface ConsentTemplateEditorProps {

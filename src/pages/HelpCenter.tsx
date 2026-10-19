@@ -38,10 +38,10 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { id: 'config', name: 'Configuración', icon: Settings, description: 'Perfiles, horarios, comisiones y credenciales.' },
-  { id: 'pacientes', name: 'Pacientes', icon: Users, description: 'Expedientes en 4 pestañas y cumplimiento NOM-024.' },
+  { id: 'pacientes', name: 'Pacientes', icon: Users, description: 'Historias clínicas en 4 pestañas y cumplimiento MinSalud (Res. 1995/2015).' },
   { id: 'agenda', name: 'Agenda', icon: Calendar, description: 'Servicios, citas y reserva pública.' },
   { id: 'whatsapp', name: 'WhatsApp CRM', icon: MessageCircle, description: 'Plantillas Meta, estados de entrega y recordatorios.' },
-  { id: 'notas', name: 'Notas Clínicas', icon: FileText, description: 'Plantillas dinámicas, dictado IA y NOM-024.' },
+  { id: 'notas', name: 'Notas Clínicas', icon: FileText, description: 'Plantillas dinámicas, dictado IA y MinSalud (Res. 1995/2275).' },
   { id: 'finanzas', name: 'Finanzas', icon: DollarSign, description: 'Pagos, Stripe y honorarios netos.' },
   { id: 'seguridad', name: 'Seguridad', icon: Shield, description: 'Protección de datos y accesos.' },
 ];
@@ -70,7 +70,7 @@ const ARTICLES: Article[] = [
         <ol className="list-decimal pl-5 space-y-2 text-gray-700">
           <li>Accede a tu panel de <a href="https://business.facebook.com/wa/manage/templates" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">Meta Business Suite {'>'} Plantillas de WhatsApp</a>.</li>
           <li>Haz clic en <strong>Crear plantilla</strong>.</li>
-          <li>Selecciona Categoría: <strong>Utilidad (Utility)</strong>, Nombre: <code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">reminder</code>, Idioma: <strong>Español (México) / es_MX</strong>.</li>
+          <li>Selecciona Categoría: <strong>Utilidad (Utility)</strong>, Nombre: <code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">reminder</code>, Idioma: <strong>Español / es</strong>.</li>
           <li>Ingresa el texto del recordatorio y guarda. Meta aprueba la plantilla automáticamente en menos de 1 minuto.</li>
         </ol>
       </div>
@@ -99,7 +99,7 @@ const ARTICLES: Article[] = [
     title: 'Recordar Correo Electrónico en el Inicio de Sesión',
     content: (
       <div className="space-y-6">
-        <p>En la pantalla de Login (<code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">app.getmysession.mx/login</code>) puedes marcar la casilla <strong>"Recordar mi correo electrónico"</strong>.</p>
+        <p>En la pantalla de Login (<code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono">app.getmysession.com/login</code>) puedes marcar la casilla <strong>"Recordar mi correo electrónico"</strong>.</p>
         <p>Al activarla, GetMySession guardará de forma segura tu correo en tu navegador local para que en tus siguientes visitas no tengas que volver a escribirlo.</p>
       </div>
     )
@@ -113,9 +113,9 @@ const ARTICLES: Article[] = [
         <p>Al hacer clic en <strong>Registrar Paciente</strong>, se abre un cuadro de diálogo amplio dividido en 4 pestañas para mantener una captura ordenada:</p>
         
         <ul className="list-disc pl-5 space-y-2 text-gray-700">
-          <li><strong>1. Generales:</strong> Nombre completo, fecha de nacimiento, género y teléfono internacional con selector donde 🇲🇽 México aparece como predeterminado seguido de 🇺🇸 EE.UU.</li>
+          <li><strong>1. Generales:</strong> Nombre completo, fecha de nacimiento, género y teléfono internacional con selector donde 🇨🇴 Colombia (+57) aparece como predeterminado.</li>
           <li><strong>2. Emergencia:</strong> Nombre del contacto de emergencia, parentesco y teléfono directo.</li>
-          <li><strong>3. Facturación:</strong> RFC, Razón Social, Código Postal y Régimen Fiscal para emisión de facturas CFDI 4.0.</li>
+          <li><strong>3. Facturación & RIPS:</strong> Tipo de documento (CC, TI, CE, PPT), NIT/Cédula, Razón Social, Municipio DANE y datos para emisión de Facturación Electrónica DIAN & RIPS (Res. 2275).</li>
           <li><strong>4. Notas:</strong> Antecedentes iniciales o motivo de consulta de apertura.</li>
         </ul>
       </div>
@@ -149,7 +149,7 @@ const ARTICLES: Article[] = [
     title: 'Uso de Plantillas Dinámicas y Dictado IA',
     content: (
       <div className="space-y-6">
-        <p>Nuestro sistema de notas clínicas está diseñado para adaptarse a tu enfoque terapéutico, cumpliendo con la norma <strong>NOM-024-SSA3-2012</strong>.</p>
+        <p>Nuestro sistema de notas clínicas está diseñado para adaptarse a tu enfoque terapéutico, cumpliendo con la normativa de MinSalud Colombia (<strong>Resolución 1995 de 1999</strong> y <strong>Resolución 2275 de 2023 de RIPS</strong>).</p>
         
         <h3 className="text-xl font-bold text-black pt-4">Plantillas del Sistema y Dictado por Voz</h3>
         <p>GetMySession incluye plantillas basadas en los enfoques más utilizados (SOAP, TCC, ACT, DBT, Humanista/Sistémica) y permite utilizar dictado por voz inteligente para redactar en segundos.</p>

@@ -228,7 +228,7 @@ const ServiceCard = ({ service, onEdit, onDelete, onShare }: {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <DollarSign className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">Precio: <strong className="text-primary text-sm">${service.price} MXN</strong></span>
+          <span className="text-xs font-medium">Precio: <strong className="text-primary text-sm">${Number(service.price).toLocaleString('es-CO')} COP</strong></span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Percent className="h-3.5 w-3.5" />
@@ -356,7 +356,7 @@ const ServiceModal = ({ open, onOpenChange, service, onSave, isSaving }: {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Precio (MXN) *</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Precio (COP) *</Label>
               <div className="relative">
                 <Input 
                   type="number" 

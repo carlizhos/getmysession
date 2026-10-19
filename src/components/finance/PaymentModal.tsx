@@ -82,7 +82,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 const { data: result, error: funcError } = await supabase.functions.invoke('create-checkout-session', {
                     body: {
                         appointment_id: appointment.id,
-                        amount_mxn: appointment.fee,
+                        amount: appointment.fee,
                         patient_name: appointment.patient_name,
                         description: `Sesión terapéutica — ${appointment.patient_name} — ${format(parseISO(appointment.start_time), 'd MMM yyyy', { locale: es })}`,
                     },
@@ -111,7 +111,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 appointment_id: appointment.id,
                 patient_name: appointment.patient_name,
                 amount: appointment.fee,
-                currency: 'mxn',
+                currency: 'cop',
                 status: 'paid',
                 method: selected,
                 paid_at: new Date().toISOString(),
@@ -164,8 +164,8 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 {apt && (
                     <div className="flex items-center justify-center py-3">
                         <p className="text-4xl font-bold text-primary">
-                            ${apt.fee.toLocaleString('es-MX')}
-                            <span className="text-base font-normal text-muted-foreground ml-2">MXN</span>
+                            ${apt.fee.toLocaleString('es-CO')}
+                            <span className="text-base font-normal text-muted-foreground ml-2">COP</span>
                         </p>
                     </div>
                 )}

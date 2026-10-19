@@ -94,7 +94,7 @@ export const useSmartAlerts = () => {
             id,
             type: 'system',
             title: 'Tu Resumen del Día 🌙',
-            description: `Hoy tuviste ${appointments.length} citas programadas (${cancelledCount} canceladas). Te falta escribir ${notesMissing} notas clínicas. Tienes $${totalPending} MXN en cobros pendientes recientes.`,
+            description: `Hoy tuviste ${appointments.length} citas programadas (${cancelledCount} canceladas). Te falta escribir ${notesMissing} notas clínicas. Tienes $${totalPending.toLocaleString('es-CO')} COP en cobros pendientes recientes.`,
             read: false,
             created_at: new Date().toISOString(),
             metadata: { isSmartAlert: true, icon: 'sparkles' }
@@ -112,7 +112,7 @@ export const useSmartAlerts = () => {
             id,
             type: 'system',
             title: 'Cobros Rezagados ⚠️',
-            description: `Tienes ${oldPendingPayments.length} pagos pendientes de días anteriores sumando $${totalOld} MXN. ¡Asegúrate de enviar recordatorios!`,
+            description: `Tienes ${oldPendingPayments.length} pagos pendientes de días anteriores sumando $${totalOld.toLocaleString('es-CO')} COP. ¡Asegúrate de enviar recordatorios!`,
             read: false,
             created_at: new Date().toISOString(),
             metadata: { isSmartAlert: true, icon: 'alert' }

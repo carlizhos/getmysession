@@ -11,11 +11,10 @@ export interface PatientClinicalData {
 export interface PatientFiscalData {
     patient_id: string;
     organization_id: string;
-    rfc?: string;
-    tax_name?: string;
-    tax_zip_code?: string;
+    nit?: string; // Colombia NIT o Cédula
+    tax_name?: string; // Razón Social o Nombre del Paciente
+    tax_zip_code?: string; // Código postal o DANE
     tax_regime?: string;
-    cfdi_use?: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -33,7 +32,16 @@ export interface Patient {
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
     tags?: string[];
-    curp?: string;
+    
+    // Identificación y datos sociodemográficos para Colombia (MinSalud / RIPS Res. 2275)
+    document_type?: 'CC' | 'TI' | 'CE' | 'PA' | 'RC' | 'PPT' | 'CD' | 'SC' | string;
+    document_number?: string;
+    municipality_code?: string; // Código DANE 5 dígitos (ej: 11001)
+    department_code?: string; // Código DANE Depto 2 dígitos (ej: 11)
+    residence_area?: '01' | '02' | string; // 01: Urbana, 02: Rural
+    user_type?: '01' | '02' | '03' | '04' | '05' | string; // 04: Particular, 01: Contributivo Cotizante, etc.
+
+    curp?: string; // Legacy / compatibilidad temporal
     status?: 'active' | 'archived' | 'inactive';
     link_code?: string;
     is_whatsapp_linked?: boolean;
@@ -124,12 +132,20 @@ export interface Appointment {
     location?: string;
     commission_percentage?: number;
     reschedule_policy_hours?: number;
+    
+    // MinSalud Colombia RIPS / CUPS
+    cups_code?: string; // ej: 943100, 890208
+    service_modality?: '01' | '02' | '03' | string; // 01 Intramural, 03 Telemedicina
+    consultation_purpose?: string; // 10 Diagnóstico, 14 Tratamiento
+    external_cause?: string; // 13 Enfermedad general
 }
 
 export interface Organization {
     id: string;
     name: string;
     slug: string;
+    reps_code?: string;
+    nit?: string;
     created_at: string;
     settings?: Record<string, string | number | boolean | null>;
 }
@@ -141,6 +157,40 @@ export interface Profile {
     avatar_url?: string;
     organization_id?: string;
     role?: 'admin' | 'therapist' | 'receptionist';
+    
+    // Datos del Prestador de Salud (Colombia)
+    reps_code?: string; // Código de Habilitación de la Secretaría de Salud
+    rethus_number?: string; // Registro de Talento Humano en Salud
+    nit?: string; // Cédula o NIT tributario
+    dian_prefix?: string; // Prefijo de facturación autorizado (ej: SETP)
+    dian_resolution?: string; // Número de resolución DIAN
+    porcentaje_consultorio?: number;
+    stripe_fee_percent?: number;
+}
+
+export interface Payment {
+    id: string;
+    organization_id: string;
+    appointment_id?: string;
+    patient_name: string;
+    amount: number;
+    method: 'efectivo' | 'transferencia' | 'stripe';
+    status: 'paid' | 'pending' | 'failed' | 'refunded';
+    notes?: string;
+    created_at: string;
+
+    // Facturación Electrónica DIAN y MinSalud (Colombia)
+    invoice_id?: string;
+    invoice_url?: string;
+    invoice_status?: string;
+    cufe?: string; // Código Único de Facturación Electrónica (DIAN)
+    cuv?: string; // Código Único de Validación (MinSalud RIPS Res. 2275)
+    dian_status?: 'none' | 'processing' | 'issued' | 'error';
+    rips_status?: 'none' | 'generated' | 'validated' | 'rejected';
+    rips_json?: Record<string, any>;
+    dian_xml_url?: string;
+    dian_invoice_number?: string;
+    dian_error_log?: string;
 }
 
 export interface AuditLog {

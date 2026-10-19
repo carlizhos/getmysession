@@ -47,6 +47,8 @@ import {
   Plus,
   Search,
   AlertCircle,
+  Copy,
+  ShieldCheck,
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -58,6 +60,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import PaymentModal from '@/components/finance/PaymentModal';
 import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
 import { useFinanceData } from '@/hooks/useFinance';
+import { formatCOP } from '@/lib/colombiaCatalogs';
+import { downloadRipsJSON } from '@/lib/ripsGenerator';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -247,6 +251,15 @@ const Finance = () => {
     }
   };
 
+  const handleDownloadRips = (payment: any) => {
+    if (payment.rips_json) {
+      downloadRipsJSON(payment.rips_json, `RIPS_${payment.dian_invoice_number || payment.id}.json`);
+      toast.success('Archivo RIPS JSON descargado exitosamente');
+    } else {
+      toast.info('Este cobro aún no tiene archivo RIPS JSON generado.');
+    }
+  };
+
   const handleExportToExcel = () => {
     try {
       if (filteredPaidPayments.length === 0) {
@@ -260,12 +273,12 @@ const Finance = () => {
         'Paciente',
         'Categoria',
         'Metodo de Pago',
-        'Monto Bruto (MXN)',
-        'Comision Pasarela (MXN)',
-        'Monto Neto (MXN)',
+        'Monto Bruto (COP)',
+        'Comision Pasarela (COP)',
+        'Monto Neto (COP)',
         'Comision Consultorio (%)',
-        'Comision Consultorio (MXN)',
-        'Ganancia Especialista (MXN)',
+        'Comision Consultorio (COP)',
+        'Ganancia Especialista (COP)',
         'Notas'
       ];
 
@@ -441,7 +454,7 @@ const Finance = () => {
   const cancelledCount = cancelled.length;
   const lostRevenue = cancelled.reduce((sum, a) => sum + (a.fee || 0), 0);
 
-  const fmt = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (n: number) => formatCOP(n);
 
   // ── Gráfico semanal ────────────────────────────────────────────────────
   const chartData = (() => {
@@ -620,9 +633,9 @@ const Finance = () => {
           <Card variant="flat" className="border-border/50 shadow-soft bg-card">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Total Cobrado</p>
-              <p className="text-3xl font-black mt-1.5 tracking-tight">${totalBruto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight">{formatCOP(totalBruto)}</p>
               <div className="flex items-center gap-2 mt-1.5">
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{paid.length} sesiones · MXN bruto</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{paid.length} sesiones · COP bruto</p>
                 <DeltaBadge current={totalBruto} previous={lastTotalBruto} />
               </div>
             </CardContent>
@@ -632,7 +645,7 @@ const Finance = () => {
           <Card variant="flat" className="border-warning/20 dark:border-warning/15 shadow-soft bg-warning/10">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-80">Por Cobrar</p>
-              <p className="text-3xl font-black mt-1.5 tracking-tight text-amber-600 dark:text-amber-400">${pendingRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              <p className="text-3xl font-black mt-1.5 tracking-tight text-amber-600 dark:text-amber-400">{formatCOP(pendingRevenue)}</p>
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1.5">{pending.length} sesión{pending.length !== 1 ? 'es' : ''} pendiente{pending.length !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
@@ -654,7 +667,7 @@ const Finance = () => {
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-80">Tus Honorarios</p>
               <p className="text-3xl font-black mt-1.5 tracking-tight text-emerald-600 dark:text-emerald-400">
-                ${psicologoNeto.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                {formatCOP(psicologoNeto)}
               </p>
               <div className="flex items-center gap-2 mt-1.5">
                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">neto, después de fees</p>
@@ -713,7 +726,7 @@ const Finance = () => {
                     {/* Amount */}
                     <div className="text-right flex-shrink-0 hidden sm:block">
                       <p className="text-lg font-bold tracking-tight">{fmt(apt.fee)}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">MXN</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">COP</p>
                     </div>
 
                     {/* Cobrar button */}
@@ -887,7 +900,7 @@ const Finance = () => {
                         <div className="rounded-xl bg-muted/40 p-4 space-y-1">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide">Bruto cobrado</p>
                           <p className="text-2xl font-bold">{fmt(totalBruto)}</p>
-                          <p className="text-xs text-muted-foreground">MXN</p>
+                          <p className="text-xs text-muted-foreground">COP</p>
                         </div>
                         <div className="rounded-xl bg-destructive/5 border border-destructive/10 p-4 space-y-1">
                           <p className="text-xs text-destructive uppercase tracking-wide">Fees Stripe ({feeConfig.stripe_fee_percent}%)</p>
@@ -918,7 +931,7 @@ const Finance = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle>Ingresos Semanales</CardTitle>
-                          <CardDescription>Distribución de ingresos cobrados este mes (MXN)</CardDescription>
+                          <CardDescription>Distribución de ingresos cobrados este mes (COP)</CardDescription>
                         </div>
                         <button
                           onClick={() => toggle('grafico')}
@@ -943,7 +956,7 @@ const Finance = () => {
                             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                             <Tooltip
                               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}
-                              formatter={(v: number) => [`$${v.toLocaleString('es-MX')}`, 'Ingresos']}
+                              formatter={(v: number) => [`$${v.toLocaleString('es-CO')}`, 'Ingresos']}
                             />
                             <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
                           </AreaChart>
@@ -1073,37 +1086,67 @@ const Finance = () => {
                                     </div>
                                     <div className="flex items-center gap-3 ml-14 sm:ml-0 flex-wrap">
                                       {methodBadge(p.method)}
+                                      {p.cuv && (
+                                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] gap-1">
+                                          <ShieldCheck className="h-3 w-3" /> RIPS CUV
+                                        </Badge>
+                                      )}
+                                      {p.cufe && (
+                                        <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30 text-[10px]">
+                                          DIAN FEV
+                                        </Badge>
+                                      )}
                                       <span className="text-lg font-semibold text-success">
-                                        +${p.amount.toLocaleString('es-MX')} MXN
+                                        +{formatCOP(p.amount)}
                                       </span>
-                                      {p.invoice_url ? (
+                                      {p.invoice_url || p.cufe ? (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
                                             <Button variant="outline" size="sm" className="gap-1 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
                                               <FileText className="h-3.5 w-3.5" />
-                                              Factura
+                                              Factura & RIPS
                                               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                                             </Button>
                                           </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end" className="w-48">
-                                            <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                          <DropdownMenuContent align="end" className="w-56">
+                                            {p.invoice_url && (
+                                              <DropdownMenuItem onClick={() => window.open(p.invoice_url!, '_blank')} className="gap-2 cursor-pointer">
+                                                <ExternalLink className="h-4 w-4" />
+                                                Ver en Catálogo DIAN
+                                              </DropdownMenuItem>
+                                            )}
+                                            <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id || p.id)} className="gap-2 cursor-pointer">
                                               <Download className="h-4 w-4" />
-                                              Descargar PDF
+                                              Descargar PDF (DIAN)
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleSendEmail(p.invoice_id!)} className="gap-2 cursor-pointer">
+                                            {p.rips_json && (
+                                              <DropdownMenuItem onClick={() => handleDownloadRips(p)} className="gap-2 cursor-pointer font-medium text-emerald-700 dark:text-emerald-400">
+                                                <FileText className="h-4 w-4" />
+                                                Descargar RIPS JSON (Res. 2275)
+                                              </DropdownMenuItem>
+                                            )}
+                                            {p.cufe && (
+                                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(p.cufe); toast.success('CUFE copiado al portapapeles'); }} className="gap-2 cursor-pointer">
+                                                <Copy className="h-4 w-4" />
+                                                Copiar CUFE (DIAN)
+                                              </DropdownMenuItem>
+                                            )}
+                                            {p.cuv && (
+                                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(p.cuv); toast.success('CUV copiado al portapapeles'); }} className="gap-2 cursor-pointer">
+                                                <Copy className="h-4 w-4" />
+                                                Copiar CUV (MinSalud)
+                                              </DropdownMenuItem>
+                                            )}
+                                            <DropdownMenuItem onClick={() => handleSendEmail(p.invoice_id || p.id)} className="gap-2 cursor-pointer">
                                               <Mail className="h-4 w-4" />
-                                              Enviar por Correo
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => window.open(p.invoice_url!, '_blank')} className="gap-2 cursor-pointer">
-                                              <ExternalLink className="h-4 w-4" />
-                                              Ver en Facturapi
+                                              Enviar por Correo al Paciente
                                             </DropdownMenuItem>
                                           </DropdownMenuContent>
                                         </DropdownMenu>
                                       ) : (
                                         <Button variant="outline" size="sm" onClick={() => handleGenerateInvoice(p.id)} disabled={generatingInvoiceId === p.id} className="gap-1">
                                           {generatingInvoiceId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
-                                          Facturar
+                                          Facturar DIAN & RIPS
                                         </Button>
                                       )}
                                     </div>
@@ -1111,14 +1154,14 @@ const Finance = () => {
                                   <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 pb-3 text-xs text-muted-foreground border-t border-border/40 pt-2">
                                     {isStripe && (
                                       <span className="text-destructive">
-                                        Fee Stripe: −${fee.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        Fee Stripe: −{formatCOP(fee)}
                                       </span>
                                     )}
                                     <span className="text-warning">
-                                      Consultorio ({pct}%): −${consultorio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      Consultorio ({pct}%): −{formatCOP(consultorio)}
                                     </span>
                                     <span className="text-success font-semibold">
-                                      Tu parte: ${psicologo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      Tu parte: {formatCOP(psicologo)}
                                     </span>
                                     {p.notes && (
                                       <span className="w-full flex items-center gap-1 mt-0.5 text-muted-foreground italic">

@@ -139,7 +139,7 @@ const SubscriptionTab = () => {
                             <p className="text-sm font-semibold flex items-center gap-2">
                                 {(isTrialing || isTrialExpired) && <Clock className="h-4 w-4 text-primary" />}
                                 {organization?.current_period_end 
-                                    ? new Date(organization.current_period_end).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric'})
+                                    ? new Date(organization.current_period_end).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric'})
                                     : 'Sin fecha'}
                                 {isTrialing && daysRemaining > 0 && (
                                     <Badge variant="secondary" className="text-[10px]">{daysRemaining} días</Badge>
@@ -190,8 +190,8 @@ const SubscriptionTab = () => {
                     </CardHeader>
                     <CardContent className="flex-1 space-y-6">
                         <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black">$749</span>
-                            <span className="text-muted-foreground text-sm">MXN/mes</span>
+                            <span className="text-4xl font-black">$149.000</span>
+                            <span className="text-muted-foreground text-sm">COP/mes</span>
                         </div>
                         
                         <ul className="space-y-3">
@@ -245,8 +245,8 @@ const SubscriptionTab = () => {
                     </CardHeader>
                     <CardContent className="flex-1 space-y-6">
                         <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black text-muted-foreground">$1,500</span>
-                            <span className="text-muted-foreground text-sm">MXN/mes</span>
+                            <span className="text-4xl font-black text-muted-foreground">$299.000</span>
+                            <span className="text-muted-foreground text-sm">COP/mes</span>
                         </div>
                         
                         <ul className="space-y-3">
@@ -288,7 +288,7 @@ const SubscriptionTab = () => {
                         GetMySession no almacena tus datos bancarios. Todos los pagos son procesados de forma segura a través de <strong>Stripe</strong>, cumpliendo con los estándares PCI-DSS. Puedes cancelar o cambiar tu plan en cualquier momento desde el portal de facturación.
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">
-                        Todos los precios están en Pesos Mexicanos (MXN).
+                        Todos los precios están en Pesos Colombianos (COP).
                     </p>
                 </div>
             </div>

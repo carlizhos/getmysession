@@ -58,7 +58,7 @@ export function getVisitorTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {
-    return 'America/Mexico_City';
+    return 'America/Bogota';
   }
 }
 
@@ -285,7 +285,7 @@ export function convertTimeSlot(
   toTimezone: string
 ): string {
   const utcDate = buildUTCFromClinicTime(date, timeStr, fromTimezone);
-  return utcDate.toLocaleTimeString('es-MX', {
+  return utcDate.toLocaleTimeString('es-CO', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

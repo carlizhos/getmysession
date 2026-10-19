@@ -134,7 +134,7 @@ const MFASetup = () => {
                             <p className="text-sm font-medium">¿Por qué activar 2FA?</p>
                             <ul className="text-sm text-muted-foreground space-y-1">
                                 <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" /> Protege el expediente de tus pacientes</li>
-                                <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" /> Requerido por NOM-024-SSA3-2012</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" /> Requerido por Ley 2015 de 2020 y Res. 1995 (MinSalud)</li>
                                 <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" /> Bloquea acceso aunque roben tu contraseña</li>
                             </ul>
                         </div>

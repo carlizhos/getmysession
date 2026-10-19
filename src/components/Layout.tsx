@@ -448,7 +448,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                   className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-primary/80"
                 >
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>Aviso Regulatorio (NOM-024)</span>
+                  <span>Marco Normativo en Salud (Colombia)</span>
                 </button>
                 <a 
                   href="/politicas" 
@@ -473,7 +473,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
         </div> {/* End rounded content container */}
       </div>
 
-      {/* Modal de Aviso Regulatorio NOM-024 */}
+      {/* Modal de Marco Normativo en Salud (Colombia) */}
       <Dialog open={showNomModal} onOpenChange={setShowNomModal}>
         <DialogContent className="sm:max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 p-6 bg-white dark:bg-[#1e1e2e]">
           <DialogHeader className="space-y-2">
@@ -482,9 +482,9 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold">Aviso Regulatorio (NOM-024)</DialogTitle>
+                <DialogTitle className="text-lg font-bold">Marco Normativo en Salud (Colombia)</DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-1">
-                  Cumplimiento normativo y marco de registro clínico electrónico
+                  Estándares de historia clínica electrónica y RIPS JSON
                 </DialogDescription>
               </div>
             </div>
@@ -492,10 +492,10 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
           <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
             <p>
-              <strong>Aviso Regulatorio (NOM-024):</strong> GetMySession desarrolla su infraestructura y funcionalidades de expediente clínico en estricto apego y alineación a los lineamientos y estándares tecnológicos de la <strong>NOM-024-SSA3-2012</strong> (Sistemas de Información de Registro Electrónico para la Salud), promoviendo las mejores prácticas de privacidad, seguridad e interoperabilidad.
+              <strong>Alineación Normativa MinSalud & DIAN:</strong> GetMySession desarrolla su infraestructura clínica y tecnológica en estricto apego a la <strong>Ley 2015 de 2020</strong> (Interoperabilidad de Historia Clínica Electrónica), <strong>Resolución 1995 de 1999</strong>, y <strong>Resolución 2275 de 2023</strong> (RIPS JSON como soporte de la Facturación Electrónica en Salud).
             </p>
             <p>
-              Se hace de conocimiento que GetMySession no cuenta actualmente con la certificación oficial emitida por la Dirección General de Información en Salud (DGIS).
+              La plataforma promueve el cumplimiento del Código Deontológico y Bioético del Psicólogo (<strong>Ley 1090 de 2006</strong>) y la protección integral de datos personales sensibles bajo la <strong>Ley Estatutaria 1581 de 2012</strong>.
             </p>
           </div>
 

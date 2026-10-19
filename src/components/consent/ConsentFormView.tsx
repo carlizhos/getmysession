@@ -98,7 +98,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
 
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
-        doc.text('NOM-024-SSA3-2012 | Expediente Clínico Electrónico', margin, 15);
+        doc.text('Ley 2015 de 2020 & Res. 1995 de 1999 | Historia Clínica Electrónica (Colombia)', margin, 15);
 
         // Render logo in top-right header if available
         if (logoData) {
@@ -334,7 +334,7 @@ const ConsentFormView = ({ onSaved, onCancel }: ConsentFormViewProps) => {
                     <div className="flex items-center gap-2">
                         <Label className="text-base font-semibold">{consentTitle}</Label>
                         <Badge variant="outline" className="text-xs gap-1">
-                            <ShieldCheck className="h-3 w-3 text-primary" /> NOM-024
+                            <ShieldCheck className="h-3 w-3 text-primary" /> Res. 1995 / Ley 2015
                         </Badge>
                     </div>
                     <Button

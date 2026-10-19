@@ -469,12 +469,16 @@ const Patients = () => {
 
         return {
           ...p,
-          curp: decryptText(p.curp),
-          rfc: decryptText(fiscalData.rfc) || undefined,
+          document_type: p.document_type || 'CC',
+          document_number: p.document_number || (p.curp ? decryptText(p.curp) : undefined),
+          municipality_code: p.municipality_code || '11001',
+          department_code: p.department_code || '11',
+          residence_area: p.residence_area || '01',
+          user_type: p.user_type || '04',
+          nit: p.nit || fiscalData.nit || decryptText(fiscalData.rfc) || undefined,
           tax_name: fiscalData.tax_name || undefined,
           tax_zip_code: fiscalData.tax_zip_code || undefined,
           tax_regime: fiscalData.tax_regime || undefined,
-          cfdi_use: fiscalData.cfdi_use || undefined,
           notes: clinicalData.notes || undefined,
           _next_appointment: nextByPatient[p.id] ? nextByPatient[p.id].start_time : null,
           _next_appointment_modality: nextByPatient[p.id] ? nextByPatient[p.id].modality : null,
@@ -860,7 +864,7 @@ const Patients = () => {
       
       if (auditErr) throw auditErr;
 
-      // 3. Define headers for export (Sensitive fields like notes, curp, rfc removed for security)
+      // 3. Define headers for export (Sensitive fields like clinical notes and tax IDs removed for security)
       const headers = [
         'name', 'email', 'phone', 'date_of_birth', 'gender', 
         'occupation', 'emergency_contact_name', 'emergency_contact_phone', 
@@ -1237,7 +1241,7 @@ const Patients = () => {
                           size="sm" 
                           className="w-full h-9 text-destructive hover:bg-destructive/10 border-destructive/20 text-xs"
                           onClick={() => {
-                            if (window.confirm('¿Estás seguro de que deseas eliminar este expediente? Esta acción lo archivará según la NOM-024.')) {
+                            if (window.confirm('¿Estás seguro de que deseas eliminar este expediente? Esta acción lo archivará conforme a la custodia legal de MinSalud (Res. 839/2017).')) {
                               handleDeletePatient();
                             }
                           }}

@@ -96,6 +96,12 @@ export default function ProfileSettings() {
     experience_years: 0,
     social_links: { instagram: '', linkedin: '', facebook: '' } as Record<string, string>,
     reschedule_policy_hours: 24,
+    // Habilitación y Facturación Colombia (MinSalud & DIAN)
+    reps_code: '',
+    rethus_number: '',
+    nit: '',
+    dian_prefix: 'SETP',
+    dian_resolution: '',
   });
 
   const [originalSlug, setOriginalSlug] = useState('');
@@ -138,6 +144,11 @@ export default function ProfileSettings() {
         experience_years: profileData.experience_years || 0,
         social_links: profileData.social_links || { instagram: '', linkedin: '', facebook: '' },
         reschedule_policy_hours: profileData.reschedule_policy_hours ?? 24,
+        reps_code: profileData.reps_code || '',
+        rethus_number: profileData.rethus_number || '',
+        nit: profileData.nit || '',
+        dian_prefix: profileData.dian_prefix || 'SETP',
+        dian_resolution: profileData.dian_resolution || '',
       });
       setOriginalSlug(profileData.slug || '');
 
@@ -245,6 +256,11 @@ export default function ProfileSettings() {
           bio: profile.bio || null,
           experience_years: profile.experience_years || 0,
           social_links: profile.social_links || {},
+          reps_code: profile.reps_code || null,
+          rethus_number: profile.rethus_number || null,
+          nit: profile.nit || null,
+          dian_prefix: profile.dian_prefix || 'SETP',
+          dian_resolution: profile.dian_resolution || null,
         }
       });
       setOriginalSlug(profile.slug);
@@ -290,9 +306,9 @@ export default function ProfileSettings() {
               <User className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base">Perfil Profesional</CardTitle>
+              <CardTitle className="text-base">Perfil Profesional & Prestador de Salud</CardTitle>
               <CardDescription>
-                Datos requeridos por <span className="text-primary font-medium">NOM-024-SSA3-2012</span>
+                Habilitación MinSalud <span className="text-primary font-medium">REPS / Ley 2015 de 2020 (Colombia)</span>
               </CardDescription>
             </div>
           </div>
@@ -395,6 +411,65 @@ export default function ProfileSettings() {
                 disabled={updateProfileMutation.isLoading}
               />
               <p className="text-[11px] text-muted-foreground">Esta información será visible en tu página de perfil profesional.</p>
+            </div>
+
+            {/* Acreditación y Habilitación MinSalud & DIAN (Colombia) */}
+            <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-bold">Habilitación en Salud & DIAN (Colombia)</h4>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Datos requeridos para la emisión válida de RIPS JSON (Resolución 2275 de 2023) y Facturación Electrónica en Salud.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="reps_code" className="text-xs font-semibold">Código de Habilitación REPS (MinSalud)</Label>
+                  <Input
+                    id="reps_code"
+                    value={profile.reps_code}
+                    onChange={(e) => setProfile({ ...profile, reps_code: e.target.value })}
+                    placeholder="Ej: 110010000001 (10-12 dígitos)"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Código de tu consultorio en el Registro Especial de Prestadores.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="rethus_number" className="text-xs font-semibold">Registro ReTHUS / Tarjeta Colpsic</Label>
+                  <Input
+                    id="rethus_number"
+                    value={profile.rethus_number}
+                    onChange={(e) => setProfile({ ...profile, rethus_number: e.target.value })}
+                    placeholder="Ej: PSI-123456"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Número de registro en Talento Humano en Salud.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="nit" className="text-xs font-semibold">NIT o Cédula Tributaria (DIAN)</Label>
+                  <Input
+                    id="nit"
+                    value={profile.nit}
+                    onChange={(e) => setProfile({ ...profile, nit: e.target.value })}
+                    placeholder="Ej: 1018223344-5"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="dian_prefix" className="text-xs font-semibold">Prefijo Autorizado DIAN</Label>
+                  <Input
+                    id="dian_prefix"
+                    value={profile.dian_prefix}
+                    onChange={(e) => setProfile({ ...profile, dian_prefix: e.target.value.toUpperCase() })}
+                    placeholder="Ej: SETP"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -785,7 +860,7 @@ export default function ProfileSettings() {
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                  Cédulas Profesionales (NOM-024 INT-04)
+                  Títulos Profesionales y Tarjetas (Ley 1090 de 2006)
                 </p>
                 <Button type="button" variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setShowAddCedula(v => !v)}>
                   <Plus className="h-3.5 w-3.5" /> Agregar

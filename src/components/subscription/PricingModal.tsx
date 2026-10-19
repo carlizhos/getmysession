@@ -9,21 +9,21 @@ import { toast } from 'sonner';
 import { usePricingModal, useSubscription } from '@/hooks/useSubscription';
 
 // ── Pricing Constants ──────────────────────────────────────────────────────
-const MONTHLY_PRICE = 749;
-const ANNUAL_PRICE = 7490;
-const MONTHLY_EQUIVALENT = Math.round(ANNUAL_PRICE / 12); // 624
-const ANNUAL_SAVINGS = (MONTHLY_PRICE * 12) - ANNUAL_PRICE; // 1498
-const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100); // 16
+const MONTHLY_PRICE = 149000;
+const ANNUAL_PRICE = 1490000;
+const MONTHLY_EQUIVALENT = Math.round(ANNUAL_PRICE / 12);
+const ANNUAL_SAVINGS = (MONTHLY_PRICE * 12) - ANNUAL_PRICE;
+const SAVINGS_PERCENT = Math.round((ANNUAL_SAVINGS / (MONTHLY_PRICE * 12)) * 100);
 
 const FEATURES = [
-  'Pacientes e historiales ilimitados',
+  'Pacientes e historias clínicas ilimitadas',
   'Asistente de IA para notas clínicas',
+  'Facturación Electrónica DIAN y RIPS MinSalud',
   'Consultorio Virtual (videollamadas)',
   'Escriba Ambiental de IA',
-  'Notas SOAP estructuradas',
-  'Exportar expedientes a PDF',
+  'Notas de evolución clínica estructuradas',
+  'Exportar expedientes a PDF (Ley 2015)',
   'Agenda inteligente con recordatorios',
-  'Calculadora de comisiones',
 ];
 
 export default function PricingModal() {
@@ -43,7 +43,7 @@ export default function PricingModal() {
   chargeDate.setDate(today.getDate() + 30);
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const selectedPrice = billingCycle === 'monthly' ? MONTHLY_PRICE : ANNUAL_PRICE;
   const selectedLabel = billingCycle === 'monthly' ? '/mes' : '/año';
@@ -298,8 +298,8 @@ export default function PricingModal() {
               <p className="text-xs text-slate-400">A pagar hoy</p>
               <p className="text-lg font-black text-slate-900 dark:text-white">
                 {isTrialExpired 
-                  ? `MX$${selectedPrice.toLocaleString()}` 
-                  : 'MX$0'}
+                  ? `$${selectedPrice.toLocaleString('es-CO')} COP` 
+                  : '$0 COP'}
                 {!isTrialExpired && <span className="text-xs font-normal text-slate-400"> (30 días gratis)</span>}
               </p>
             </div>
@@ -307,7 +307,7 @@ export default function PricingModal() {
               <div className="text-right">
                 <p className="text-xs text-slate-400">Después del {formatDate(chargeDate)}</p>
                 <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                  MX${selectedPrice.toLocaleString()}{selectedLabel}
+                  ${selectedPrice.toLocaleString('es-CO')} COP{selectedLabel}
                 </p>
               </div>
             )}
@@ -332,7 +332,7 @@ export default function PricingModal() {
               <span>Pagos seguros con Stripe · Cifrado de extremo a extremo</span>
             </div>
             <p className="text-[10px] text-slate-400 text-center leading-tight">
-              Todos los precios están en Pesos Mexicanos (MXN). Tu suscripción se renueva automáticamente.
+              Todos los precios están en Pesos Colombianos (COP). Tu suscripción se renueva automáticamente.
               Puedes cancelarla en cualquier momento desde tu configuración. Al continuar aceptas los{' '}
               <a href="/terminos" target="_blank" className="underline hover:text-primary transition-colors">Términos de uso</a> y{' '}
               <a href="/politicas" target="_blank" className="underline hover:text-primary transition-colors">Política de privacidad</a>.

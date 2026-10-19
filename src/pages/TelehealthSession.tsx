@@ -35,7 +35,7 @@ export default function TelehealthSession() {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'es-MX'; // Spanish
+      recognition.lang = 'es-CO'; // Spanish (Colombia)
       
       recognition.onresult = (event: any) => {
         let currentTranscript = '';
