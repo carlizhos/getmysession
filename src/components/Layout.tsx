@@ -46,6 +46,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import HelpWidget from '@/components/HelpWidget';
 import CommandPalette from '@/components/CommandPalette';
 import PricingModal from '@/components/subscription/PricingModal';
+import CrisisDirectoryModal from '@/components/common/CrisisDirectoryModal';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 const navigationItems = [
@@ -77,6 +78,7 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [showNomModal, setShowNomModal] = useState(false);
+  const [showCrisisModal, setShowCrisisModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadWa, setUnreadWa] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -428,6 +430,18 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
 
             {/* Right: Actions */}
             <div className="flex items-center gap-1.5 sm:gap-3 pointer-events-auto ml-auto">
+              <button
+                type="button"
+                onClick={() => setShowCrisisModal(true)}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-950/60 dark:text-red-300 dark:hover:bg-red-900/80 border border-red-200 dark:border-red-800 transition-all shadow-2xs"
+                title="Directorio de Líneas Oficiales de Emergencia en Salud Mental (Colombia)"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span>Líneas de Crisis (123 / 106)</span>
+              </button>
               <SubscriptionBanner />
             </div>
           </div>
@@ -443,6 +457,14 @@ const Layout = ({ children, activePatient, activePatientTab, onPatientTabChange 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <p>© {new Date().getFullYear()} GetMySession. Todos los derechos reservados.</p>
               <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCrisisModal(true)}
+                  className="hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1.5 font-bold text-red-600/90 dark:text-red-400"
+                >
+                  <PhoneCall className="h-3.5 w-3.5" />
+                  <span>Líneas de Crisis Colombia (106 / 192 / 141)</span>
+                </button>
                 <button
                   onClick={() => setShowNomModal(true)}
                   className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-primary/80"

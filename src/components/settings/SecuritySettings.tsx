@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Bell, Clock, Loader2, Mail, MessageSquare, ShieldCheck } from 'lucide-react';
 import MFASetup from '@/components/auth/MFASetup';
 import { toast } from 'sonner';
+import ClinicalArchiveBackupCard from './ClinicalArchiveBackupCard';
 
 export default function SecuritySettings() {
   const { user } = useAuth();
@@ -250,6 +251,9 @@ export default function SecuritySettings() {
         </div>
         <MFASetup />
       </div>
+
+      {/* Custodia y Archivo Clínico Digital (Res. 839 de 2017) */}
+      <ClinicalArchiveBackupCard />
     </div>
   );
 }
