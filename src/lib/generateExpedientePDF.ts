@@ -20,6 +20,11 @@ export interface PatientData {
     emergency_contact_phone?: string;
     notes?: string;
     tags?: string[];
+    guardian_name?: string;
+    guardian_document_type?: string;
+    guardian_document_number?: string;
+    guardian_phone?: string;
+    guardian_relationship?: string;
 }
 
 export interface SessionNoteData {
@@ -74,6 +79,8 @@ const FORM_TYPE_LABELS: Record<string, string> = {
     general: 'Consentimiento Informado General',
     tratamiento: 'Tratamiento Psicológico',
     datos_personales: 'Tratamiento de Datos Personales (Ley 1581 de 2012 / Colombia)',
+    telepsicologia: 'Telepsicología y Consulta Virtual (Res. 2654 de 2019 / MinSalud)',
+    menor_edad: 'Consentimiento para Menores de Edad y Asentimiento (Ley 1098 de 2006)',
 };
 
 const GENDER_LABELS: Record<string, string> = {
@@ -272,6 +279,13 @@ export function generateExpedientePDF(
         ['Contacto de emergencia', patient.emergency_contact_name || '—'],
         ['Tel. emergencia', patient.emergency_contact_phone || '—'],
     ];
+
+    if (patient.guardian_name) {
+        infoRows.push([
+            'Acudiente / Tutor Legal',
+            `${patient.guardian_name} (${patient.guardian_relationship || 'Tutor'}) · ${patient.guardian_document_type || 'CC'} ${patient.guardian_document_number || ''}`
+        ]);
+    }
 
     doc.setFontSize(9.5);
     for (const [label, value] of infoRows) {

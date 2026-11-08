@@ -54,6 +54,11 @@ interface Patient {
     tax_name?: string;
     tax_zip_code?: string;
     tax_regime?: string;
+    guardian_name?: string;
+    guardian_document_type?: string;
+    guardian_document_number?: string;
+    guardian_phone?: string;
+    guardian_relationship?: string;
 }
 
 interface NewPatientDialogProps {
@@ -82,6 +87,13 @@ const patientSchema = z.object({
     emergencyContactPhone: z.string().optional(),
     notes: z.string().optional(),
     
+    // Representante Legal / Acudiente (Ley 1098 de 2006)
+    guardianName: z.string().optional(),
+    guardianDocumentType: z.string().default('CC'),
+    guardianDocumentNumber: z.string().optional(),
+    guardianPhone: z.string().optional(),
+    guardianRelationship: z.string().optional(),
+
     // Facturación DIAN
     nit: z.string().optional(),
     taxName: z.string().optional(),
@@ -98,6 +110,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
         defaultValues: {
             name: '', email: '', phone: '', dateOfBirth: '', 
             documentType: 'CC', documentNumber: '', municipalityCode: '11001', residenceArea: '01', userType: '04',
+            guardianName: '', guardianDocumentType: 'CC', guardianDocumentNumber: '', guardianPhone: '', guardianRelationship: '',
             gender: '', occupation: '',
             emergencyContactName: '', emergencyContactPhone: '', notes: '',
             nit: '', taxName: '',
@@ -128,6 +141,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 notes: editingPatient.notes || '',
                 nit: editingPatient.nit || '',
                 taxName: editingPatient.tax_name || '',
+                guardianName: editingPatient.guardian_name || '',
+                guardianDocumentType: editingPatient.guardian_document_type || 'CC',
+                guardianDocumentNumber: editingPatient.guardian_document_number || '',
+                guardianPhone: editingPatient.guardian_phone || '',
+                guardianRelationship: editingPatient.guardian_relationship || '',
             });
             setTags(editingPatient.tags || []);
         } else {
@@ -137,6 +155,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 gender: '', occupation: '',
                 emergencyContactName: '', emergencyContactPhone: '', notes: '',
                 nit: '', taxName: '',
+                guardianName: '', guardianDocumentType: 'CC', guardianDocumentNumber: '', guardianPhone: '', guardianRelationship: '',
             });
             setTags([]);
         }
@@ -165,6 +184,11 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                 occupation: data.occupation || null,
                 emergency_contact_name: data.emergencyContactName || null,
                 emergency_contact_phone: data.emergencyContactPhone || null,
+                guardian_name: data.guardianName || null,
+                guardian_document_type: data.guardianDocumentType || null,
+                guardian_document_number: data.guardianDocumentNumber || null,
+                guardian_phone: data.guardianPhone || null,
+                guardian_relationship: data.guardianRelationship || null,
                 tags: tags,
                 user_id: user?.id ?? null,
                 organization_id: organization?.id,
@@ -275,7 +299,7 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                 </TabsTrigger>
                                 <TabsTrigger value="emergencia" className="gap-1.5 text-xs font-bold rounded-lg">
                                     <ShieldAlert className="h-3.5 w-3.5" />
-                                    <span>Emergencia</span>
+                                    <span>Acudiente / Urgencias</span>
                                 </TabsTrigger>
                                 <TabsTrigger value="fiscales" className="gap-1.5 text-xs font-bold rounded-lg">
                                     <Receipt className="h-3.5 w-3.5" />
@@ -331,6 +355,28 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                         {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
                                     </div>
                                 </div>
+
+                                {(() => {
+                                    const dob = watch('dateOfBirth');
+                                    if (!dob) return null;
+                                    const birth = new Date(dob);
+                                    const now = new Date();
+                                    let age = now.getFullYear() - birth.getFullYear();
+                                    const m = now.getMonth() - birth.getMonth();
+                                    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+                                    if (age >= 18) return null;
+                                    return (
+                                        <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-center gap-2">
+                                            <span className="text-base">🧒</span>
+                                            <div>
+                                                <p className="font-bold">Paciente Menor de Edad ({age} años)</p>
+                                                <p className="text-purple-700 text-[11px]">
+                                                    Bajo la Ley 1098 de 2006 (Código de Infancia), completa los datos del acudiente en la pestaña <strong>Emergencia / Acudiente</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
@@ -528,6 +574,81 @@ const NewPatientDialog = ({ open, onOpenChange, onPatientAdded, editingPatient }
                                             id="emergencyContactPhone"
                                             value={watch('emergencyContactPhone')}
                                             onChange={(fullFormatted) => setValue('emergencyContactPhone', fullFormatted)}
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* SECCIÓN REPRESENTANTE LEGAL / ACUDIENTE (LEY 1098) */}
+                                <div className="pt-4 border-t space-y-4">
+                                    <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/80 space-y-1">
+                                        <p className="text-xs font-bold text-purple-800 flex items-center gap-1.5">
+                                            <span>🧒</span> Representante Legal / Acudiente (Menores de Edad)
+                                        </p>
+                                        <p className="text-[11px] text-purple-700 leading-relaxed">
+                                            Requerido por el Código de la Infancia y la Adolescencia (Ley 1098 de 2006) y Ley 1581 de 2012 para pacientes menores de 18 años.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="guardianName" className="text-xs font-semibold">Nombre completo del acudiente</Label>
+                                            <Input
+                                                id="guardianName"
+                                                {...register('guardianName')}
+                                                placeholder="Ej: Laura Patricia Pérez"
+                                                className="h-9 text-xs"
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="guardianRelationship" className="text-xs font-semibold">Parentesco / Relación</Label>
+                                            <Input
+                                                id="guardianRelationship"
+                                                {...register('guardianRelationship')}
+                                                placeholder="Ej: Madre, Padre, Tutor legal..."
+                                                className="h-9 text-xs"
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="guardianDocumentType" className="text-xs font-semibold">Tipo Doc. Acudiente</Label>
+                                            <Select
+                                                value={watch('guardianDocumentType') || 'CC'}
+                                                onValueChange={(v) => setValue('guardianDocumentType', v)}
+                                            >
+                                                <SelectTrigger id="guardianDocumentType" className="h-9 text-xs">
+                                                    <SelectValue placeholder="Tipo" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="CC">Cédula de Ciudadanía (CC)</SelectItem>
+                                                    <SelectItem value="CE">Cédula de Extranjería (CE)</SelectItem>
+                                                    <SelectItem value="PA">Pasaporte (PA)</SelectItem>
+                                                    <SelectItem value="PPT">Permiso Protección Temporal (PPT)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5 sm:col-span-2">
+                                            <Label htmlFor="guardianDocumentNumber" className="text-xs font-semibold">Número de Documento</Label>
+                                            <Input
+                                                id="guardianDocumentNumber"
+                                                {...register('guardianDocumentNumber')}
+                                                placeholder="Ej: 52899441"
+                                                className="h-9 text-xs"
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="guardianPhone" className="text-xs font-semibold">Teléfono del Acudiente</Label>
+                                        <PhoneInput
+                                            id="guardianPhone"
+                                            value={watch('guardianPhone')}
+                                            onChange={(fullFormatted) => setValue('guardianPhone', fullFormatted)}
                                             disabled={isSubmitting}
                                         />
                                     </div>

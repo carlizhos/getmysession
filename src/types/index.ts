@@ -41,6 +41,13 @@ export interface Patient {
     residence_area?: '01' | '02' | string; // 01: Urbana, 02: Rural
     user_type?: '01' | '02' | '03' | '04' | '05' | string; // 04: Particular, 01: Contributivo Cotizante, etc.
 
+    // Representante Legal / Tutor / Acudiente (Ley 1098 de 2006 para Menores de Edad)
+    guardian_name?: string;
+    guardian_document_type?: 'CC' | 'CE' | 'PA' | 'PPT' | string;
+    guardian_document_number?: string;
+    guardian_phone?: string;
+    guardian_relationship?: string;
+
     curp?: string; // Legacy / compatibilidad temporal
     status?: 'active' | 'archived' | 'inactive';
     link_code?: string;

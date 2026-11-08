@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 interface ConsentRecord {
     id: string;
     patient_name: string;
-    form_type: 'general' | 'tratamiento' | 'datos_personales';
+    form_type: 'general' | 'tratamiento' | 'telepsicologia' | 'menor_edad' | 'datos_personales';
     signed_at: string | null;
     is_valid: boolean;
     signature_data_url: string | null;
@@ -49,13 +49,17 @@ interface ConsentRecord {
 
 const FORM_TYPE_LABELS: Record<string, string> = {
     general: 'Consentimiento General',
-    tratamiento: 'Tratamiento Psicológico',
-    datos_personales: 'Datos Personales (LFPDPPP)',
+    tratamiento: 'Tratamiento Psicológico (Ley 1090)',
+    telepsicologia: 'Telepsicología (Res. 2654)',
+    menor_edad: 'Menores de Edad (Ley 1098)',
+    datos_personales: 'Datos Personales (Habeas Data)',
 };
 
 const FORM_TYPE_BADGE_CLASS: Record<string, string> = {
     general: 'bg-secondary text-secondary-foreground',
     tratamiento: 'bg-purple-100 text-purple-700 border-purple-200',
+    telepsicologia: 'bg-blue-100 text-blue-700 border-blue-200',
+    menor_edad: 'bg-amber-100 text-amber-700 border-amber-200',
     datos_personales: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
@@ -363,6 +367,8 @@ const Consents = () => {
                                     <SelectItem value="all">Todos los tipos</SelectItem>
                                     <SelectItem value="general">Consentimiento General</SelectItem>
                                     <SelectItem value="tratamiento">Tratamiento Psicológico</SelectItem>
+                                    <SelectItem value="telepsicologia">Telepsicología (Res. 2654)</SelectItem>
+                                    <SelectItem value="menor_edad">Menores de Edad (Ley 1098)</SelectItem>
                                     <SelectItem value="datos_personales">Datos Personales</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -422,6 +428,8 @@ const Consents = () => {
                                 { label: 'Válidos', value: consents.filter(c => c.is_valid).length, icon: CheckCircle2 },
                                 { label: 'General', value: consents.filter(c => c.form_type === 'general').length },
                                 { label: 'Tratamiento', value: consents.filter(c => c.form_type === 'tratamiento').length },
+                                { label: 'Telepsicología', value: consents.filter(c => c.form_type === 'telepsicologia').length },
+                                { label: 'Menores', value: consents.filter(c => c.form_type === 'menor_edad').length },
                             ].map((stat) => (
                                 <Card key={stat.label} variant="flat" className="border border-border">
                                     <CardContent className="p-4">

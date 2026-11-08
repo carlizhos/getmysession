@@ -64,13 +64,40 @@ CONSERVACIÓN: Mis datos clínicos e historia clínica serán conservados por el
 
 Declaro que la información proporcionada es verídica y que conozco la Política de Tratamiento de Información disponible en consulta.`,
     },
+    telepsicologia: {
+        title: 'Consentimiento Informado para Telepsicología (Res. 2654 de 2019 MinSalud)',
+        body: `De conformidad con la Resolución 2654 de 2019 del Ministerio de Salud y Protección Social que reglamenta la Telemedicina en Colombia, y la Ley 1090 de 2006 (Código Deontológico del Psicólogo), por medio del presente documento OTORGO MI CONSENTIMIENTO para recibir atención psicológica a través de medios telemáticos y tecnologías de la información.
+
+CONDICIONES Y COMPROMISOS:
+1. UBICACIÓN FÍSICA: Me comprometo a informar al profesional al inicio de cada sesión el municipio y dirección exacta donde me encuentro físicamente ubicado/a.
+2. ESPACIO PRIVADO: Garantizo que durante la videollamada estaré en un espacio privado, libre de distracciones y con garantía de confidencialidad de mi entorno.
+3. CONTACTO DE EMERGENCIA LOCAL: Designo a un contacto de confianza ubicado en mi misma ciudad, con teléfono disponible, al cual el psicólogo podrá contactar en caso de una crisis emocional severa o riesgo para mi integridad física.
+4. LÍMITES TÉCNICOS: Comprendo que la telepsicología depende de la estabilidad de la conexión a internet. En caso de corte o falla técnica, se reanudará la sesión por llamada telefónica o reprogramación acordada.
+5. NO GRABACIÓN: Queda expresamente prohibido grabar total o parcialmente las sesiones virtuales por cualquiera de las partes sin autorización previa por escrito.
+6. CRITERIO CLÍNICO: Si el profesional evalúa que la modalidad virtual no es adecuada para mis necesidades clínicas o se presenta una situación de riesgo vital, acepto ser derivado/a a atención presencial o a servicios de urgencias de mi EPS.
+
+Declaro que he leído y acepto estas condiciones para la atención en salud mental por telemedicina.`,
+    },
+    menor_edad: {
+        title: 'Consentimiento de Representante Legal y Asentimiento para Menores (Ley 1098 de 2006)',
+        body: `En cumplimiento del Código de la Infancia y la Adolescencia (Ley 1098 de 2006 de Colombia), la Ley 1090 de 2006 y la Ley 1581 de 2012, comparezco en calidad de REPRESENTANTE LEGAL (padre, madre o tutor) del niño, niña o adolescente abajo identificado, y declaro:
+
+1. AUTORIZACIÓN: Otorgo mi autorización expresa para que el menor de edad reciba atención, evaluación y/o intervención psicológica profesional.
+2. CONFIDENCIALIDAD DEL MENOR: Reconozco y respeto que para el éxito del proceso terapéutico, el menor tiene derecho a un espacio de privacidad y secreto profesional. El psicólogo me mantendrá informado/a de los avances generales y me orientará en pautas de crianza, pero no revelará detalles íntimos salvo que exista una situación de riesgo grave para su vida, salud o vulneración de sus derechos fundamentales.
+3. ASENTIMIENTO DEL MENOR: El menor ha sido informado en un lenguaje adaptado a su edad y etapa de desarrollo sobre el propósito de las sesiones, y ha manifestado su voluntad de participar activamente en el proceso.
+4. DEBER LEGAL DE PROTECCIÓN: Conozco que el psicólogo tiene la obligación legal y ética de notificar a las autoridades competentes (ICBF - Línea 141, Comisaría de Familia o Fiscalía) en caso de evidenciar situaciones de violencia, abuso, negligencia o maltrato infantil (Art. 44 Constitución Política de Colombia).
+
+Firmo el presente consentimiento como responsable legal del menor de edad.`,
+    },
 };
 
-type TemplateKey = 'general' | 'tratamiento' | 'datos_personales';
+type TemplateKey = 'general' | 'tratamiento' | 'telepsicologia' | 'menor_edad' | 'datos_personales';
 
 const TYPE_LABELS: Record<TemplateKey, string> = {
     general: 'Consentimiento General',
-    tratamiento: 'Tratamiento Psicológico',
+    tratamiento: 'Tratamiento Psicológico (Ley 1090)',
+    telepsicologia: 'Telepsicología (Res. 2654 MinSalud)',
+    menor_edad: 'Menores de Edad (Ley 1098 Infancia)',
     datos_personales: 'Datos Personales (Habeas Data - Ley 1581)',
 };
 
