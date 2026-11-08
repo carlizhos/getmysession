@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import MiniEditor from '@/components/ui/MiniEditor';
+import DiagnosticSelector from '@/components/notes/DiagnosticSelector';
 import { SessionNote } from '@/types';
 import { useOrganization } from '@/hooks/useOrganization';
 import { generateSessionNotePDF } from '@/lib/generateExpedientePDF';
@@ -133,6 +134,8 @@ export default function NoteEditorSheet({
   const [bulletPoints, setBulletPoints] = useState('');
   const [cie10Code, setCie10Code] = useState('');
   const [cie10Description, setCie10Description] = useState('');
+  const [dsm5Code, setDsm5Code] = useState('');
+  const [dsm5Description, setDsm5Description] = useState('');
   const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
   
   // UX states
@@ -169,6 +172,8 @@ export default function NoteEditorSheet({
         setBulletPoints(note.bridge?.notes || '');
         setCie10Code(note.cie10_code || '');
         setCie10Description(note.cie10_description || '');
+        setDsm5Code(note.dsm5_code || '');
+        setDsm5Description(note.dsm5_description || '');
         setDiagnosticoPrincipal(note.diagnostico_principal || '');
       } else {
         // Clear for new note
@@ -176,6 +181,8 @@ export default function NoteEditorSheet({
         setBulletPoints('');
         setCie10Code('');
         setCie10Description('');
+        setDsm5Code('');
+        setDsm5Description('');
         setDiagnosticoPrincipal('');
       }
       setIsDirty(false);
@@ -541,6 +548,8 @@ export default function NoteEditorSheet({
         transcript_summary: editorContent,
         cie10_code: cie10Code || null,
         cie10_description: cie10Description || null,
+        dsm5_code: dsm5Code || null,
+        dsm5_description: dsm5Description || null,
         diagnostico_principal: diagnosticoPrincipal || null,
         bridge: { notes: bulletPoints },
         agenda: updatedAgenda,
@@ -764,23 +773,28 @@ export default function NoteEditorSheet({
             <div>
               <button type="button" onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)} className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
                 {showDiagnosticPanel ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                Datos Diagnósticos (CIE-10)
+                Datos Diagnósticos (DSM-5 y CIE-10 / MinSalud)
               </button>
               {showDiagnosticPanel && (
                 <div className="mt-3 p-4 bg-muted/30 rounded-2xl border border-border/50 space-y-3 animate-in slide-in-from-top-1 duration-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Código CIE-10</label>
-                      <Input value={cie10Code} onChange={(e) => { setCie10Code(e.target.value); setIsDirty(true); }} placeholder="Ej: F41.1" className="mt-1 h-9 rounded-xl text-xs" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descripción CIE-10</label>
-                      <Input value={cie10Description} onChange={(e) => { setCie10Description(e.target.value); setIsDirty(true); }} placeholder="Ej: Trastorno de ansiedad generalizada" className="mt-1 h-9 rounded-xl text-xs" />
-                    </div>
-                  </div>
+                  <DiagnosticSelector
+                    value={cie10Code || dsm5Code ? {
+                      cie10Code,
+                      cie10Description,
+                      dsm5Code,
+                      dsm5Description,
+                    } : null}
+                    onChange={(val) => {
+                      setCie10Code(val?.cie10Code || '');
+                      setCie10Description(val?.cie10Description || '');
+                      setDsm5Code(val?.dsm5Code || '');
+                      setDsm5Description(val?.dsm5Description || '');
+                      setIsDirty(true);
+                    }}
+                  />
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Diagnóstico Principal</label>
-                    <Input value={diagnosticoPrincipal} onChange={(e) => { setDiagnosticoPrincipal(e.target.value); setIsDirty(true); }} placeholder="Diagnóstico clínico principal" className="mt-1 h-9 rounded-xl text-xs" />
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Especificación Clínica / Juicio Profesional</label>
+                    <Input value={diagnosticoPrincipal} onChange={(e) => { setDiagnosticoPrincipal(e.target.value); setIsDirty(true); }} placeholder="Detalles clínicos adicionales (ej: en remisión parcial, curso agudo...)" className="mt-1 h-9 rounded-xl text-xs" />
                   </div>
                 </div>
               )}

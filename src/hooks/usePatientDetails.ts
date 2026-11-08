@@ -22,7 +22,7 @@ export function usePatientDetails(patientId: string | null, organizationId: stri
         supabase
           .from('session_notes')
           .select(
-            'id, date, session_number, agenda, mood, created_at, cie10_code, cie10_description, diagnostico_principal, bridge, transcript_summary'
+            'id, date, session_number, agenda, mood, created_at, cie10_code, cie10_description, dsm5_code, dsm5_description, diagnostico_principal, bridge, transcript_summary'
           )
           .eq('patient_id', patientId)
           .eq('organization_id', organizationId)

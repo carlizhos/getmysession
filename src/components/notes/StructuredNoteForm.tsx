@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import CIE10Selector from '@/components/notes/CIE10Selector';
+import DiagnosticSelector, { DiagnosticValue } from '@/components/notes/DiagnosticSelector';
 import MentalStatusSection from '@/components/notes/MentalStatusSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,7 +99,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
     const [newActionPlanItem, setNewActionPlanItem] = useState('');
 
     // CIE-10 (MinSalud RIPS / Res. 2275)
-    const [cie10, setCie10] = useState<{ code: string; description: string } | null>(null);
+    const [diagnostic, setDiagnostic] = useState<DiagnosticValue | null>(null);
     const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
 
     // Dynamic Sections State (for generic text areas)
@@ -195,8 +195,10 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
             agenda: agendaItems,
             beliefs: { core: coreBeliefs, alternative: alternativeBeliefs },
             actionPlan: actionPlanItems,
-            cie10Code: cie10?.code || null,
-            cie10Description: cie10?.description || null,
+            cie10Code: diagnostic?.cie10Code || null,
+            dsm5Code: diagnostic?.dsm5Code || null,
+            dsm5Description: diagnostic?.dsm5Description || null,
+            cie10Description: diagnostic?.cie10Description || null,
             diagnosticoPrincipal: diagnosticoPrincipal || null,
             createdAt: new Date().toISOString()
         };
@@ -252,13 +254,13 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                     {/* CIE-10 Diagnóstico (MinSalud RIPS / Colombia) */}
                     <div className="space-y-3 pt-2">
                         <label className="text-xs font-semibold uppercase tracking-wider text-red-700 flex items-center gap-1.5">
-                            🏥 Diagnóstico CIE-10 (MinSalud RIPS)
+                            🧠 Criterio Clínico DSM-5 y MinSalud RIPS (CIE-10)
                         </label>
                         <div className="relative">
-                            <CIE10Selector value={cie10} onChange={setCie10} />
+                            <DiagnosticSelector value={diagnostic} onChange={setDiagnostic} />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs text-red-700">Diagnóstico principal (texto libre)</label>
+                            <label className="text-xs text-red-700">Especificación clínica / Juicio profesional (texto libre)</label>
                             <input
                                 type="text"
                                 value={diagnosticoPrincipal}
@@ -518,39 +520,7 @@ const StructuredNoteForm = ({ onSave, onCancel, initialPatientId, initialPatient
                     </Card>
                 )}
 
-                {/* CIE-10 Selector */}
-                <Card className="border-border shadow-sm bg-muted/20">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-                            <Save className="h-4 w-4" /> Diagnóstico y Clasificación (MinSalud RIPS)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-muted-foreground">Búsqueda CIE-10</Label>
-                            <CIE10Selector onSelect={setCie10} />
-                            {cie10 && (
-                                <div className="mt-2 p-3 bg-white rounded-lg border border-primary/20 flex items-center justify-between">
-                                    <div>
-                                        <span className="font-bold text-primary mr-2">{cie10.code}</span>
-                                        <span className="text-sm text-muted-foreground">{cie10.description}</span>
-                                    </div>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setCie10(null)}>
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-muted-foreground">Impresión Diagnóstica</Label>
-                            <Textarea
-                                placeholder="Detalles específicos del diagnóstico..."
-                                value={diagnosticoPrincipal}
-                                onChange={(e) => setDiagnosticoPrincipal(e.target.value)}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+                
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-border mt-8">

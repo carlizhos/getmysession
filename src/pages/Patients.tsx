@@ -1593,11 +1593,28 @@ const Patients = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             className="mt-4 pt-4 border-t border-slate-100 space-y-4 text-sm animate-fade-in text-slate-700 dark:text-slate-300 cursor-default"
                                           >
-                                            {/* Diagnóstico */}
-                                            {note.diagnostico_principal && (
+                                            {/* Diagnóstico Clínico (DSM-5 y CIE-10) */}
+                                            {(note.diagnostico_principal || note.dsm5_code || note.cie10_code) && (
                                               <div>
-                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Diagnóstico Principal</span>
-                                                <p className="mt-0.5 text-sm font-semibold">{note.diagnostico_principal} {note.cie10_code && `(${note.cie10_code}: ${note.cie10_description})`}</p>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground opacity-60">Diagnóstico Clínico (DSM-5 / CIE-10)</span>
+                                                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                                  {note.dsm5_code && (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                                                      DSM-5: {note.dsm5_code}
+                                                    </span>
+                                                  )}
+                                                  {note.cie10_code && (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                      CIE-10: {note.cie10_code}
+                                                    </span>
+                                                  )}
+                                                  <span className="text-xs font-semibold text-slate-700">
+                                                    {note.dsm5_description || note.cie10_description}
+                                                  </span>
+                                                </div>
+                                                {note.diagnostico_principal && (
+                                                  <p className="mt-1 text-xs text-muted-foreground italic">"{note.diagnostico_principal}"</p>
+                                                )}
                                               </div>
                                             )}
 

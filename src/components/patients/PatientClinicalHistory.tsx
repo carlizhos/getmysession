@@ -59,17 +59,19 @@ export function PatientClinicalHistory({
 
   const activeDiagnoses = Array.isArray(patientNotes)
     ? patientNotes
-        .filter((n) => n.cie10_code || n.diagnostico_principal)
+        .filter((n) => n.cie10_code || n.dsm5_code || n.diagnostico_principal)
         .reduce((acc: any[], current) => {
           const code = current.cie10_code || 'S/C';
-          const desc = current.cie10_description || 'Diagnóstico principal';
+          const dsmCode = current.dsm5_code || null;
+          const desc = current.dsm5_description || current.cie10_description || 'Diagnóstico principal';
           const principal = current.diagnostico_principal || '';
           const exists = acc.find(
-            (item) => item.code === code && item.principal === principal
+            (item) => item.code === code && item.dsmCode === dsmCode && item.principal === principal
           );
           if (!exists) {
             acc.push({
               code,
+              dsmCode,
               description: desc,
               principal,
               date: current.date,
@@ -151,10 +153,17 @@ export function PatientClinicalHistory({
                     key={index}
                     className="p-3 bg-slate-50/50 hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors"
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className="bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/15 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5">
-                        {diag.code}
-                      </Badge>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {diag.dsmCode && (
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5">
+                          DSM-5: {diag.dsmCode}
+                        </Badge>
+                      )}
+                      {diag.code && diag.code !== 'S/C' && (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5">
+                          CIE-10: {diag.code}
+                        </Badge>
+                      )}
                       <span className="text-[10px] text-muted-foreground">
                         Sesión {diag.sessionNumber} ({format(new Date(diag.date), 'dd/MM/yy')})
                       </span>

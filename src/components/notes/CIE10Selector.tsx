@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, X, ShieldCheck } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { DiagnosticSelector, DiagnosticValue } from './DiagnosticSelector';
+import { findDiagnosticByCie10 } from '@/lib/dsm5Catalog';
 
 // ── Catálogo CIE-10 Capítulo V (Trastornos Mentales y del Comportamiento) ───
 // MinSalud Colombia (Res. 2275/2023 RIPS y Res. 1995/1999): Usar codificación CIE-10 en historia clínica
@@ -91,122 +88,42 @@ export const CIE10_MENTAL_HEALTH: { code: string; description: string; group: st
     { code: 'Z73.1', description: 'Acentuación de rasgos de personalidad', group: 'Factores psicosociales' },
 ];
 
-interface CIE10SelectorProps {
-    value?: { code: string; description: string } | null;
-    onChange: (value: { code: string; description: string } | null) => void;
+export interface CIE10SelectorProps {
+    value?: { code: string; description: string } | DiagnosticValue | null;
+    onChange?: (value: any) => void;
+    onSelect?: (value: any) => void;
     disabled?: boolean;
 }
 
-const CIE10Selector = ({ value, onChange, disabled }: CIE10SelectorProps) => {
-    const [query, setQuery] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+const CIE10Selector = ({ value, onChange, onSelect, disabled }: CIE10SelectorProps) => {
+    // Adaptar valor entrante al formato DiagnosticValue
+    const adaptedValue: DiagnosticValue | null = value ? {
+        cie10Code: (value as any).cie10Code || (value as any).code || null,
+        cie10Description: (value as any).cie10Description || (value as any).description || null,
+        dsm5Code: (value as any).dsm5Code || (value as any).code ? findDiagnosticByCie10((value as any).code || (value as any).cie10Code)?.dsm5Code : null,
+        dsm5Description: (value as any).dsm5Description || (value as any).code ? findDiagnosticByCie10((value as any).code || (value as any).cie10Code)?.dsm5Title : null,
+    } : null;
 
-    // Cerrar al hacer click fuera
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const handleChange = (diag: DiagnosticValue | null) => {
+        const legacyVal = diag ? {
+            code: diag.cie10Code || '',
+            description: diag.cie10Description || '',
+            dsm5Code: diag.dsm5Code,
+            dsm5Description: diag.dsm5Description,
+            cie10Code: diag.cie10Code,
+            cie10Description: diag.cie10Description,
+        } : null;
 
-    const filtered = query.length >= 2
-        ? CIE10_MENTAL_HEALTH.filter(item =>
-            item.code.toLowerCase().includes(query.toLowerCase()) ||
-            item.description.toLowerCase().includes(query.toLowerCase()) ||
-            item.group.toLowerCase().includes(query.toLowerCase())
-        ).slice(0, 12)
-        : [];
-
-    const handleSelect = (item: typeof CIE10_MENTAL_HEALTH[0]) => {
-        onChange({ code: item.code, description: item.description });
-        setQuery('');
-        setIsOpen(false);
-    };
-
-    const handleClear = () => {
-        onChange(null);
-        setQuery('');
+        if (onChange) onChange(legacyVal);
+        if (onSelect) onSelect(legacyVal);
     };
 
     return (
-        <div className="space-y-2" ref={ref}>
-            {/* Valor seleccionado */}
-            {value ? (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-primary/5 border-primary/20">
-                    <ShieldCheck className="h-4 w-4 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                        <span className="font-mono font-semibold text-primary text-sm">{value.code}</span>
-                        <span className="text-sm text-muted-foreground ml-2 truncate">{value.description}</span>
-                    </div>
-                    {!disabled && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 flex-shrink-0"
-                            onClick={handleClear}
-                        >
-                            <X className="h-3 w-3" />
-                        </Button>
-                    )}
-                </div>
-            ) : (
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar código o diagnóstico CIE-10 (ej: F41.1, ansiedad...)"
-                        value={query}
-                        onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
-                        onFocus={() => setIsOpen(true)}
-                        className="pl-9"
-                        disabled={disabled}
-                    />
-                </div>
-            )}
-
-            {/* Dropdown de resultados */}
-            {isOpen && filtered.length > 0 && (
-                <div className="absolute z-50 w-full max-w-lg rounded-lg border bg-popover shadow-lg overflow-hidden">
-                    <div className="max-h-60 overflow-y-auto">
-                        {filtered.map((item) => (
-                            <button
-                                key={item.code}
-                                type="button"
-                                className={cn(
-                                    "w-full text-left px-3 py-2.5 text-sm",
-                                    "hover:bg-accent transition-colors",
-                                    "flex items-start gap-3 border-b border-border/40 last:border-0"
-                                )}
-                                onClick={() => handleSelect(item)}
-                            >
-                                <span className="font-mono font-semibold text-primary flex-shrink-0 mt-0.5 text-xs bg-primary/10 px-1.5 py-0.5 rounded">
-                                    {item.code}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="truncate">{item.description}</p>
-                                    <p className="text-xs text-muted-foreground">{item.group}</p>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                    {query.length >= 2 && filtered.length === 0 && (
-                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                            Sin resultados para "{query}"
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {!value && query.length < 2 && (
-                <p className="text-xs text-muted-foreground">
-                    Escribe al menos 2 caracteres para buscar. Catálogo Capítulo V CIE-10 (F00–F99).
-                </p>
-            )}
-        </div>
+        <DiagnosticSelector
+            value={adaptedValue}
+            onChange={handleChange}
+            disabled={disabled}
+        />
     );
 };
 

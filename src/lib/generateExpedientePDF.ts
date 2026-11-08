@@ -47,6 +47,8 @@ export interface SessionNoteData {
     action_plan?: { task?: string; completed?: boolean }[];
     cie10_code?: string;
     cie10_description?: string;
+    dsm5_code?: string;
+    dsm5_description?: string;
     diagnostico_principal?: string;
     transcript_summary?: string;
     mental_status?: Record<string, string[]>;
@@ -308,7 +310,7 @@ export function generateExpedientePDF(
     }
 
     // ── Sección: Resumen diagnóstico (último CIE-10) ──
-    const lastNote = notes.find(n => n.cie10_code);
+    const lastNote = notes.find(n => n.cie10_code || n.dsm5_code);
     if (lastNote) {
         y += 6;
         if (y > pageH - margin) y = addPage();
@@ -316,26 +318,31 @@ export function generateExpedientePDF(
         doc.setFontSize(10);
         doc.setTextColor(30, 30, 60);
         doc.setFont('helvetica', 'bold');
-        doc.text('DIAGNÓSTICO PRINCIPAL (CIE-10)', margin, y);
+        doc.text('DIAGNÓSTICO PRINCIPAL (DSM-5 / CIE-10)', margin, y);
         doc.setDrawColor(95, 70, 155);
         doc.line(margin, y + 1.5, margin + 75, y + 1.5);
         y += 7;
 
         doc.setFontSize(9.5);
-        doc.setTextColor(80, 80, 100);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Código:', margin, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(30, 30, 30);
-        doc.text(lastNote.cie10_code || '—', margin + 25, y);
-        y += 6;
+        if (lastNote.dsm5_code) {
+            doc.setTextColor(80, 80, 100);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Criterio Clínico (DSM-5):', margin, y);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(30, 30, 30);
+            doc.text(`${lastNote.dsm5_code} — ${lastNote.dsm5_description || ''}`, margin + 45, y);
+            y += 6;
+        }
 
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(80, 80, 100);
-        doc.text('Descripción:', margin, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(30, 30, 30);
-        y = addWrappedText(doc, lastNote.cie10_description || '—', margin + 35, y, contentW - 35, 5, pageH, margin, addPage);
+        if (lastNote.cie10_code) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 100);
+            doc.text('MinSalud RIPS (CIE-10):', margin, y);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(30, 30, 30);
+            doc.text(`${lastNote.cie10_code} — ${lastNote.cie10_description || ''}`, margin + 45, y);
+            y += 6;
+        }
 
         if (lastNote.diagnostico_principal) {
             doc.setFont('helvetica', 'bold');
@@ -493,15 +500,20 @@ export function generateExpedientePDF(
             y = addWrappedText(doc, `Creencia nuclear: ${coreVal}${altVal ? `\nAlternativa: ${altVal}` : ''}`, margin + 6, y, contentW - 6, 5, pageH, margin, addPage);
         }
 
-        // CIE-10 de esta sesión
-        if (note.cie10_code) {
+        // Diagnóstico de esta sesión (DSM-5 y CIE-10)
+        if (note.cie10_code || note.dsm5_code) {
             if (y > pageH - margin) y = addPage();
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(80, 80, 100);
-            doc.text(`Diagnóstico CIE-10: `, margin + 3, y);
+            doc.text(`Diagnóstico:`, margin + 3, y);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(40, 40, 40);
-            doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 42, y);
+            const diagLabel = [
+                note.dsm5_code ? `DSM-5: ${note.dsm5_code}` : null,
+                note.cie10_code ? `CIE-10: ${note.cie10_code}` : null,
+                note.dsm5_description || note.cie10_description || null
+            ].filter(Boolean).join(' · ');
+            doc.text(diagLabel, margin + 30, y);
             y += 5.5;
         }
 
@@ -758,13 +770,17 @@ export function generateSessionNotePDF(
     doc.setTextColor(30, 30, 30);
     doc.text(`Sesión #${note.session_number}`, margin + 35, y);
 
-    if (note.cie10_code) {
+    if (note.cie10_code || note.dsm5_code) {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(80, 80, 100);
         doc.text('Diagnóstico:', margin + 105, y);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
-        doc.text(`${note.cie10_code} — ${note.cie10_description || ''}`, margin + 140, y);
+        const singleDiag = [
+            note.dsm5_code ? `DSM-5: ${note.dsm5_code}` : null,
+            note.cie10_code ? `CIE-10: ${note.cie10_code}` : null,
+        ].filter(Boolean).join(' · ');
+        doc.text(singleDiag, margin + 130, y);
     }
     y += 10;
 

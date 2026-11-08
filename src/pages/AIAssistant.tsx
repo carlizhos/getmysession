@@ -66,7 +66,7 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
       .single(),
     supabase
       .from('session_notes')
-      .select('date, session_number, bridge, agenda, cie10_code, cie10_description, diagnostico_principal')
+      .select('date, session_number, bridge, agenda, cie10_code, cie10_description, dsm5_code, dsm5_description, diagnostico_principal')
       .eq('patient_id', patientId)
       .eq('organization_id', organizationId)
       .is('deleted_at', null)
@@ -98,7 +98,8 @@ async function buildPatientContext(patientId: string, organizationId?: string): 
     ctx += `\n=== ÚLTIMAS ${notes.length} NOTA(S) CLÍNICA(S) ===\n`;
     notes.forEach((n: SessionNote, i: number) => {
       ctx += `\n--- Sesión ${n.session_number || i + 1} (${n.date}) ---\n`;
-      if (n.cie10_code) ctx += `Diagnóstico CIE-10: ${n.cie10_code} - ${n.cie10_description || ''}\n`;
+      if (n.dsm5_code) ctx += `Criterio Clínico DSM-5: ${n.dsm5_code} - ${n.dsm5_description || ''}\n`;
+      if (n.cie10_code) ctx += `Diagnóstico MinSalud CIE-10: ${n.cie10_code} - ${n.cie10_description || ''}\n`;
       if (n.diagnostico_principal) ctx += `Diagnóstico principal: ${n.diagnostico_principal}\n`;
       const bridge = n.bridge;
       if (bridge?.notes) ctx += `Notas puente: ${bridge.notes}\n`;
@@ -137,6 +138,8 @@ const AIAssistant = () => {
   const [patientContext, setPatientContext] = useState<string | null>(null);
   const [isFetchingContext, setIsFetchingContext] = useState(false);
   const [cie10Code, setCie10Code] = useState('');
+  const [dsm5Code, setDsm5Code] = useState('');
+  const [dsm5Description, setDsm5Description] = useState('');
   const [diagnosticoPrincipal, setDiagnosticoPrincipal] = useState('');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -282,12 +285,14 @@ const AIAssistant = () => {
       // Fetch note details
       supabase
         .from('session_notes')
-        .select('cie10_code, diagnostico_principal, bridge, transcript_summary, agenda')
+        .select('cie10_code, cie10_description, dsm5_code, dsm5_description, diagnostico_principal, bridge, transcript_summary, agenda')
         .eq('id', noteId)
         .single()
         .then(({ data }) => {
           if (data) {
             if (data.cie10_code) setCie10Code(data.cie10_code);
+            if (data.dsm5_code) setDsm5Code(data.dsm5_code);
+            if (data.dsm5_description) setDsm5Description(data.dsm5_description);
             if (data.diagnostico_principal) setDiagnosticoPrincipal(data.diagnostico_principal);
             
             // Populate bullet points from bridge or from the existing note text
@@ -448,7 +453,14 @@ const AIAssistant = () => {
       if (error) throw error;
 
       setGeneratedReport(data.report);
-      if (data.cie10) setCie10Code(data.cie10);
+      if (data.cie10) {
+        setCie10Code(data.cie10);
+        const match = findDiagnosticByCie10(data.cie10);
+        if (match) {
+          setDsm5Code(match.dsm5Code);
+          setDsm5Description(match.dsm5Title);
+        }
+      }
       if (data.diagnostico) setDiagnosticoPrincipal(data.diagnostico);
 
       toast.success("Reporte SOAP generado con IA", { 

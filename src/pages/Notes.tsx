@@ -156,6 +156,8 @@ const Notes = () => {
       beliefs: noteData.beliefs,
       action_plan: noteData.actionPlan,
       cie10_code: noteData.cie10Code || null,
+      dsm5_code: noteData.dsm5Code || null,
+      dsm5_description: noteData.dsm5Description || null,
       cie10_description: noteData.cie10Description || null,
       diagnostico_principal: noteData.diagnosticoPrincipal || null,
       mental_status: noteData.mentalStatus || null,
@@ -381,6 +383,8 @@ const Notes = () => {
                     beliefs: noteData.beliefs,
                     action_plan: noteData.actionPlan,
                     cie10_code: noteData.cie10Code || null,
+      dsm5_code: noteData.dsm5Code || null,
+      dsm5_description: noteData.dsm5Description || null,
                     cie10_description: noteData.cie10Description || null,
                     diagnostico_principal: noteData.diagnosticoPrincipal || null,
                     mental_status: noteData.mentalStatus || null,
@@ -502,9 +506,9 @@ const Notes = () => {
                       <p className="text-sm font-bold text-foreground leading-tight">
                         {note.agenda?.[0]?.topic || 'Consulta General'}
                       </p>
-                      {note.cie10_code && (
+                      {(note.dsm5_code || note.cie10_code) && (
                         <p className="text-[10px] text-muted-foreground font-medium truncate">
-                          {note.cie10_code} - {note.cie10_description}
+                          {note.dsm5_code ? `DSM-5: ${note.dsm5_code} | CIE-10: ${note.cie10_code || ''}` : `${note.cie10_code} - ${note.cie10_description}`}
                         </p>
                       )}
                     </div>
@@ -627,11 +631,16 @@ const Notes = () => {
                       <div className="max-w-4xl mx-auto bg-background rounded-sm shadow-2xl border border-border/50 min-h-[850px] p-8 sm:p-16 ring-1 ring-slate-900/5">
                         
                         {/* Quick Metadata inside document */}
-                        {(!isEditing && (selectedNoteData.cie10_code || selectedNoteData.mood?.rating != null)) && (
+                        {(!isEditing && (selectedNoteData.dsm5_code || selectedNoteData.cie10_code || selectedNoteData.mood?.rating != null)) && (
                           <div className="flex flex-wrap gap-4 mb-10 pb-6 border-b border-border/40">
-                            {selectedNoteData.cie10_code && (
+                            {(selectedNoteData.dsm5_code || selectedNoteData.cie10_code) && (
                               <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl">
-                                <span className="text-[10px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{selectedNoteData.cie10_code}</span>
+                                {selectedNoteData.dsm5_code && (
+                                  <span className="text-[10px] font-black bg-purple-700 text-white px-2 py-0.5 rounded-full">DSM-5: {selectedNoteData.dsm5_code}</span>
+                                )}
+                                {selectedNoteData.cie10_code && (
+                                  <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">CIE-10: {selectedNoteData.cie10_code}</span>
+                                )}
                                 <span className="text-xs font-bold text-muted-foreground truncate max-w-[200px]">{selectedNoteData.cie10_description}</span>
                               </div>
                             )}
