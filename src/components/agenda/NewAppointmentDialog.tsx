@@ -22,7 +22,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Clock, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
+import { CalendarIcon, Clock, Video, Loader2, XCircle, MapPin, Repeat, CreditCard, Sparkles, Copy, Check, DollarSign, MessageCircle } from 'lucide-react';
+import PaymentModal from '@/components/finance/PaymentModal';
 import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -119,6 +120,12 @@ const NewAppointmentDialog = ({
     const [services, setServices] = useState<any[]>([]);
     const [isLoadingServices, setIsLoadingServices] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string | undefined>(editingAppointment?.paymentStatus);
+
+    useEffect(() => {
+        setCurrentPaymentStatus(editingAppointment?.paymentStatus);
+    }, [editingAppointment?.paymentStatus]);
 
     const [specialistName, setSpecialistName] = useState('');
     const [porcentajeGlobal, setPorcentajeGlobal] = useState<number>(30);
@@ -1397,7 +1404,7 @@ const NewAppointmentDialog = ({
 
                         {/* Tarifa */}
                         <div className="space-y-2">
-                            <Label htmlFor="fee">Tarifa ($)</Label>
+                            <Label htmlFor="fee">Tarifa (COP / Honorarios)</Label>
                             <Input
                                 id="fee"
                                 type="number"
@@ -1407,6 +1414,55 @@ const NewAppointmentDialog = ({
                                 disabled={isSubmitting || isReadOnly}
                             />
                         </div>
+
+                        {/* Gestión de Cobro y WhatsApp (Colombia) */}
+                        {isEditing && (
+                            <div className="rounded-xl border border-border/80 bg-slate-50/80 dark:bg-slate-900/40 p-3.5 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-foreground">Estado de Cobro:</span>
+                                        {currentPaymentStatus === 'paid' ? (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                <Check className="h-3 w-3" /> Pagado
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                <Clock className="h-3 w-3" /> Pendiente de Cobro
+                                            </span>
+                                        )}
+                                    </div>
+                                    {formData.fee && parseFloat(formData.fee) > 0 && (
+                                        <span className="text-xs font-semibold text-muted-foreground">
+                                            ${parseFloat(formData.fee).toLocaleString('es-CO')} COP
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    <Button
+                                        type="button"
+                                        variant={currentPaymentStatus === 'paid' ? 'outline' : 'zen'}
+                                        size="sm"
+                                        className="gap-1.5 font-bold text-xs"
+                                        onClick={() => setIsPaymentModalOpen(true)}
+                                    >
+                                        <DollarSign className="h-3.5 w-3.5" />
+                                        {currentPaymentStatus === 'paid' ? 'Ver / Gestionar Cobro' : 'Cobrar / Registrar Pago'}
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                        onClick={() => setIsPaymentModalOpen(true)}
+                                    >
+                                        <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                        Compartir por WhatsApp (1 Clic)
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
 
                         {formData.modality === 'online' ? (
                             <>
@@ -1569,6 +1625,25 @@ const NewAppointmentDialog = ({
                                 )
                             )}
                             
+                            {/* Cobro y WhatsApp */}
+                            {isEditing && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="default"
+                                    onClick={() => setIsPaymentModalOpen(true)}
+                                    className={cn(
+                                        "gap-2 font-bold",
+                                        currentPaymentStatus === 'paid'
+                                            ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400"
+                                            : "text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300"
+                                    )}
+                                >
+                                    <DollarSign className="w-4 h-4" />
+                                    {currentPaymentStatus === 'paid' ? 'Ver Cobro' : 'Cobrar / WhatsApp'}
+                                </Button>
+                            )}
+
                             {/* Entrar al Consultorio Virtual */}
                             {isEditing && (
                                 <Button
@@ -1598,6 +1673,24 @@ const NewAppointmentDialog = ({
                         </DialogFooter>
                     </div>
                 </form>
+            {isEditing && editingAppointment && (
+                <PaymentModal
+                    open={isPaymentModalOpen}
+                    appointment={{
+                        id: editingAppointment.id,
+                        patient_name: formData.patientName || editingAppointment.patientName,
+                        start_time: editingAppointment.startTime,
+                        fee: formData.fee ? parseFloat(formData.fee) : (editingAppointment.fee || 0),
+                        patient_id: editingAppointment.patientId,
+                    }}
+                    onOpenChange={setIsPaymentModalOpen}
+                    onSuccess={() => {
+                        setCurrentPaymentStatus('paid');
+                        setIsPaymentModalOpen(false);
+                        onAppointmentAdded?.();
+                    }}
+                />
+            )}
             </DialogContent>
         </Dialog>
     );

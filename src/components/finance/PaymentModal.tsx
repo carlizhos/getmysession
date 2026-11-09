@@ -35,7 +35,9 @@ interface Appointment {
     id: string;
     patient_name: string;
     start_time: string;
-    fee: number;
+    fee?: number;
+    patient_id?: string | null;
+    patient_phone?: string | null;
 }
 
 interface PaymentModalProps {
@@ -120,6 +122,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
     const [note, setNote] = useState('');
     const [onlineUrl, setOnlineUrl] = useState<string | null>(null);
     const [paymentConfig, setPaymentConfig] = useState<ColombiaPaymentConfig>({});
+    const [patientPhone, setPatientPhone] = useState<string | null>(null);
 
     useEffect(() => {
         if (open) {
@@ -137,8 +140,24 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                     }
                 }
             })();
+
+            // Resolve patient phone for direct WhatsApp dispatch
+            if (appointment?.patient_phone) {
+                setPatientPhone(appointment.patient_phone);
+            } else if (appointment?.patient_id) {
+                supabase
+                    .from('patients')
+                    .select('phone')
+                    .eq('id', appointment.patient_id)
+                    .maybeSingle()
+                    .then(({ data }) => {
+                        if (data?.phone) setPatientPhone(data.phone);
+                    });
+            } else {
+                setPatientPhone(null);
+            }
         }
-    }, [open]);
+    }, [open, appointment]);
 
     const handleClose = () => {
         onOpenChange(false);
@@ -150,7 +169,8 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
     // Helper for WhatsApp billing message
     const getWhatsAppBillingText = () => {
         if (!appointment) return '';
-        const feeFormatted = `$${appointment.fee.toLocaleString('es-CO')} COP`;
+        const feeAmount = appointment.fee || 0;
+        const feeFormatted = `$${feeAmount.toLocaleString('es-CO')} COP`;
         const dateFormatted = format(parseISO(appointment.start_time), "d 'de' MMMM", { locale: es });
         
         let instructions = '';
@@ -173,7 +193,17 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
 
     const handleShareWhatsApp = () => {
         const text = encodeURIComponent(getWhatsAppBillingText());
-        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        let phoneQuery = '';
+        if (patientPhone) {
+            let digits = patientPhone.replace(/[^0-9]/g, '');
+            if (digits.length === 10 && digits.startsWith('3')) {
+                digits = `57${digits}`;
+            }
+            if (digits.length >= 10) {
+                phoneQuery = `phone=${digits}&`;
+            }
+        }
+        window.open(`https://api.whatsapp.com/send?${phoneQuery}text=${text}`, '_blank');
     };
 
     const handleConfirm = async () => {
@@ -186,7 +216,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 const { data: result, error: funcError } = await supabase.functions.invoke('create-checkout-session', {
                     body: {
                         appointment_id: appointment.id,
-                        amount: appointment.fee,
+                        amount: appointment.fee || 0,
                         patient_name: appointment.patient_name,
                         description: `Sesión terapéutica — ${appointment.patient_name} — ${format(parseISO(appointment.start_time), 'd MMM yyyy', { locale: es })}`,
                     },
@@ -202,7 +232,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
 
             // Wompi link generator if selected and public key exists
             if (selected === 'wompi' && paymentConfig.wompi_public_key && !onlineUrl) {
-                const amountCents = Math.round(appointment.fee * 100);
+                const amountCents = Math.round((appointment.fee || 0) * 100);
                 const reference = `SES-${appointment.id.slice(0, 8)}-${Date.now()}`;
                 const wompiCheckoutUrl = `https://checkout.wompi.co/p/?public-key=${paymentConfig.wompi_public_key}&currency=COP&amount-in-cents=${amountCents}&reference=${reference}`;
                 setOnlineUrl(wompiCheckoutUrl);
@@ -230,7 +260,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
             await supabase.from('payments').insert({
                 appointment_id: appointment.id,
                 patient_name: appointment.patient_name,
-                amount: appointment.fee,
+                amount: appointment.fee || 0,
                 currency: 'cop',
                 status: 'paid',
                 method: selected,
@@ -248,7 +278,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 profile_id: user!.id,
                 type: 'payment_received',
                 title: 'Pago Recibido',
-                description: `Has registrado un pago de ${appointment.patient_name} por $${appointment.fee.toLocaleString('es-CO')} COP (${label}).`,
+                description: `Has registrado un pago de ${appointment.patient_name} por $${(appointment.fee || 0).toLocaleString('es-CO')} COP (${label}).`,
                 organization_id: organization?.id,
             });
             
@@ -285,7 +315,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 {apt && (
                     <div className="flex items-center justify-center py-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-border/60">
                         <p className="text-3xl font-extrabold text-primary">
-                            ${apt.fee.toLocaleString('es-CO')}
+                            ${(apt.fee || 0).toLocaleString('es-CO')}
                             <span className="text-xs font-semibold text-muted-foreground ml-2 uppercase">COP</span>
                         </p>
                     </div>
@@ -495,9 +525,19 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                         </div>
 
                         {/* Botones de acción */}
-                        <div className="flex gap-2 pt-2">
-                            <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isProcessing}>
+                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                            <Button variant="outline" className="sm:w-28" onClick={handleClose} disabled={isProcessing}>
                                 Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-semibold"
+                                onClick={handleShareWhatsApp}
+                                disabled={isProcessing}
+                            >
+                                <MessageCircle className="h-4 w-4 text-emerald-600" />
+                                Compartir WhatsApp
                             </Button>
                             <Button
                                 variant="zen"

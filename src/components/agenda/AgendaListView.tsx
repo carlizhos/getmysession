@@ -9,6 +9,8 @@ import {
     Repeat,
     CreditCard,
     CircleDollarSign,
+    DollarSign,
+    MessageCircle,
     MessageSquare,
     CheckCircle,
     Timer,
@@ -32,6 +34,7 @@ interface AgendaListViewProps {
     onEditAppointment: (apt: Appointment) => void;
     onCancelAppointment: (id: string) => void;
     onRescheduleAppointment: (apt: Appointment) => void;
+    onPaymentAppointment?: (apt: Appointment) => void;
     clinicTimezone?: string;
 }
 
@@ -127,6 +130,7 @@ const AppointmentRow = ({
     onEdit: (apt: Appointment) => void;
     onCancel: (id: string) => void;
     onReschedule: (apt: Appointment) => void;
+    onPayment?: (apt: Appointment) => void;
     clinicTimezone?: string;
 }) => {
     const [expanded, setExpanded] = useState(false);
@@ -362,6 +366,18 @@ const AppointmentRow = ({
                     <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                         {isToday(parseISO(apt.startTime)) && apt.status !== 'cancelled' && apt.status !== 'completed' && (
                             <>
+                                {apt.payment_status !== 'paid' && apt.status !== 'cancelled' && onPayment && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPayment(apt);
+                                    }}
+                                    className="px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl transition-colors flex items-center gap-1.5 uppercase tracking-tight"
+                                >
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                    Cobrar / WhatsApp
+                                </button>
+                            )}
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -417,6 +433,7 @@ const AgendaListView = ({
     onEditAppointment,
     onCancelAppointment,
     onRescheduleAppointment,
+    onPaymentAppointment,
     clinicTimezone
 }: AgendaListViewProps) => {
     const grouped = appointments.reduce((acc: Record<string, Appointment[]>, apt) => {

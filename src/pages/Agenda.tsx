@@ -59,6 +59,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import NewAppointmentDialog from '@/components/agenda/NewAppointmentDialog';
 import AgendaListView from '@/components/agenda/AgendaListView';
+import PaymentModal from '@/components/finance/PaymentModal';
 import { LayoutList, CalendarDays } from 'lucide-react';
 import DayView from '@/components/agenda/DayView';
 import MonthView from '@/components/agenda/MonthView';
@@ -213,6 +214,7 @@ const AgendaPage = () => {
   };
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'pending_payment' | 'presencial' | 'online'>('all');
+  const [payingAppointment, setPayingAppointment] = useState<Appointment | null>(null);
 
   const getAppointmentsForDay = (date: Date) => {
     return appointments.filter(apt => {
@@ -484,6 +486,7 @@ const AgendaPage = () => {
                 }}
                 onCancelAppointment={handleCancelAppointment}
                 onRescheduleAppointment={handleRescheduleAppointment}
+                onPaymentAppointment={(apt) => setPayingAppointment(apt)}
                 clinicTimezone={clinicTz}
               />
             )}
@@ -767,8 +770,28 @@ const AgendaPage = () => {
             status: editingAppointment.status,
             color: editingAppointment.color,
             modality: editingAppointment.modality,
+            paymentStatus: editingAppointment.payment_status,
           } : null}
           isReadOnly={isAppointmentPast(editingAppointment)}
+        />
+
+        {/* Payment Modal with Colombia Methods & WhatsApp 1-click */}
+        <PaymentModal
+          open={!!payingAppointment}
+          appointment={payingAppointment ? {
+            id: payingAppointment.id,
+            patient_name: payingAppointment.patient_name,
+            start_time: payingAppointment.start_time,
+            fee: payingAppointment.fee,
+            patient_id: payingAppointment.patient_id,
+          } : null}
+          onOpenChange={(open) => {
+            if (!open) setPayingAppointment(null);
+          }}
+          onSuccess={() => {
+            refetchAppointments();
+            setPayingAppointment(null);
+          }}
         />
       </div>
       </FeatureGate>
