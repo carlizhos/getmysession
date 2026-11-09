@@ -38,7 +38,8 @@ import {
   FolderOpen,
   FileSignature,
   Edit3,
-  ChevronDown
+  ChevronDown,
+  Stethoscope
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -88,6 +89,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePatientDetails } from '@/hooks/usePatientDetails';
 import { useSubscription } from '@/hooks/useSubscription';
 import { generateExpedientePDF, generateSessionNotePDF } from '@/lib/generateExpedientePDF';
+import CertificadoAsistenciaModal from '@/components/patients/CertificadoAsistenciaModal';
+import RemisionInterconsultaModal from '@/components/patients/RemisionInterconsultaModal';
 import NoteEditorSheet from '@/components/patients/NoteEditorSheet';
 import PatientAsyncInsights from '@/components/patients/PatientAsyncInsights';
 import { getAvatarTheme, getInitials } from '@/lib/avatar-utils';
@@ -381,6 +384,11 @@ const Patients = () => {
 
   // Note details expansion state
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+
+  // Clinical documentation modals
+  const [isCertificadoModalOpen, setIsCertificadoModalOpen] = useState(false);
+  const [isRemisionModalOpen, setIsRemisionModalOpen] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
 
   // Note editing sheet states
   const [isNoteSheetOpen, setIsNoteSheetOpen] = useState(false);
@@ -1229,6 +1237,22 @@ const Patients = () => {
                             <Download className="h-3.5 w-3.5" />
                           )}
                           Exportar Expediente
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full h-9 border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-xs gap-1.5 font-medium"
+                          onClick={() => setIsCertificadoModalOpen(true)}
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Constancia de Asistencia
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full h-9 border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-xs gap-1.5 font-medium"
+                          onClick={() => setIsRemisionModalOpen(true)}
+                        >
+                          <Stethoscope className="h-3.5 w-3.5" /> Orden de Remisión
                         </Button>
                         <Button 
                           variant="outline" 
@@ -2625,6 +2649,22 @@ const Patients = () => {
         </div>
       )}
 
+      {selectedPatientData && (
+        <>
+          <CertificadoAsistenciaModal
+            open={isCertificadoModalOpen}
+            onOpenChange={setIsCertificadoModalOpen}
+            patient={selectedPatientData}
+            profile={currentUserProfile}
+          />
+          <RemisionInterconsultaModal
+            open={isRemisionModalOpen}
+            onOpenChange={setIsRemisionModalOpen}
+            patient={selectedPatientData}
+            profile={currentUserProfile}
+          />
+        </>
+      )}
     </>
   );
 };
