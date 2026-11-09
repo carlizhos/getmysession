@@ -62,8 +62,16 @@ export interface GenerateRipsInput {
   cufe?: string | null;
 }
 
+export interface MonthlyRipsConsultationItem {
+  patient: Patient;
+  appointment: Appointment;
+  sessionNote?: SessionNote | null;
+  amount: number;
+  invoiceNumber?: string;
+}
+
 /**
- * Genera el payload JSON oficial de RIPS bajo la Resolución 2275 de 2023
+ * Genera el payload JSON oficial de RIPS bajo la Resolución 2275 de 2023 (Individual)
  */
 export function buildRipsJSON(input: GenerateRipsInput): RipsPayload {
   const { patient, profile, appointment, sessionNote, invoiceNumber, amount } = input;
@@ -71,24 +79,15 @@ export function buildRipsJSON(input: GenerateRipsInput): RipsPayload {
   const prestadorCode = profile.reps_code || '110010000001';
   const nitPrestador = (profile.nit || '900000000').replace(/[^0-9]/g, '');
 
-  // Formato de fecha para MinSalud: YYYY-MM-DD HH:mm
   const sessionDate = appointment?.start_time ? new Date(appointment.start_time) : new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   const formattedDate = `${sessionDate.getFullYear()}-${pad(sessionDate.getMonth() + 1)}-${pad(sessionDate.getDate())} ${pad(sessionDate.getHours())}:${pad(sessionDate.getMinutes())}`;
 
-  // Sexo del paciente
   const sexo = patient.gender === 'F' ? 'F' : 'M';
-
-  // Código CIE-10 (usar el de la nota clínica o F411 Ansiedad por defecto)
   const cie10 = (sessionNote?.cie10_code || 'F411').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-
-  // Código CUPS (usar de la cita o 943100 Psicoterapia individual)
   const cups = appointment?.cups_code || '943100';
-
-  // Modalidad (03 si es telemedicina/online, 01 si es presencial)
   const modalidad = appointment?.modality === 'online' || appointment?.service_modality === '03' ? '03' : '01';
 
-  // Tipo y número de documento del paciente
   const docType = patient.document_type || 'CC';
   const docNumber = patient.document_number || '100000000';
 
@@ -98,17 +97,17 @@ export function buildRipsJSON(input: GenerateRipsInput): RipsPayload {
     numAutorizacion: null,
     codConsulta: cups,
     modalidadGrupoServicioTecSal: modalidad,
-    grupoServicios: '01', // Consulta Externa
-    codServicio: 356, // Psicología en REPS
-    finalidadTecnologiaSalud: appointment?.consultation_purpose || '10', // Diagnóstico
-    causaMotivoAtencion: appointment?.external_cause || '13', // Enfermedad general
+    grupoServicios: '01',
+    codServicio: 356,
+    finalidadTecnologiaSalud: appointment?.consultation_purpose || '10',
+    causaMotivoAtencion: appointment?.external_cause || '13',
     codDiagnosticoPrincipal: cie10,
     codDiagnosticoRelacionado1: null,
-    tipoDiagnosticoPrincipal: '01', // Impresión diagnóstica
+    tipoDiagnosticoPrincipal: '01',
     tipoDocumentoIdentificacion: docType,
     numDocumentoIdentificacion: docNumber,
     vrServicio: Math.round(amount),
-    conceptoRecaudo: '05', // Pago particular
+    conceptoRecaudo: '05',
     valorPagoModerador: 0,
     numFEVPagoModerador: null,
   };
@@ -117,10 +116,10 @@ export function buildRipsJSON(input: GenerateRipsInput): RipsPayload {
     consecutivo: 1,
     tipoDocumentoIdentificacion: docType,
     numDocumentoIdentificacion: docNumber,
-    tipoUsuario: patient.user_type || '04', // Particular
+    tipoUsuario: patient.user_type || '04',
     fechaNacimiento: patient.date_of_birth ? patient.date_of_birth.substring(0, 10) : '1990-01-01',
     codSexo: sexo,
-    codPaisResidencia: '170', // Colombia
+    codPaisResidencia: '170',
     codMunicipioResidencia: patient.municipality_code || '11001',
     codZonaTerritorialResidencia: patient.residence_area || '01',
     incapacidad: 'NO',
@@ -137,6 +136,110 @@ export function buildRipsJSON(input: GenerateRipsInput): RipsPayload {
     numNota: null,
     usuarios: [usuario],
   };
+}
+
+/**
+ * Genera el paquete consolidado mensual de RIPS JSON para MinSalud (Resolución 2275 de 2023)
+ * Agrupa todas las consultas del periodo por paciente (usuario único) con sus consultas asociadas.
+ */
+export function buildMonthlyConsolidatedRipsJSON(
+  profile: Profile,
+  monthPeriodStr: string, // Ej: "2026-11"
+  items: MonthlyRipsConsultationItem[]
+): { payload: RipsPayload; warnings: string[] } {
+  const prestadorCode = profile.reps_code || '110010000001';
+  const nitPrestador = (profile.nit || '900000000').replace(/[^0-9]/g, '');
+  const prefix = profile.dian_prefix || 'SETP';
+  const invoiceConsolidada = `${prefix}-CONSOLIDADO-${monthPeriodStr.replace(/[^0-9]/g, '')}`;
+
+  const warnings: string[] = [];
+  const pad = (n: number) => n.toString().padStart(2, '0');
+
+  // Agrupar items por identificación de paciente
+  const patientGroups = new Map<string, { patient: Patient; items: MonthlyRipsConsultationItem[] }>();
+
+  items.forEach((item) => {
+    const docNum = item.patient.document_number || `DOC_${item.patient.id.slice(0, 8)}`;
+    if (!item.patient.document_number) {
+      warnings.push(`El paciente ${item.patient.name} no tiene número de documento registrado.`);
+    }
+    if (!item.patient.municipality_code) {
+      warnings.push(`El paciente ${item.patient.name} no tiene código DANE de municipio.`);
+    }
+
+    if (!patientGroups.has(docNum)) {
+      patientGroups.set(docNum, { patient: item.patient, items: [] });
+    }
+    patientGroups.get(docNum)!.items.push(item);
+  });
+
+  let consecutivoUsuario = 1;
+  const usuarios: RipsUsuarioItem[] = [];
+
+  patientGroups.forEach((group, docNum) => {
+    const pat = group.patient;
+    const docType = pat.document_type || 'CC';
+    const sexo = pat.gender === 'F' ? 'F' : 'M';
+    const munCode = pat.municipality_code || '11001';
+    const resArea = pat.residence_area || '01';
+    const userType = pat.user_type || '04';
+
+    const consultas: RipsConsultaItem[] = group.items.map((it) => {
+      const sessionDate = it.appointment?.start_time ? new Date(it.appointment.start_time) : new Date();
+      const formattedDate = `${sessionDate.getFullYear()}-${pad(sessionDate.getMonth() + 1)}-${pad(sessionDate.getDate())} ${pad(sessionDate.getHours())}:${pad(sessionDate.getMinutes())}`;
+      const cie10 = (it.sessionNote?.cie10_code || 'F411').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const cups = it.appointment?.cups_code || '943100';
+      const modalidad = it.appointment?.modality === 'online' || it.appointment?.service_modality === '03' ? '03' : '01';
+
+      return {
+        codPrestador: prestadorCode,
+        fechaInicioAtencion: formattedDate,
+        numAutorizacion: null,
+        codConsulta: cups,
+        modalidadGrupoServicioTecSal: modalidad,
+        grupoServicios: '01',
+        codServicio: 356,
+        finalidadTecnologiaSalud: it.appointment?.consultation_purpose || '10',
+        causaMotivoAtencion: it.appointment?.external_cause || '13',
+        codDiagnosticoPrincipal: cie10,
+        codDiagnosticoRelacionado1: null,
+        tipoDiagnosticoPrincipal: '01',
+        tipoDocumentoIdentificacion: docType,
+        numDocumentoIdentificacion: docNum,
+        vrServicio: Math.round(it.amount),
+        conceptoRecaudo: '05',
+        valorPagoModerador: 0,
+        numFEVPagoModerador: null,
+      };
+    });
+
+    usuarios.push({
+      consecutivo: consecutivoUsuario++,
+      tipoDocumentoIdentificacion: docType,
+      numDocumentoIdentificacion: docNum,
+      tipoUsuario: userType,
+      fechaNacimiento: pat.date_of_birth ? pat.date_of_birth.substring(0, 10) : '1990-01-01',
+      codSexo: sexo,
+      codPaisResidencia: '170',
+      codMunicipioResidencia: munCode,
+      codZonaTerritorialResidencia: resArea,
+      incapacidad: 'NO',
+      servicios: {
+        consultas,
+      },
+    });
+  });
+
+  const payload: RipsPayload = {
+    numDocumentoIdObligado: nitPrestador,
+    codigoPrestador: prestadorCode,
+    numFactura: invoiceConsolidada,
+    tipoNota: null,
+    numNota: null,
+    usuarios,
+  };
+
+  return { payload, warnings };
 }
 
 /**

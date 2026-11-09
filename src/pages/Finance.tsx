@@ -61,7 +61,7 @@ import PaymentModal from '@/components/finance/PaymentModal';
 import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
 import { useFinanceData } from '@/hooks/useFinance';
 import { formatCOP } from '@/lib/colombiaCatalogs';
-import { downloadRipsJSON } from '@/lib/ripsGenerator';
+import { downloadRipsJSON, buildMonthlyConsolidatedRipsJSON, validateRipsPayload } from '@/lib/ripsGenerator';
 import { downloadDianInvoicePDF } from '@/lib/generateDianInvoicePDF';
 import { Input } from '@/components/ui/input';
 import {
@@ -303,6 +303,92 @@ const Finance = () => {
       toast.dismiss();
       const error = err as Error;
       toast.error(error.message || 'Error al generar la factura');
+    }
+  };
+
+  const [isGeneratingMonthlyRips, setIsGeneratingMonthlyRips] = useState(false);
+
+  const handleDownloadMonthlyRips = async () => {
+    if (!organization?.id || !user?.id) return;
+    setIsGeneratingMonthlyRips(true);
+    try {
+      toast.loading('Generando paquete RIPS consolidado (Res. 2275)...');
+
+      const start = startOfMonth(selectedDate).toISOString();
+      const end = endOfMonth(selectedDate).toISOString();
+      const monthStr = format(selectedDate, 'yyyy-MM');
+
+      const [{ data: prof }, { data: appts }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase
+          .from('appointments')
+          .select('id, patient_id, patient_name, start_time, fee, cups_code, modality, service_modality, consultation_purpose, external_cause, status')
+          .eq('organization_id', organization.id)
+          .neq('status', 'cancelled')
+          .gte('start_time', start)
+          .lte('start_time', end)
+          .order('start_time', { ascending: true }),
+      ]);
+
+      if (!appts || appts.length === 0) {
+        toast.dismiss();
+        toast.info(`No hay consultas registradas en ${format(selectedDate, 'MMMM yyyy', { locale: es })} para generar RIPS.`);
+        return;
+      }
+
+      const patientIds = Array.from(new Set(appts.map(a => a.patient_id).filter(Boolean)));
+      
+      const [{ data: patientsList }, { data: notesList }] = await Promise.all([
+        supabase.from('patients').select('*').in('id', patientIds),
+        supabase.from('session_notes').select('id, patient_id, appointment_id, cie10_code, dsm5_code, diagnostico_principal').in('patient_id', patientIds),
+      ]);
+
+      const patientMap = new Map((patientsList || []).map(p => [p.id, p]));
+      
+      const items = appts.map(a => {
+        const pat = patientMap.get(a.patient_id) || {
+          id: a.patient_id || 'unknown',
+          name: a.patient_name,
+          document_type: 'CC',
+          document_number: '100000000',
+          municipality_code: '11001',
+          residence_area: '01',
+          user_type: '04',
+          organization_id: organization.id,
+        };
+        const note = (notesList || []).find(n => n.appointment_id === a.id || n.patient_id === a.patient_id);
+        return {
+          patient: pat,
+          appointment: a,
+          sessionNote: note || null,
+          amount: a.fee || 0,
+        };
+      });
+
+      const { payload, warnings } = buildMonthlyConsolidatedRipsJSON(prof || {}, monthStr, items);
+
+      const validation = validateRipsPayload(payload);
+      if (!validation.valid && validation.errors.length > 0) {
+        toast.dismiss();
+        toast.error(`Error en validación MinSalud: ${validation.errors[0]}`);
+        return;
+      }
+
+      if (warnings.length > 0) {
+        toast.info(`Nota: ${warnings[0]}`);
+      }
+
+      const fileName = `RIPS_CONSOLIDADO_${prof?.reps_code || 'PRESTADOR'}_${monthStr}.json`;
+      downloadRipsJSON(payload, fileName);
+
+      toast.dismiss();
+      toast.success(`Paquete RIPS consolidado de ${format(selectedDate, 'MMMM yyyy', { locale: es })} descargado (${payload.usuarios.length} pacientes, ${appts.length} consultas)`);
+    } catch (err: any) {
+      toast.dismiss();
+      console.error('Error generating monthly RIPS:', err);
+      toast.error('Error al generar RIPS: ' + err.message);
+    } finally {
+      setIsGeneratingMonthlyRips(false);
     }
   };
 
@@ -630,6 +716,19 @@ const Finance = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              onClick={handleDownloadMonthlyRips}
+              disabled={isGeneratingMonthlyRips}
+            >
+              {isGeneratingMonthlyRips ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              )}
+              <span>RIPS MinSalud ({format(selectedDate, 'MMM yyyy', { locale: es })})</span>
+            </Button>
             <Button
               variant="outline"
               className="w-full sm:w-auto gap-2 shadow-soft hover:scale-[1.02] transition-all border border-border"
