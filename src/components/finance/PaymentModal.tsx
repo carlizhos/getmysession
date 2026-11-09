@@ -21,6 +21,7 @@ import {
     Building2,
     Share2,
     MessageCircle,
+    Settings,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/lib/utils';
 import { logActivity } from '@/lib/activityLogger';
 import { ColombiaPaymentConfig } from '@/types';
+import ColombiaPaymentConfigModal from '@/components/settings/ColombiaPaymentConfigModal';
 
 interface Appointment {
     id: string;
@@ -123,23 +125,27 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
     const [onlineUrl, setOnlineUrl] = useState<string | null>(null);
     const [paymentConfig, setPaymentConfig] = useState<ColombiaPaymentConfig>({});
     const [patientPhone, setPatientPhone] = useState<string | null>(null);
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+
+    const loadPaymentConfig = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setCurrentUserId(user.id);
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('colombia_payment_config')
+                .eq('id', user.id)
+                .maybeSingle();
+            if (prof?.colombia_payment_config) {
+                setPaymentConfig(prof.colombia_payment_config);
+            }
+        }
+    };
 
     useEffect(() => {
         if (open) {
-            // Load therapist's colombia_payment_config
-            (async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data: prof } = await supabase
-                        .from('profiles')
-                        .select('colombia_payment_config')
-                        .eq('id', user.id)
-                        .maybeSingle();
-                    if (prof?.colombia_payment_config) {
-                        setPaymentConfig(prof.colombia_payment_config);
-                    }
-                }
-            })();
+            loadPaymentConfig();
 
             // Resolve patient phone for direct WhatsApp dispatch
             if (appointment?.patient_phone) {
@@ -192,6 +198,21 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
     };
 
     const handleShareWhatsApp = () => {
+        if (selected === 'nequi' && !paymentConfig.nequi_phone) {
+            toast.error('Configura tu número de Nequi antes de enviar el cobro');
+            setIsConfigModalOpen(true);
+            return;
+        }
+        if (selected === 'daviplata' && !paymentConfig.daviplata_phone) {
+            toast.error('Configura tu número de Daviplata antes de enviar el cobro');
+            setIsConfigModalOpen(true);
+            return;
+        }
+        if (selected === 'transferencia' && !paymentConfig.bank_account_number) {
+            toast.error('Configura tu cuenta bancaria antes de enviar el cobro');
+            setIsConfigModalOpen(true);
+            return;
+        }
         const text = encodeURIComponent(getWhatsAppBillingText());
         let phoneQuery = '';
         if (patientPhone) {
@@ -300,6 +321,7 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
     const apt = appointment;
 
     return (
+        <>
         <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -432,14 +454,25 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                                         </Button>
                                     )}
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1.5"
-                                    onClick={handleShareWhatsApp}
-                                >
-                                    <MessageCircle className="h-3.5 w-3.5" /> Enviar datos de Nequi por WhatsApp al paciente
-                                </Button>
+                                {paymentConfig.nequi_phone ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1.5"
+                                        onClick={handleShareWhatsApp}
+                                    >
+                                        <MessageCircle className="h-3.5 w-3.5" /> Enviar datos de Nequi por WhatsApp al paciente
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs text-purple-700 border-purple-300 hover:bg-purple-50 gap-1.5 font-bold"
+                                        onClick={() => setIsConfigModalOpen(true)}
+                                    >
+                                        <Settings className="h-3.5 w-3.5" /> Configurar mi número Nequi ahora
+                                    </Button>
+                                )}
                             </div>
                         )}
 
@@ -463,14 +496,25 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                                         </Button>
                                     )}
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1.5"
-                                    onClick={handleShareWhatsApp}
-                                >
-                                    <MessageCircle className="h-3.5 w-3.5" /> Enviar datos de Daviplata por WhatsApp
-                                </Button>
+                                {paymentConfig.daviplata_phone ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1.5"
+                                        onClick={handleShareWhatsApp}
+                                    >
+                                        <MessageCircle className="h-3.5 w-3.5" /> Enviar datos de Daviplata por WhatsApp
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs text-rose-700 border-rose-300 hover:bg-rose-50 gap-1.5 font-bold"
+                                        onClick={() => setIsConfigModalOpen(true)}
+                                    >
+                                        <Settings className="h-3.5 w-3.5" /> Configurar mi número Daviplata ahora
+                                    </Button>
+                                )}
                             </div>
                         )}
 
@@ -506,6 +550,16 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                                             <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
                                         </Button>
                                     </div>
+                                )}
+                                {!paymentConfig.bank_account_number && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs text-sky-700 border-sky-300 hover:bg-sky-50 gap-1.5 font-bold"
+                                        onClick={() => setIsConfigModalOpen(true)}
+                                    >
+                                        <Settings className="h-3.5 w-3.5" /> Configurar mi cuenta bancaria ahora
+                                    </Button>
                                 )}
                             </div>
                         )}
@@ -562,6 +616,15 @@ const PaymentModal = ({ open, appointment, onOpenChange, onSuccess }: PaymentMod
                 )}
             </DialogContent>
         </Dialog>
+
+        <ColombiaPaymentConfigModal
+            open={isConfigModalOpen}
+            onOpenChange={setIsConfigModalOpen}
+            userId={currentUserId}
+            initialConfig={paymentConfig}
+            onSaved={loadPaymentConfig}
+        />
+        </>
     );
 };
 

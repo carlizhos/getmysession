@@ -953,112 +953,124 @@ const BookingPage = () => {
                 </div>
 
                 {/* Colombian payment instructions */}
-                {selectedService && selectedService.price > 0 && profile?.colombia_payment_config && (
-                  <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5 text-left w-full max-w-sm space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground uppercase tracking-wider">Opciones de Pago</span>
-                      <span className="text-sm font-extrabold text-primary">
-                        ${selectedService.price.toLocaleString('es-CO')} COP
-                      </span>
-                    </div>
+                {selectedService && selectedService.price > 0 && (() => {
+                  const cfg = profile?.colombia_payment_config;
+                  const hasMethods = !!(cfg?.nequi_phone || cfg?.daviplata_phone || cfg?.bank_account_number || cfg?.wompi_public_key || cfg?.bold_payment_link);
+                  return (
+                    <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5 text-left w-full max-w-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground uppercase tracking-wider">Opciones de Pago</span>
+                        <span className="text-sm font-extrabold text-primary">
+                          ${selectedService.price.toLocaleString('es-CO')} COP
+                        </span>
+                      </div>
 
-                    <p className="text-[11px] text-muted-foreground">
-                      Para confirmar tu sesión, puedes realizar tu pago a través de los siguientes canales:
-                    </p>
+                      {hasMethods ? (
+                        <>
+                          <p className="text-[11px] text-muted-foreground">
+                            Para confirmar tu sesión, puedes realizar tu pago a través de los siguientes canales:
+                          </p>
 
-                    <div className="space-y-2">
-                      {profile.colombia_payment_config.nequi_phone && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-background border border-purple-500/20 text-xs">
-                          <span className="font-semibold text-purple-700 dark:text-purple-300">
-                            Nequi: {profile.colombia_payment_config.nequi_phone}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2 text-purple-700"
-                            onClick={() => {
-                              navigator.clipboard.writeText(profile.colombia_payment_config.nequi_phone);
-                              toast.success('Número Nequi copiado');
-                            }}
-                          >
-                            Copiar
-                          </Button>
-                        </div>
-                      )}
+                          <div className="space-y-2">
+                            {cfg?.nequi_phone && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-background border border-purple-500/20 text-xs">
+                                <span className="font-semibold text-purple-700 dark:text-purple-300">
+                                  Nequi: {cfg.nequi_phone}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-[10px] px-2 text-purple-700"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(cfg.nequi_phone);
+                                    toast.success('Número Nequi copiado');
+                                  }}
+                                >
+                                  Copiar
+                                </Button>
+                              </div>
+                            )}
 
-                      {profile.colombia_payment_config.daviplata_phone && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-background border border-rose-500/20 text-xs">
-                          <span className="font-semibold text-rose-700 dark:text-rose-300">
-                            Daviplata: {profile.colombia_payment_config.daviplata_phone}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2 text-rose-700"
-                            onClick={() => {
-                              navigator.clipboard.writeText(profile.colombia_payment_config.daviplata_phone);
-                              toast.success('Número Daviplata copiado');
-                            }}
-                          >
-                            Copiar
-                          </Button>
-                        </div>
-                      )}
+                            {cfg?.daviplata_phone && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-background border border-rose-500/20 text-xs">
+                                <span className="font-semibold text-rose-700 dark:text-rose-300">
+                                  Daviplata: {cfg.daviplata_phone}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-[10px] px-2 text-rose-700"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(cfg.daviplata_phone);
+                                    toast.success('Número Daviplata copiado');
+                                  }}
+                                >
+                                  Copiar
+                                </Button>
+                              </div>
+                            )}
 
-                      {profile.colombia_payment_config.bank_account_number && (
-                        <div className="p-2 rounded-lg bg-background border border-sky-500/20 text-xs space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-sky-800 dark:text-sky-300">
-                              {profile.colombia_payment_config.bank_name || 'Bancolombia'} ({profile.colombia_payment_config.bank_account_type || 'Ahorros'})
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-[10px] px-2"
-                              onClick={() => {
-                                navigator.clipboard.writeText(profile.colombia_payment_config.bank_account_number);
-                                toast.success('Número de cuenta copiado');
-                              }}
-                            >
-                              Copiar
-                            </Button>
+                            {cfg?.bank_account_number && (
+                              <div className="p-2 rounded-lg bg-background border border-sky-500/20 text-xs space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-sky-800 dark:text-sky-300">
+                                    {cfg.bank_name || 'Bancolombia'} ({cfg.bank_account_type || 'Ahorros'})
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-[10px] px-2"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(cfg.bank_account_number);
+                                      toast.success('Número de cuenta copiado');
+                                    }}
+                                  >
+                                    Copiar
+                                  </Button>
+                                </div>
+                                <p className="text-[11px] font-mono text-muted-foreground">{cfg.bank_account_number}</p>
+                                {cfg.bank_account_holder && (
+                                  <p className="text-[10px] text-muted-foreground">Titular: {cfg.bank_account_holder}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {cfg?.wompi_public_key && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs font-bold text-teal-700 border-teal-300 hover:bg-teal-50 gap-1.5"
+                                onClick={() => {
+                                  const amountCents = Math.round(selectedService.price * 100);
+                                  const ref = `BOOK-${Date.now()}`;
+                                  const url = `https://checkout.wompi.co/p/?public-key=${cfg.wompi_public_key}&currency=COP&amount-in-cents=${amountCents}&reference=${ref}`;
+                                  window.open(url, '_blank');
+                                }}
+                              >
+                                Pagar en línea con PSE o Tarjeta (Wompi)
+                              </Button>
+                            )}
+
+                            {cfg?.bold_payment_link && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs font-bold text-blue-700 border-blue-300 hover:bg-blue-50 gap-1.5"
+                                onClick={() => window.open(cfg.bold_payment_link, '_blank')}
+                              >
+                                Pagar en línea con Bold
+                              </Button>
+                            )}
                           </div>
-                          <p className="text-[11px] font-mono text-muted-foreground">{profile.colombia_payment_config.bank_account_number}</p>
-                          {profile.colombia_payment_config.bank_account_holder && (
-                            <p className="text-[10px] text-muted-foreground">Titular: {profile.colombia_payment_config.bank_account_holder}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {profile.colombia_payment_config.wompi_public_key && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-xs font-bold text-teal-700 border-teal-300 hover:bg-teal-50 gap-1.5"
-                          onClick={() => {
-                            const amountCents = Math.round(selectedService.price * 100);
-                            const ref = `BOOK-${Date.now()}`;
-                            const url = `https://checkout.wompi.co/p/?public-key=${profile.colombia_payment_config.wompi_public_key}&currency=COP&amount-in-cents=${amountCents}&reference=${ref}`;
-                            window.open(url, '_blank');
-                          }}
-                        >
-                          Pagar en línea con PSE o Tarjeta (Wompi)
-                        </Button>
-                      )}
-
-                      {profile.colombia_payment_config.bold_payment_link && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-xs font-bold text-blue-700 border-blue-300 hover:bg-blue-50 gap-1.5"
-                          onClick={() => window.open(profile.colombia_payment_config.bold_payment_link, '_blank')}
-                        >
-                          Pagar en línea con Bold
-                        </Button>
+                        </>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Tu especialista te contactará directamente para coordinar los datos de pago y confirmar tu sesión.
+                        </p>
                       )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
           </div>
