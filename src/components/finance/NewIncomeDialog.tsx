@@ -32,13 +32,17 @@ interface NewIncomeDialogProps {
     onSuccess: () => void;
 }
 
-type Method = 'efectivo' | 'transferencia' | 'stripe';
+type Method = 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'wompi' | 'bold' | 'stripe';
 type Category = 'sesion' | 'taller' | 'conferencia' | 'otro';
 
-const METHODS: { id: Method; label: string; icon: typeof Wallet; color: string }[] = [
-    { id: 'efectivo', label: 'Efectivo', icon: Wallet, color: 'text-success bg-success/10' },
+const METHODS: { id: Method; label: string; icon: React.ElementType; color: string }[] = [
+    { id: 'nequi', label: 'Nequi', icon: Smartphone, color: 'text-purple-600 bg-purple-500/10' },
+    { id: 'daviplata', label: 'Daviplata', icon: Smartphone, color: 'text-rose-600 bg-rose-500/10' },
     { id: 'transferencia', label: 'Transferencia', icon: ArrowLeftRight, color: 'text-sky-600 bg-sky-500/10' },
-    { id: 'stripe', label: 'Stripe', icon: CreditCard, color: 'text-primary bg-primary/10' },
+    { id: 'wompi', label: 'Wompi (PSE)', icon: CreditCard, color: 'text-teal-600 bg-teal-500/10' },
+    { id: 'bold', label: 'Bold', icon: Building2, color: 'text-blue-600 bg-blue-500/10' },
+    { id: 'efectivo', label: 'Efectivo', icon: Wallet, color: 'text-emerald-600 bg-emerald-500/10' },
+    { id: 'stripe', label: 'Stripe', icon: CreditCard, color: 'text-indigo-600 bg-indigo-500/10' },
 ];
 
 const CATEGORIES: { id: Category; label: string }[] = [
@@ -190,7 +194,7 @@ const NewIncomeDialog = ({ open, onOpenChange, onSuccess }: NewIncomeDialogProps
                     {/* Método de Pago */}
                     <div className="space-y-3">
                         <label className="text-sm font-medium text-muted-foreground">Método de Pago</label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                             {METHODS.map(m => {
                                 const Icon = m.icon;
                                 const isSelected = formData.method === m.id;

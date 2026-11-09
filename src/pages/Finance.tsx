@@ -62,6 +62,7 @@ import NewIncomeDialog from '@/components/finance/NewIncomeDialog';
 import { useFinanceData } from '@/hooks/useFinance';
 import { formatCOP } from '@/lib/colombiaCatalogs';
 import { downloadRipsJSON } from '@/lib/ripsGenerator';
+import { downloadDianInvoicePDF } from '@/lib/generateDianInvoicePDF';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -98,7 +99,7 @@ interface Payment {
   category?: string | null;
 }
 
-type PaymentMethod = 'efectivo' | 'transferencia' | 'stripe';
+export type PaymentMethod = 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'wompi' | 'bold' | 'stripe';
 
 const SECTION_IDS = ['metodos', 'resumen', 'grafico', 'sesiones'] as const;
 type SectionId = typeof SECTION_IDS[number];
@@ -108,18 +109,30 @@ const LS_KEY = 'finance_section_order';
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   efectivo: 'Efectivo',
   transferencia: 'Transferencia',
+  nequi: 'Nequi',
+  daviplata: 'Daviplata',
+  wompi: 'Wompi (PSE)',
+  bold: 'Bold',
   stripe: 'En línea (Stripe)',
 };
 
 const METHOD_ICONS: Record<PaymentMethod, React.ElementType> = {
   efectivo: Wallet,
   transferencia: ArrowLeftRight,
+  nequi: Smartphone,
+  daviplata: Smartphone,
+  wompi: CreditCard,
+  bold: Building2,
   stripe: CreditCard,
 };
 
 const METHOD_COLORS: Record<PaymentMethod, string> = {
-  efectivo: 'bg-success/10 text-success border-success/20',
+  efectivo: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   transferencia: 'bg-sky-500/10 text-sky-600 border-sky-500/20',
+  nequi: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  daviplata: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+  wompi: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+  bold: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   stripe: 'bg-primary/10 text-primary border-primary/20',
 };
 
@@ -157,7 +170,7 @@ const Finance = () => {
   
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfMonth(new Date()));
   const [searchQuery, setSearchQuery] = useState('');
-  const [methodFilter, setMethodFilter] = useState<'all' | 'efectivo' | 'transferencia' | 'stripe'>('all');
+  const [methodFilter, setMethodFilter] = useState<'all' | PaymentMethod>('all');
 
   // Generate the last 12 months for the dropdown selector
   const monthOptions = Array.from({ length: 12 }).map((_, i) => {
@@ -224,30 +237,72 @@ const Finance = () => {
     }
   };
 
-  const handleDownloadDirect = async (invoiceId: string) => {
+    const handleDownloadDirect = async (paymentOrInvoiceId: any) => {
     try {
-      toast.loading('Preparando descarga...');
-      const { data, error: funcError } = await supabase.functions.invoke('generate-invoice', {
-        body: { invoice_id: invoiceId, action: 'download' }
+      toast.loading('Generando Factura Electrónica FEV Salud (DIAN)...');
+      
+      const payment = typeof paymentOrInvoiceId === 'object' && paymentOrInvoiceId !== null
+        ? paymentOrInvoiceId
+        : paidPayments.find(p => p.invoice_id === paymentOrInvoiceId || p.id === paymentOrInvoiceId);
+
+      if (!payment) {
+        throw new Error('No se encontró el registro de cobro.');
+      }
+
+      // Obtener perfil del terapeuta
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      let cie10 = 'F411';
+      let dsm5: string | undefined = undefined;
+      let diagDesc = 'Consulta de Psicoterapia Individual';
+      let patientDocType = 'CC';
+      let patientDocNum = 'Consumidor Final';
+
+      if (payment.appointment_id) {
+        const { data: apt } = await supabase
+          .from('appointments')
+          .select('patient_id, cups_code, modality')
+          .eq('id', payment.appointment_id)
+          .maybeSingle();
+
+        if (apt?.patient_id) {
+          const [{ data: pat }, { data: note }] = await Promise.all([
+            supabase.from('patients').select('document_type, document_number, municipality_code, residence_area').eq('id', apt.patient_id).maybeSingle(),
+            supabase.from('session_notes').select('cie10_code, dsm5_code, diagnostico_principal').eq('patient_id', apt.patient_id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          ]);
+
+          if (pat?.document_number) {
+            patientDocType = pat.document_type || 'CC';
+            patientDocNum = pat.document_number;
+          }
+          if (note?.cie10_code) cie10 = note.cie10_code;
+          if (note?.dsm5_code) dsm5 = note.dsm5_code;
+          if (note?.diagnostico_principal) diagDesc = note.diagnostico_principal;
+        }
+      }
+
+      await downloadDianInvoicePDF({
+        payment: payment,
+        profile: prof,
+        patient: {
+          document_type: patientDocType,
+          document_number: patientDocNum,
+        },
+        cie10Code: cie10,
+        dsm5Code: dsm5,
+        diagnosticDescription: diagDesc,
       });
 
       toast.dismiss();
-      if (funcError) throw new Error(funcError.message);
-      
-      // La data es un blob
-      const blob = data;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura_${invoiceId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
+      toast.success('Factura DIAN (FEV Salud) descargada exitosamente');
     } catch (err: unknown) {
+      toast.dismiss();
       const error = err as Error;
-      toast.error(error.message || 'Error al descargar el archivo');
+      toast.error(error.message || 'Error al generar la factura');
     }
   };
 
@@ -395,12 +450,16 @@ const Finance = () => {
     a.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const byMethod = (method: PaymentMethod) =>
+    const byMethod = (method: PaymentMethod) =>
     paidPayments.filter(p => p.method === method || (!p.method && method === 'stripe'));
 
   const stripe = byMethod('stripe');
   const efectivo = byMethod('efectivo');
   const transferencia = byMethod('transferencia');
+  const nequi = byMethod('nequi');
+  const daviplata = byMethod('daviplata');
+  const wompi = byMethod('wompi');
+  const bold = byMethod('bold');
 
   const sumOf = (ps: Payment[]) => ps.reduce((s, p) => s + p.amount, 0);
 
@@ -419,7 +478,11 @@ const Finance = () => {
   const stripeTotal = sumOf(stripe);
   const efectivoTotal = sumOf(efectivo);
   const transferenciaTotal = sumOf(transferencia);
-  const totalBruto = stripeTotal + efectivoTotal + transferenciaTotal;
+  const nequiTotal = sumOf(nequi);
+  const daviplataTotal = sumOf(daviplata);
+  const wompiTotal = sumOf(wompi);
+  const boldTotal = sumOf(bold);
+  const totalBruto = sumOf(paidPayments);
 
   const stripeFeeAmount = stripeTotal * (feeConfig.stripe_fee_percent / 100);
   const stripeNeto = stripeTotal - stripeFeeAmount;
@@ -998,7 +1061,7 @@ const Finance = () => {
 
                     {!collapsed['sesiones'] && (
                       <CardContent className="pt-0 space-y-4">
-                        {/* Payment Method Filter Pills */}
+                                                {/* Payment Method Filter Pills */}
                         <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border/40">
                           <Button
                             size="sm"
@@ -1008,14 +1071,26 @@ const Finance = () => {
                           >
                             Todos ({paidPayments.length})
                           </Button>
-                          <Button
-                            size="sm"
-                            variant={methodFilter === 'efectivo' ? 'default' : 'outline'}
-                            onClick={() => setMethodFilter('efectivo')}
-                            className="text-xs h-7 rounded-full px-3 gap-1 border-success/30 text-success bg-success/5 hover:bg-success/10"
-                          >
-                            <Wallet className="h-3 w-3" /> Efectivo ({efectivo.length})
-                          </Button>
+                          {nequi.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant={methodFilter === 'nequi' ? 'default' : 'outline'}
+                              onClick={() => setMethodFilter('nequi')}
+                              className="text-xs h-7 rounded-full px-3 gap-1 border-purple-500/30 text-purple-600 bg-purple-500/5 hover:bg-purple-500/10"
+                            >
+                              <Smartphone className="h-3 w-3" /> Nequi ({nequi.length})
+                            </Button>
+                          )}
+                          {daviplata.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant={methodFilter === 'daviplata' ? 'default' : 'outline'}
+                              onClick={() => setMethodFilter('daviplata')}
+                              className="text-xs h-7 rounded-full px-3 gap-1 border-rose-500/30 text-rose-600 bg-rose-500/5 hover:bg-rose-500/10"
+                            >
+                              <Smartphone className="h-3 w-3" /> Daviplata ({daviplata.length})
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant={methodFilter === 'transferencia' ? 'default' : 'outline'}
@@ -1023,6 +1098,34 @@ const Finance = () => {
                             className="text-xs h-7 rounded-full px-3 gap-1 border-sky-500/30 text-sky-600 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100"
                           >
                             <ArrowLeftRight className="h-3 w-3" /> Transferencia ({transferencia.length})
+                          </Button>
+                          {wompi.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant={methodFilter === 'wompi' ? 'default' : 'outline'}
+                              onClick={() => setMethodFilter('wompi')}
+                              className="text-xs h-7 rounded-full px-3 gap-1 border-teal-500/30 text-teal-600 bg-teal-500/5 hover:bg-teal-500/10"
+                            >
+                              <CreditCard className="h-3 w-3" /> Wompi ({wompi.length})
+                            </Button>
+                          )}
+                          {bold.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant={methodFilter === 'bold' ? 'default' : 'outline'}
+                              onClick={() => setMethodFilter('bold')}
+                              className="text-xs h-7 rounded-full px-3 gap-1 border-blue-500/30 text-blue-600 bg-blue-500/5 hover:bg-blue-500/10"
+                            >
+                              <Building2 className="h-3 w-3" /> Bold ({bold.length})
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={methodFilter === 'efectivo' ? 'default' : 'outline'}
+                            onClick={() => setMethodFilter('efectivo')}
+                            className="text-xs h-7 rounded-full px-3 gap-1 border-success/30 text-success bg-success/5 hover:bg-success/10"
+                          >
+                            <Wallet className="h-3 w-3" /> Efectivo ({efectivo.length})
                           </Button>
                           <Button
                             size="sm"
@@ -1115,7 +1218,7 @@ const Finance = () => {
                                                 Ver en Catálogo DIAN
                                               </DropdownMenuItem>
                                             )}
-                                            <DropdownMenuItem onClick={() => handleDownloadDirect(p.invoice_id || p.id)} className="gap-2 cursor-pointer">
+                                            <DropdownMenuItem onClick={() => handleDownloadDirect(p)} className="gap-2 cursor-pointer font-medium text-primary">
                                               <Download className="h-4 w-4" />
                                               Descargar PDF (DIAN)
                                             </DropdownMenuItem>

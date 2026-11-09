@@ -149,6 +149,24 @@ export interface Appointment {
     external_cause?: string; // 13 Enfermedad general
 }
 
+
+export interface ColombiaPaymentConfig {
+    nequi_phone?: string;
+    daviplata_phone?: string;
+    transfiya_phone?: string;
+    bank_name?: string;
+    bank_account_type?: 'ahorros' | 'corriente' | string;
+    bank_account_number?: string;
+    bank_account_holder?: string;
+    bank_account_nit?: string;
+    bancolombia_qr_url?: string;
+    wompi_public_key?: string;
+    wompi_integrity_key?: string;
+    bold_api_key?: string;
+    bold_payment_link?: string;
+    default_method?: string;
+}
+
 export interface Organization {
     id: string;
     name: string;
@@ -173,6 +191,9 @@ export interface Profile {
     nit?: string; // Cédula o NIT tributario
     dian_prefix?: string; // Prefijo de facturación autorizado (ej: SETP)
     dian_resolution?: string; // Número de resolución DIAN
+    tax_regime?: 'no_responsable_iva' | 'responsable_iva' | string;
+    dian_technical_key?: string;
+    colombia_payment_config?: ColombiaPaymentConfig;
     porcentaje_consultorio?: number;
     stripe_fee_percent?: number;
 }
@@ -183,7 +204,7 @@ export interface Payment {
     appointment_id?: string;
     patient_name: string;
     amount: number;
-    method: 'efectivo' | 'transferencia' | 'stripe';
+    method: 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'wompi' | 'bold' | 'stripe' | string;
     status: 'paid' | 'pending' | 'failed' | 'refunded';
     notes?: string;
     created_at: string;

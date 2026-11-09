@@ -102,6 +102,8 @@ export default function ProfileSettings() {
     nit: '',
     dian_prefix: 'SETP',
     dian_resolution: '',
+    tax_regime: 'no_responsable_iva',
+    dian_technical_key: '',
   });
 
   const [originalSlug, setOriginalSlug] = useState('');
@@ -149,6 +151,8 @@ export default function ProfileSettings() {
         nit: profileData.nit || '',
         dian_prefix: profileData.dian_prefix || 'SETP',
         dian_resolution: profileData.dian_resolution || '',
+        tax_regime: profileData.tax_regime || 'no_responsable_iva',
+        dian_technical_key: profileData.dian_technical_key || '',
       });
       setOriginalSlug(profileData.slug || '');
 
@@ -261,6 +265,8 @@ export default function ProfileSettings() {
           nit: profile.nit || null,
           dian_prefix: profile.dian_prefix || 'SETP',
           dian_resolution: profile.dian_resolution || null,
+          tax_regime: profile.tax_regime || 'no_responsable_iva',
+          dian_technical_key: profile.dian_technical_key || null,
         }
       });
       setOriginalSlug(profile.slug);
@@ -459,6 +465,44 @@ export default function ProfileSettings() {
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label htmlFor="dian_resolution" className="text-xs font-semibold">Resolución Autorización DIAN</Label>
+                  <Input
+                    id="dian_resolution"
+                    value={profile.dian_resolution}
+                    onChange={(e) => setProfile({ ...profile, dian_resolution: e.target.value })}
+                    placeholder="Ej: 18764000001 de 2026"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Número de resolución de numeración de facturación DIAN.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="tax_regime" className="text-xs font-semibold">Régimen de IVA (Estatuto Tributario)</Label>
+                  <select
+                    id="tax_regime"
+                    value={profile.tax_regime || 'no_responsable_iva'}
+                    onChange={(e) => setProfile({ ...profile, tax_regime: e.target.value })}
+                    className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    disabled={updateProfileMutation.isLoading}
+                  >
+                    <option value="no_responsable_iva">No Responsable de IVA (Art. 437 E.T. - Persona Natural)</option>
+                    <option value="responsable_iva">Responsable de IVA</option>
+                  </select>
+                  <p className="text-[11px] text-muted-foreground">La mayoría de psicólogos independientes son No responsables de IVA.</p>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="dian_technical_key" className="text-xs font-semibold">Clave Técnica DIAN (Opcional)</Label>
+                  <Input
+                    id="dian_technical_key"
+                    type="password"
+                    value={profile.dian_technical_key}
+                    onChange={(e) => setProfile({ ...profile, dian_technical_key: e.target.value })}
+                    placeholder="Clave técnica de software DIAN para generación de CUFE en ambiente propio"
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dian_prefix" className="text-xs font-semibold">Prefijo Autorizado DIAN</Label>
                   <Input

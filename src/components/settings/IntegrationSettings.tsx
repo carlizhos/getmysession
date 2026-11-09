@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle, CalendarPlus, CheckCircle2, ExternalLink, Loader2, Video } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, CheckCircle2, ExternalLink, Loader2, Video, Smartphone, CreditCard as CreditCardIcon, Building2 } from 'lucide-react';
+import ColombiaPaymentConfigModal from '@/components/settings/ColombiaPaymentConfigModal';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export default function IntegrationSettings() {
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [codeClient, setCodeClient] = useState<{ requestCode: () => void } | null>(null);
   const [integrationFilter, setIntegrationFilter] = useState<'all' | 'calendar' | 'video' | 'payments'>('all');
+  const [showColombiaPaymentsModal, setShowColombiaPaymentsModal] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -645,6 +647,15 @@ export default function IntegrationSettings() {
           </div>
         )}
       </div>
+
+      {/* Colombia Payment Config Modal */}
+      <ColombiaPaymentConfigModal
+        open={showColombiaPaymentsModal}
+        onOpenChange={setShowColombiaPaymentsModal}
+        userId={user?.id}
+        initialConfig={profile?.colombia_payment_config}
+        onSaved={refetch}
+      />
 
       {/* Unlink Confirmation Dialog */}
       <Dialog open={showUnlinkConfirm} onOpenChange={setShowUnlinkConfirm}>
