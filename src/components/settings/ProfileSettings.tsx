@@ -725,7 +725,7 @@ export default function ProfileSettings() {
                   <div className="flex gap-2">
                     <div className="flex flex-1 rounded-md shadow-sm relative">
                       <span className="inline-flex items-center rounded-l-md border border-r-0 border-border bg-muted px-3 text-muted-foreground text-[10px] md:text-sm">
-                        app.getmysession.mx/reservar/
+                        {typeof window !== 'undefined' ? window.location.host : 'getmysession.com'}/reservar/
                       </span>
                       <Input
                         id="slug"
@@ -754,7 +754,7 @@ export default function ProfileSettings() {
                           size="icon"
                           className="h-10 w-10 shrink-0"
                           onClick={() => {
-                            const url = `https://app.getmysession.mx/reservar/${profile.slug}`;
+                            const url = `${window.location.origin}/reservar/${profile.slug}`;
                             navigator.clipboard.writeText(url);
                             toast.success('Enlace copiado');
                           }}
@@ -813,7 +813,7 @@ export default function ProfileSettings() {
                     <Label className="text-[10px] uppercase text-muted-foreground">Enlace de Perfil</Label>
                     <div className="flex gap-1.5">
                       <div className="flex-1 text-[11px] bg-background border border-border rounded-md px-2 py-1.5 truncate">
-                        app.getmysession.mx/perfil/{profile.slug || '...'}
+                        {typeof window !== 'undefined' ? window.location.host : 'getmysession.com'}/perfil/{profile.slug || '...'}
                       </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -823,7 +823,7 @@ export default function ProfileSettings() {
                             size="icon"
                             className="h-8 w-8 shrink-0"
                             onClick={() => {
-                              const url = `https://app.getmysession.mx/perfil/${profile.slug}`;
+                              const url = `${window.location.origin}/perfil/${profile.slug}`;
                               navigator.clipboard.writeText(url);
                               toast.success('Enlace de perfil copiado');
                             }}
@@ -856,7 +856,7 @@ export default function ProfileSettings() {
                     <Label className="text-[10px] uppercase text-muted-foreground">Enlace de Reservas</Label>
                     <div className="flex gap-1.5">
                       <div className="flex-1 text-[11px] bg-background border border-border rounded-md px-2 py-1.5 truncate">
-                        app.getmysession.mx/reservar/{profile.slug || '...'}
+                        {typeof window !== 'undefined' ? window.location.host : 'getmysession.com'}/reservar/{profile.slug || '...'}
                       </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -866,7 +866,7 @@ export default function ProfileSettings() {
                             size="icon"
                             className="h-8 w-8 shrink-0"
                             onClick={() => {
-                              const url = `https://app.getmysession.mx/reservar/${profile.slug}`;
+                              const url = `${window.location.origin}/reservar/${profile.slug}`;
                               navigator.clipboard.writeText(url);
                               toast.success('Enlace de reservas copiado');
                             }}

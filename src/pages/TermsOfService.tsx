@@ -28,8 +28,8 @@ const TermsOfService = () => {
                 <div className="prose prose-slate dark:prose-invert max-w-none space-y-8 text-foreground">
                     <div className="bg-slate-100 dark:bg-slate-900 p-5 rounded-2xl border border-border/60 text-muted-foreground leading-relaxed text-sm">
                         <p className="mb-2"><strong>Titular:</strong> GetMySession</p>
-                        <p className="mb-2"><strong>Sitio Web:</strong> <a href="https://app.getmysession.mx" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://app.getmysession.mx</a></p>
-                        <p><strong>Contacto de Soporte:</strong> <a href="mailto:contacto@getmysession.mx" className="text-primary hover:underline">contacto@getmysession.mx</a> o <a href="mailto:getmysession.app.mx@gmail.com" className="text-primary hover:underline">getmysession.app.mx@gmail.com</a></p>
+                        <p className="mb-2"><strong>Sitio Web:</strong> <a href="https://getmysession.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://getmysession.com</a></p>
+                        <p><strong>Contacto de Soporte:</strong> <a href="mailto:contacto@getmysession.com" className="text-primary hover:underline">contacto@getmysession.com</a> o <a href="mailto:soporte@getmysession.com" className="text-primary hover:underline">soporte@getmysession.com</a></p>
                     </div>
 
                     <p className="text-muted-foreground leading-relaxed">

@@ -2121,7 +2121,7 @@ const Patients = () => {
                                         description: 'Invitar a retomar su espacio',
                                         icon: <Activity className="h-5 w-5" />,
                                         color: 'secondary',
-                                        message: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: https://app.getmysession.mx/reservar/${organization?.slug || 'psicologo'}. ¡Será un gusto volver a coincidir!`,
+                                        message: `¡Hola, ${name}! Te hemos extrañado. 😊 ¿Te gustaría retomar tu espacio con nosotros? Consulta nuestra disponibilidad aquí: ${window.location.origin}/reservar/${organization?.slug || 'psicologo'}. ¡Será un gusto volver a coincidir!`,
                                         disabled: false,
                                       },
                                       {
