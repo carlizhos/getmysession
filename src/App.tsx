@@ -419,6 +419,7 @@ const AppContent = () => {
 
             {/* Public Info Routes */}
             <Route path="/politicas" element={<PrivacyPolicy />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terminos" element={<TermsOfService />} />
             
             {/* Reviews */}
